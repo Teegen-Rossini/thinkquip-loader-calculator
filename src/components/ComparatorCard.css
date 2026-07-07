@@ -1,0 +1,200 @@
+.comparator-card {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-top: 4px solid var(--card-accent, var(--border));
+  border-radius: var(--radius);
+  padding: 0 18px 18px;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.2s var(--ease), transform 0.2s var(--ease);
+  min-width: 0;
+}
+
+.comparator-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.comparator-card--best {
+  box-shadow: 0 0 0 2px var(--card-accent, var(--border)), var(--shadow-lg);
+  transform: scale(1.02);
+  z-index: 1;
+}
+
+.comparator-card--best:hover {
+  transform: scale(1.02) translateY(-2px);
+}
+
+.comparator-card__ribbon {
+  position: absolute;
+  top: -12px;
+  left: 18px;
+  z-index: 2;
+  background: var(--card-accent, var(--border-strong));
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 4px 10px;
+  border-radius: 3px;
+  box-shadow: var(--shadow-sm);
+}
+
+.comparator-card__photo {
+  position: relative;
+  margin: 0 -18px 14px;
+  height: 170px;
+  overflow: hidden;
+  background: var(--surface-alt);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.comparator-card__photo img:first-child {
+  width: 88%;
+  height: 88%;
+  object-fit: contain;
+  display: block;
+}
+
+.comparator-card__logo {
+  position: absolute;
+  top: 10px;
+  left: 14px;
+  height: 22px;
+  width: auto;
+  max-width: 90px;
+  object-fit: contain;
+}
+
+.comparator-card__name {
+  font-size: 15px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+  margin-bottom: 10px;
+}
+
+.comparator-card__cost {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+
+.comparator-card__cost-value {
+  font-size: 23px;
+  font-weight: 700;
+  color: var(--text-heading);
+}
+
+.status-badge {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 4px 9px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.comparator-card__stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 14px;
+  margin: 14px 0 12px;
+}
+
+.comparator-card__stats dt {
+  font-size: 10.5px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 2px;
+}
+
+.comparator-card__stats dd {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.comparator-card__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 4px 0;
+}
+
+.comparator-card__toggle:hover {
+  text-decoration: underline;
+}
+
+.comparator-card__details {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.25s var(--ease);
+}
+
+.comparator-card__details--open {
+  max-height: 520px;
+}
+
+.comparator-card__details-inner {
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12.5px;
+}
+
+.detail-row__label {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.detail-note {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  font-style: italic;
+  line-height: 1.4;
+}
+
+@media print {
+  .comparator-card {
+    box-shadow: none;
+    break-inside: avoid;
+  }
+  .comparator-card--best {
+    box-shadow: none;
+    transform: none;
+    border: 2px solid var(--card-accent, var(--border-strong));
+  }
+  .comparator-card:hover {
+    transform: none;
+  }
+  .comparator-card__toggle {
+    display: none;
+  }
+  .comparator-card__details {
+    max-height: none !important;
+  }
+}

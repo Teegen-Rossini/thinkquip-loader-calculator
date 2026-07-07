@@ -1,0 +1,33 @@
+.confidence-legend {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  padding: 12px 2px;
+  max-width: 100%;
+}
+
+.confidence-legend__title {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.confidence-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: help;
+}
+
+.confidence-legend__dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.confidence-legend__dot--confirmed { background: var(--confirmed); }
+.confidence-legend__dot--estimate { background: var(--estimate); }
+.confidence-legend__dot--unconfirmed { background: var(--unconfirmed); }

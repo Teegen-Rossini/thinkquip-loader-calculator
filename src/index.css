@@ -1,0 +1,242 @@
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&display=swap');
+
+:root {
+  /* ---- Brand & UI color system ----
+     Turquoise-dominant shell (chrome, header, nav, active states, links),
+     matching the live ThinkQuip site. Yellow is reserved for primary
+     flow-forward CTAs (Start Calculation / Next: X). */
+  --tq-turquoise: #0AA6A0;
+  --tq-turquoise-dark: #067A76;
+  --tq-turquoise-darker: #055C59;
+  --tq-turquoise-light: #E3F6F5;
+  --tq-turquoise-mid: #B8EAE7;
+  --tq-ink: #0F2A28;
+
+  --cta-yellow: #FFB800;
+  --cta-yellow-dark: #E0A400;
+  --cta-ink: #1A1A1A;
+
+  --sany-red: #E2231A;           /* SANY logo native red — always, any variant */
+  --sany-red-light: #FCE9E8;
+
+  --sany-electric: #6BB8E0;      /* SW956E — card / chart line / highlights */
+  --sany-electric-light: #EAF5FB;
+  --sany-electric-dark: #3C86AD;
+
+  --sany-diesel: #F2A93E;        /* SYL956H5 — card / chart line */
+  --sany-diesel-light: #FDF2E0;
+  --sany-diesel-dark: #B87A17;
+
+  --competitor-yellow: #FFC72C;  /* shared CAT / Komatsu / Volvo accent */
+  --competitor-yellow-light: #FFF7E0;
+  --competitor-black: #1A1A1A;
+
+  --bg: #F3F4F1;
+  --surface: #FFFFFF;
+  --surface-alt: #F8F8F6;
+  --border: #DBDCD5;
+  --border-strong: #1A1A1A;
+  --text: #22231F;
+  --text-muted: #6B6D63;
+  --text-heading: #14150F;
+  --dark-panel: #171A1D;
+
+  --confirmed: #0AA6A0;
+  --estimate: #B7791F;
+  --unconfirmed: #8A8C82;
+
+  --shadow-sm: 0 1px 2px rgba(20, 21, 15, 0.08);
+  --shadow-md: 0 6px 20px rgba(20, 21, 15, 0.12);
+  --shadow-lg: 0 14px 36px rgba(20, 21, 15, 0.20);
+
+  --sans: 'Segoe UI', system-ui, Roboto, sans-serif;
+  --display: 'Oswald', 'Arial Narrow', var(--sans);
+
+  --radius: 6px;
+  --radius-sm: 4px;
+  --ease: cubic-bezier(0.2, 0.7, 0.3, 1);
+
+  font: 15px/1.5 var(--sans);
+  color-scheme: light;
+  color: var(--text);
+  background: var(--bg);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  margin: 0;
+}
+
+#root {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--display);
+  font-weight: 600;
+  color: var(--text-heading);
+  letter-spacing: 0.01em;
+  margin: 0;
+}
+
+p {
+  margin: 0;
+}
+
+button {
+  font: inherit;
+}
+
+input, select {
+  font: inherit;
+}
+
+img, svg {
+  max-width: 100%;
+}
+
+/* Numeric / spec figures: same sans face, tabular numerals for alignment —
+   not a separate monospace typeface. */
+.mono, .num {
+  font-variant-numeric: tabular-nums;
+}
+
+.eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+}
+
+.hairline {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 0;
+}
+
+/* ---- Primary flow-forward CTA (Start Calculation / Next: X) ---- */
+.btn-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--cta-yellow);
+  color: var(--cta-ink);
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 12px 22px;
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  transition: background 0.15s var(--ease), transform 0.1s var(--ease);
+}
+
+.btn-cta:hover {
+  background: var(--cta-yellow-dark);
+}
+
+.btn-cta:active {
+  transform: scale(0.98);
+}
+
+/* ---- Confidence badges (global — used across cards, tables, forms) ---- */
+.badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 7px;
+  border-radius: 3px;
+  margin-left: 6px;
+  vertical-align: middle;
+  border: 1px solid transparent;
+}
+
+.badge--estimate {
+  background: #FBF0DE;
+  color: var(--estimate);
+  border-color: #EAD3A0;
+}
+
+.badge--unconfirmed {
+  background: #EFF0EB;
+  color: var(--unconfirmed);
+  border-color: var(--border);
+}
+
+/* ---- Lightweight CSS-only tooltips (no JS positioning lib) ---- */
+.tooltip-trigger {
+  position: relative;
+}
+
+.tooltip-trigger::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  width: max-content;
+  max-width: 260px;
+  background: var(--tq-ink);
+  color: #fff;
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.15s var(--ease), transform 0.15s var(--ease);
+  z-index: 50;
+  text-align: left;
+  white-space: normal;
+}
+
+.tooltip-trigger:hover::after,
+.tooltip-trigger:focus-visible::after {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* Utility for print-only content, hidden on screen */
+.print-only {
+  display: none;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block;
+  }
+  body, .app-body {
+    background: #fff !important;
+  }
+  a[href]::after {
+    content: none !important;
+  }
+}
