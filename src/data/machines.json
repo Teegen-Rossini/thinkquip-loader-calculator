@@ -1,0 +1,111 @@
+{
+  "//": "SANY machine data — machine types, each containing the models the calculator can compare. This is the editable source of truth for machine specs and costs. To add a machine: copy a matching block from machines.template.json, fill it in, then run `npm run validate-data`. Full instructions in src/data/README.md. Keys starting with // are comments and are ignored.",
+  "machineTypes": [
+    {
+      "id": "wheel-loader",
+      "displayName": "Wheel Loader",
+      "models": [
+        {
+          "id": "sw956e",
+          "displayName": "SANY SW956E (Electric)",
+          "modelCode": "SW956E",
+          "machineType": "wheel-loader",
+          "energyType": "electric",
+          "imageAsset": "thinkquip-assets-v3/machines-cutout/sany-sw956e-electric.png",
+          "specs": {
+            "operatingWeightKg": 20000,
+            "ratedPayloadKg": 5800,
+            "bucketCapacityM3": 3.5,
+            "tyres": "L5",
+            "batteryCapacityKWh": 422,
+            "chargerRatingKW": 320,
+            "gunsPerCharger": 2,
+            "chargeTime20to80": "0.8 h (20% → 80%)",
+            "chargeTime20to100": "1.5 h (20% → 100%)",
+            "workHoursPerCharge": "7 – 9 h",
+            "chargeCycles": "4,000+ cycles",
+            "ratedConsumption": { "value": 38, "unit": "kWh/h" },
+            "operatingLifeHours": "30,000 – 35,000 h",
+            "warrantySummary": "5,000 h / 2 years",
+            "warrantyTiers": [
+              { "item": "Complete machine", "terms": "24 months / 5,000 h" },
+              { "item": "Battery, drive motor & electric control", "terms": "60 months / 10,000 h" },
+              { "item": "Axle, hydraulic pump & gearbox", "terms": "24 months / 5,000 h" }
+            ]
+          },
+          "costs": {
+            "priceExVat": 3150000,
+            "//priceExVat": "Charger (320 kW) is included in the machine price — no separate charging-infrastructure cost.",
+            "consumptionBreakpoints": [[50, 20], [65, 30], [85, 35], [100, 40]],
+            "routineServicePerHour": 0,
+            "maintenancePerYearAt2000h": 53877,
+            "maintenancePerYearAt3000h": 75377,
+            "batteryReplacement": { "atHours": 30000, "cost": 1120000 }
+          }
+        },
+        {
+          "id": "syl956h5-dry",
+          "displayName": "SANY SYL956H5 (Diesel, dry brake)",
+          "modelCode": "SYL956H5",
+          "machineType": "wheel-loader",
+          "energyType": "diesel",
+          "variant": "dry brake",
+          "imageAsset": "thinkquip-assets-v3/machines-cutout/sany-syl956h5-diesel.png",
+          "specs": {
+            "operatingWeightKg": 17100,
+            "ratedPayloadKg": 5000,
+            "bucketCapacityM3": 3,
+            "tyres": "L5",
+            "engine": "Cummins QSL8.9-C220 III, ~164 kW @ 2200 rpm",
+            "fuelTankL": 300,
+            "ratedConsumption": { "value": 14, "unit": "L/h" },
+            "warrantySummary": "4,000 h / 2 years",
+            "warrantyTiers": [
+              { "item": "Complete machine", "terms": "24 months / 4,000 h" }
+            ]
+          },
+          "costs": {
+            "priceExVat": 1850000,
+            "consumptionBreakpoints": [[50, 10], [65, 12], [85, 14], [100, 16]],
+            "routineServicePerHour": 29,
+            "maintenancePerYearAt2000h": 74873,
+            "maintenancePerYearAt3000h": 91373,
+            "overhaul": null,
+            "//overhaul": "null = no overhaul event. The SYL956H5's engine service is modelled as the continuous routineServicePerHour line (R29/h); there is deliberately no separate overhaul lump sum."
+          }
+        },
+        {
+          "id": "syl956h5-wet",
+          "displayName": "SANY SYL956H5 (Diesel, wet brake)",
+          "modelCode": "SYL956H5",
+          "machineType": "wheel-loader",
+          "energyType": "diesel",
+          "variant": "wet brake",
+          "imageAsset": "thinkquip-assets-v3/machines-cutout/sany-syl956h5-diesel.png",
+          "specs": {
+            "operatingWeightKg": 17100,
+            "ratedPayloadKg": 5000,
+            "bucketCapacityM3": 3,
+            "tyres": "L5",
+            "engine": "Cummins QSL8.9-C220 III, ~164 kW @ 2200 rpm",
+            "fuelTankL": 300,
+            "ratedConsumption": { "value": 14, "unit": "L/h" },
+            "warrantySummary": "4,000 h / 2 years",
+            "warrantyTiers": [
+              { "item": "Complete machine", "terms": "24 months / 4,000 h" }
+            ]
+          },
+          "costs": {
+            "priceExVat": 2200000,
+            "consumptionBreakpoints": [[50, 10], [65, 12], [85, 14], [100, 16]],
+            "routineServicePerHour": 29,
+            "maintenancePerYearAt2000h": 74873,
+            "maintenancePerYearAt3000h": 91373,
+            "overhaul": null,
+            "//overhaul": "null = no overhaul event. See the dry-brake entry — the two brake variants differ ONLY in selling price."
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -8,6 +8,12 @@ import { CALC_DEFAULTS } from '../data/machinesConfig';
 import { cumulativeCostAtHours } from '../lib/calculationEngine';
 import './CostChart.css';
 
+/** Model name without the leading brand word — the SANY logo mark shown
+ *  beside it already carries the brand, so the word would double up. */
+function modelOnly(displayName) {
+  return (displayName || '').replace(/^SANY\s+/i, '');
+}
+
 function buildChartData(machines) {
   const xs = [...new Set(machines.flatMap((m) => m.series.map((p) => p.hours)))].sort((a, b) => a - b);
   return xs.map((hours) => {
@@ -23,8 +29,8 @@ function LegendRow({ machines, winnerUid }) {
       {machines.map((m) => (
         <div key={m.uid} className={`cost-chart__legend-item${winnerUid === m.uid ? ' is-winner' : ''}`}>
           <span className="cost-chart__legend-swatch" style={{ background: m.chartColor }} />
-          <img src={m.logo} alt="" className="cost-chart__legend-logo" />
-          <span className="cost-chart__legend-name">{m.displayName}</span>
+          <img src={m.logo} alt="SANY" className="cost-chart__legend-logo" />
+          <span className="cost-chart__legend-name">{modelOnly(m.displayName)}</span>
         </div>
       ))}
     </div>
@@ -45,8 +51,8 @@ function ChartTooltip({ active, payload, label, machinesByUid, winnerUid, hoursP
         const isWinner = machine.uid === winnerUid;
         return (
           <div key={p.dataKey} className={`cost-chart__tooltip-row${isWinner ? ' is-winner' : ''}`}>
-            <img src={machine.logo} alt="" className="cost-chart__tooltip-logo" />
-            <span className="cost-chart__tooltip-name">{machine.displayName}</span>
+            <img src={machine.logo} alt="SANY" className="cost-chart__tooltip-logo" />
+            <span className="cost-chart__tooltip-name">{modelOnly(machine.displayName)}</span>
             <span className="cost-chart__tooltip-value mono">{formatCurrency(p.value)}</span>
           </div>
         );

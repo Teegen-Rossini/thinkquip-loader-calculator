@@ -3,8 +3,7 @@
  * every page of the print output is composed from these so the whole
  * document shares one design system (modelled on ThinkQuip's physical SANY
  * spec sheets): turquoise section bands, two-column ruled spec rows, brand
- * page header, ThinkQuip footer with page numbers, and printable
- * confidence dots.
+ * page header, and a ThinkQuip footer with page numbers.
  */
 import { THINKQUIP_LOGO, COMPANY } from '../data/machinesConfig';
 
@@ -49,46 +48,22 @@ export function Band({ children }) {
   return <h2 className="print-band">{children}</h2>;
 }
 
-/** Small printable confidence dot: solid turquoise (confirmed), amber
- *  outline (estimate), solid grey (pending dealer quote). */
-export function Dot({ confidence = 'confirmed' }) {
-  return <span className={`print-dot print-dot--${confidence}`} aria-hidden="true" />;
-}
-
-/** A spec value with its confidence dot. Unconfirmed values NEVER print a
- *  number — they print "Pending dealer quote" in grey italic. */
-export function SpecValue({ value, confidence = 'confirmed' }) {
-  const pending = confidence === 'unconfirmed' || value == null || value === '';
-  return (
-    <span className={`print-value num${pending ? ' print-value--pending' : ''}`}>
-      {/* dot and value are adjacent — no whitespace — so the dot never orphans on its own line */}
-      <Dot confidence={pending ? 'unconfirmed' : confidence} />{pending ? 'Pending dealer quote' : value}
-    </span>
-  );
+/** A right-aligned spec value. */
+export function SpecValue({ value }) {
+  return <span className="print-value num">{value}</span>;
 }
 
 /** Two-column spec rows — label left, value right, thin rules between rows.
- *  rows: [{ label, value, confidence }] */
+ *  rows: [{ label, value }] */
 export function SpecRows({ rows }) {
   return (
     <div className="print-rows">
       {rows.map((row) => (
         <div className="print-row" key={row.label}>
           <span className="print-row__label">{row.label}</span>
-          <SpecValue value={row.value} confidence={row.confidence} />
+          <SpecValue value={row.value} />
         </div>
       ))}
     </div>
-  );
-}
-
-/** One-line confidence legend for the bottom of each spec page. */
-export function DotLegend() {
-  return (
-    <p className="print-legend">
-      <Dot confidence="confirmed" /> Confirmed — factory / published data
-      <Dot confidence="estimate" /> Estimate — confirm before final proposal
-      <Dot confidence="unconfirmed" /> Pending dealer quote — no figure printed
-    </p>
   );
 }

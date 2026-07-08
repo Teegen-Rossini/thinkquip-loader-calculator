@@ -1,0 +1,130 @@
+{
+  "//": "TEMPLATE FILE — this file is NEVER read by the app. It shows one complete ELECTRIC model and one complete DIESEL model with every field explained. To add a real machine: copy the matching template block below into the correct machineType's `models` array in machines.json, replace every placeholder value, delete the comment lines (any key starting with //), then run `npm run validate-data`.",
+  "//confidence": "ANY value in specs or costs may optionally be written as an object { \"value\": <the value>, \"confidence\": \"confirmed\" | \"estimate\" | \"pending\" } instead of the plain value. If you write the plain value, it counts as \"confirmed\". Example: \"fuelTankL\": { \"value\": 300, \"confidence\": \"estimate\" }",
+
+  "templates": [
+    {
+      "//": "──────── ELECTRIC MODEL TEMPLATE ────────",
+      "// id": "Unique identifier, lowercase, no spaces. Must not match any other model's id. Example: sw960e",
+      "id": "REPLACE-unique-id",
+      "// displayName": "Full name shown on cards, chart legend and print. Example: SANY SW960E (Electric)",
+      "displayName": "SANY MODEL-NAME (Electric)",
+      "// modelCode": "The short factory model code, as printed on the machine. Example: SW960E",
+      "modelCode": "MODEL-CODE",
+      "// machineType": "Must exactly match the id of the machineType block this model sits inside (e.g. wheel-loader).",
+      "machineType": "wheel-loader",
+      "// energyType": "Either \"electric\" or \"diesel\" — decides which fields are required and how running costs are calculated.",
+      "energyType": "electric",
+      "// imageAsset": "Path to the machine's cutout image, relative to the src/ folder. Put the image file there first — validation checks it exists.",
+      "imageAsset": "thinkquip-assets-v3/machines-cutout/REPLACE-image.png",
+
+      "specs": {
+        "// operatingWeightKg": "Optional. Operating weight in kilograms, e.g. 20000",
+        "operatingWeightKg": 0,
+        "// ratedPayloadKg": "Optional. Rated payload in kilograms, e.g. 5800",
+        "ratedPayloadKg": 0,
+        "// bucketCapacityM3": "Optional. Bucket capacity in cubic metres, e.g. 3.5",
+        "bucketCapacityM3": 0,
+        "// tyres": "Optional. Tyre spec, e.g. L5",
+        "tyres": "L5",
+        "// batteryCapacityKWh": "Required. Battery capacity in kWh, e.g. 422",
+        "batteryCapacityKWh": 0,
+        "// chargerRatingKW": "Required. Charger rating in kW, e.g. 320",
+        "chargerRatingKW": 0,
+        "// gunsPerCharger": "Required. Number of charging guns per charger, e.g. 2",
+        "gunsPerCharger": 0,
+        "// chargeTime20to80": "Required. Charging time from 20% to 80%, written out, e.g. 0.8 h (20% → 80%)",
+        "chargeTime20to80": "X h (20% → 80%)",
+        "// chargeTime20to100": "Required. Charging time from 20% to 100%, e.g. 1.5 h (20% → 100%)",
+        "chargeTime20to100": "X h (20% → 100%)",
+        "// workHoursPerCharge": "Required. Work hours per full charge, e.g. 7 – 9 h",
+        "workHoursPerCharge": "X – Y h",
+        "// chargeCycles": "Required. Battery charge-cycle life, e.g. 4,000+ cycles",
+        "chargeCycles": "X,XXX+ cycles",
+        "// ratedConsumption": "Required. Rated energy consumption as printed on the spec sheet. unit must be kWh/h for electric.",
+        "ratedConsumption": { "value": 0, "unit": "kWh/h" },
+        "// operatingLifeHours": "Required. Machine operating life, written out, e.g. 30,000 – 35,000 h",
+        "operatingLifeHours": "XX,XXX h",
+        "// warrantySummary": "Optional. One-line warranty summary, e.g. 5,000 h / 2 years",
+        "warrantySummary": "X,XXX h / X years",
+        "// warrantyTiers": "Required. One row per warranty tier: what is covered (item) and for how long (terms). Electric machines typically have three tiers: whole machine; battery + drive motor + electric control; axle + hydraulic pump + gearbox.",
+        "warrantyTiers": [
+          { "item": "Complete machine", "terms": "XX months / X,XXX h" },
+          { "item": "Battery, drive motor & electric control", "terms": "XX months / XX,XXX h" },
+          { "item": "Axle, hydraulic pump & gearbox", "terms": "XX months / X,XXX h" }
+        ]
+      },
+
+      "costs": {
+        "// priceExVat": "Required. Machine selling price in Rand, EXCLUDING VAT, as a plain number (no commas, no R). e.g. 3150000",
+        "priceExVat": 0,
+        "// consumptionBreakpoints": "Required. How consumption changes with how hard the machine works. Each pair is [operation slider value 50–100, consumption in kWh/h]. The calculator draws straight lines between the points. Slider values must go upward and cover 50 to 100. e.g. [[50, 20], [65, 30], [85, 35], [100, 40]]",
+        "consumptionBreakpoints": [[50, 0], [100, 0]],
+        "// routineServicePerHour": "Required. Routine mechanical service cost in Rand per operating hour. Electric machines are usually 0.",
+        "routineServicePerHour": 0,
+        "// maintenancePerYearAt2000h": "Required. Scheduled maintenance cost in Rand per year when the machine runs 2,000 h/year. e.g. 53877",
+        "maintenancePerYearAt2000h": 0,
+        "// maintenancePerYearAt3000h": "Required. Scheduled maintenance cost in Rand per year when the machine runs 3,000 h/year. e.g. 75377",
+        "maintenancePerYearAt3000h": 0,
+        "// batteryReplacement": "Required for electric. When the battery needs replacing (atHours, in operating hours) and what it costs today in Rand ex VAT (cost). e.g. { \"atHours\": 30000, \"cost\": 1120000 }",
+        "batteryReplacement": { "atHours": 0, "cost": 0 }
+      }
+    },
+
+    {
+      "//": "──────── DIESEL MODEL TEMPLATE ────────",
+      "// id": "Unique identifier, lowercase, no spaces. Must not match any other model's id. Example: syl958h5",
+      "id": "REPLACE-unique-id",
+      "// displayName": "Full name shown on cards, chart legend and print. Example: SANY SYL958H5 (Diesel)",
+      "displayName": "SANY MODEL-NAME (Diesel)",
+      "// modelCode": "The short factory model code. Example: SYL958H5",
+      "modelCode": "MODEL-CODE",
+      "// machineType": "Must exactly match the id of the machineType block this model sits inside (e.g. wheel-loader).",
+      "machineType": "wheel-loader",
+      "// energyType": "Either \"electric\" or \"diesel\".",
+      "energyType": "diesel",
+      "// variant": "Optional. Short label when the SAME model is sold in more than one configuration/price (one entry per configuration), e.g. \"dry brake\" / \"wet brake\". Shown after the model name. Leave the field out if there is only one configuration.",
+      "variant": "dry brake",
+      "// imageAsset": "Path to the machine's cutout image, relative to the src/ folder. Put the image file there first — validation checks it exists.",
+      "imageAsset": "thinkquip-assets-v3/machines-cutout/REPLACE-image.png",
+
+      "specs": {
+        "// operatingWeightKg": "Optional. Operating weight in kilograms, e.g. 17100",
+        "operatingWeightKg": 0,
+        "// ratedPayloadKg": "Optional. Rated payload in kilograms, e.g. 5000",
+        "ratedPayloadKg": 0,
+        "// bucketCapacityM3": "Optional. Bucket capacity in cubic metres, e.g. 3",
+        "bucketCapacityM3": 0,
+        "// tyres": "Optional. Tyre spec, e.g. L5",
+        "tyres": "L5",
+        "// engine": "Required. Engine make/model and power, written out, e.g. Cummins QSL8.9-C220 III, ~164 kW @ 2200 rpm",
+        "engine": "ENGINE MAKE & MODEL, ~XXX kW @ XXXX rpm",
+        "// fuelTankL": "Required. Fuel tank size in litres, e.g. 300",
+        "fuelTankL": 0,
+        "// ratedConsumption": "Required. Rated fuel consumption as printed on the spec sheet. unit must be L/h for diesel.",
+        "ratedConsumption": { "value": 0, "unit": "L/h" },
+        "// warrantySummary": "Optional. One-line warranty summary, e.g. 4,000 h / 2 years",
+        "warrantySummary": "X,XXX h / X years",
+        "// warrantyTiers": "Required. One row per warranty tier: what is covered (item) and for how long (terms).",
+        "warrantyTiers": [
+          { "item": "Complete machine", "terms": "XX months / X,XXX h" }
+        ]
+      },
+
+      "costs": {
+        "// priceExVat": "Required. Machine selling price in Rand, EXCLUDING VAT, as a plain number (no commas, no R). e.g. 1850000",
+        "priceExVat": 0,
+        "// consumptionBreakpoints": "Required. How fuel use changes with how hard the machine works. Each pair is [operation slider value 50–100, consumption in litres/h]. Slider values must go upward and cover 50 to 100. e.g. [[50, 10], [65, 12], [85, 14], [100, 16]]",
+        "consumptionBreakpoints": [[50, 0], [100, 0]],
+        "// routineServicePerHour": "Required. Routine engine-service cost in Rand per operating hour, e.g. 29 (= R29,000 per 1,000 h).",
+        "routineServicePerHour": 0,
+        "// maintenancePerYearAt2000h": "Required. Scheduled maintenance cost in Rand per year at 2,000 h/year, e.g. 74873",
+        "maintenancePerYearAt2000h": 0,
+        "// maintenancePerYearAt3000h": "Required. Scheduled maintenance cost in Rand per year at 3,000 h/year, e.g. 91373",
+        "maintenancePerYearAt3000h": 0,
+        "// overhaul": "Required key for diesel, but the value may be null. null means the machine has NO separate engine-overhaul event (its engine care is covered by routineServicePerHour). If it DOES have one, write { \"intervalHours\": 12000, \"cost\": 350000 } — overhaul every intervalHours operating hours, costing that many Rand each time.",
+        "overhaul": null
+      }
+    }
+  ]
+}

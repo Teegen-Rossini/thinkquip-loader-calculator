@@ -49,7 +49,9 @@ export default function PrintTimelinePage({ selection, inputs, pageNumber, pageC
             <th>Operating hours</th>
             <th>≈ Calendar year</th>
             {machines.map((m) => (
-              <th key={m.machine.uid} className="num">{m.machine.name} cumulative</th>
+              <th key={m.machine.uid} className="num">
+                {m.machine.variant ? `${m.machine.name} (${m.machine.variant})` : m.machine.name} cumulative
+              </th>
             ))}
             {best && <th className="num">{heroMachine.name} advantage</th>}
           </tr>

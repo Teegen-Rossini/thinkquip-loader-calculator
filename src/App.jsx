@@ -1,5 +1,12 @@
 import { useEffect, useState } from 'react';
 import { DEFAULT_PRICES, CALC_DEFAULTS, THINKQUIP_LOGO } from './data/machinesConfig';
+import {
+  MACHINE_TYPES,
+  DEFAULT_MACHINE_TYPE_ID,
+  defaultModelIdsForType,
+  getModelById,
+  LEGACY_OPTION_TO_MODEL,
+} from './data/machinesRepo';
 import { runSelection } from './lib/calculationEngine';
 import Dashboard from './components/Dashboard';
 import InputForm from './components/InputForm';
@@ -19,7 +26,8 @@ const DRAFT_STORAGE_KEY = 'thinkquip-loader-calc-draft-v2';
 
 const defaultInputs = {
   preparedFor: '',
-  machineOptions: ['electric', 'diesel-dry'],
+  machineTypeId: DEFAULT_MACHINE_TYPE_ID,
+  machineModelIds: defaultModelIdsForType(DEFAULT_MACHINE_TYPE_ID),
   fuelIncludedInRate: true,
   dailyHours: 8,
   daysPerWeek: CALC_DEFAULTS.daysPerWeek,
@@ -44,17 +52,39 @@ function draftOverride() {
   }
 }
 
-/** Merge onto defaults and migrate the legacy single-select `machineOption`
- *  to the multi-select `machineOptions` array. */
+/**
+ * Merge onto defaults and migrate older drafts to `machineModelIds`:
+ *  - legacy single-select `machineOption` ('electric' | 'diesel-dry' | 'diesel-wet')
+ *  - legacy multi-select `machineOptions` (array of those option ids)
+ * Unknown ids are dropped; the machine type is inferred from the selection
+ * when missing; the selection is never left empty.
+ */
 function normalizeInputs(parsed) {
   const merged = { ...defaultInputs, ...parsed };
-  if (!Array.isArray(merged.machineOptions)) {
-    const legacy = parsed.machineOption;
-    const dieselVariant = legacy && legacy !== 'electric' ? legacy : 'diesel-dry';
-    merged.machineOptions = ['electric', dieselVariant];
+
+  // Read from `parsed`, not `merged` — merged always carries the defaults.
+  let ids = Array.isArray(parsed.machineModelIds) ? parsed.machineModelIds : null;
+  if (!ids) {
+    let legacyOptions = Array.isArray(parsed.machineOptions) ? parsed.machineOptions : null;
+    if (!legacyOptions && typeof parsed.machineOption === 'string') {
+      const dieselVariant = parsed.machineOption !== 'electric' ? parsed.machineOption : 'diesel-dry';
+      legacyOptions = ['electric', dieselVariant];
+    }
+    ids = (legacyOptions ?? []).map((optionId) => LEGACY_OPTION_TO_MODEL[optionId] ?? optionId);
   }
-  if (!merged.machineOptions.length) merged.machineOptions = ['electric'];
+  ids = ids.filter((id) => getModelById(id));
+
+  let typeId = merged.machineTypeId;
+  if (!MACHINE_TYPES.some((t) => t.id === typeId)) {
+    typeId = ids.length ? getModelById(ids[0]).machineTypeId : DEFAULT_MACHINE_TYPE_ID;
+  }
+  ids = ids.filter((id) => getModelById(id).machineTypeId === typeId);
+  if (!ids.length) ids = defaultModelIdsForType(typeId);
+
+  merged.machineTypeId = typeId;
+  merged.machineModelIds = ids;
   delete merged.machineOption;
+  delete merged.machineOptions;
   return merged;
 }
 
@@ -81,7 +111,12 @@ const TABS = [
 function App() {
   const [inputs, setInputs] = useState(loadDraftInputs);
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [machineType, setMachineType] = useState('loader');
+
+  // Moving between pages always lands at the TOP of the new page — without
+  // this, the scroll position of the previous page carries over.
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [activeTab]);
 
   useEffect(() => {
     if (draftOverride()) return; // don't clobber the saved draft from a deep link
@@ -91,13 +126,19 @@ function App() {
   const updateInputs = (patch) => setInputs((prev) => ({ ...prev, ...patch }));
   const setFleetSize = (fleetSize) => updateInputs({ fleetSize });
 
-  // Toggle a machine option in/out of the selected set, always keeping ≥1.
-  const toggleMachineOption = (id) => setInputs((prev) => {
-    const current = Array.isArray(prev.machineOptions) ? prev.machineOptions : [];
-    const has = current.includes(id);
+  // Switching machine type resets the model selection to that type's default.
+  const selectMachineType = (typeId) => setInputs((prev) =>
+    prev.machineTypeId === typeId
+      ? prev
+      : { ...prev, machineTypeId: typeId, machineModelIds: defaultModelIdsForType(typeId) });
+
+  // Toggle a model in/out of the compared set, always keeping ≥1.
+  const toggleModel = (modelId) => setInputs((prev) => {
+    const current = Array.isArray(prev.machineModelIds) ? prev.machineModelIds : [];
+    const has = current.includes(modelId);
     if (has && current.length === 1) return prev; // can't deselect the last one
-    const next = has ? current.filter((x) => x !== id) : [...current, id];
-    return { ...prev, machineOptions: next };
+    const next = has ? current.filter((x) => x !== modelId) : [...current, modelId];
+    return { ...prev, machineModelIds: next };
   });
 
   const selection = runSelection({ inputs, fleetSize: inputs.fleetSize });
@@ -151,9 +192,8 @@ function App() {
           <InputForm
             inputs={inputs}
             onUpdate={updateInputs}
-            machineType={machineType}
-            onMachineTypeChange={setMachineType}
-            onToggleMachineOption={toggleMachineOption}
+            onSelectMachineType={selectMachineType}
+            onToggleModel={toggleModel}
           />
           <PageNav
             nextLabel="Comparison"

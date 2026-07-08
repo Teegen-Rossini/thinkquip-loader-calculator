@@ -1,3 +1,4 @@
+import { MACHINE_TYPES } from '../data/machinesRepo';
 import './MachineTypeSelector.css';
 
 /**
@@ -16,28 +17,41 @@ for (const [path, url] of Object.entries(ICON_MODULES)) {
   ICON_URLS[stem] = url;
 }
 
+/** JSON machine-type ids whose icon file uses a different stem. */
+const ICON_ALIASES = { 'wheel-loader': 'loader' };
+
 /**
- * The machine categories the picker offers. Only 'loader' is live — selecting it
- * loads the loader comparison (SANY SW956E electric vs the SANY SYL956H5 diesel,
- * per machinesConfig). The rest are placeholders for future machine ranges.
+ * Future machine ranges shown as disabled "coming soon" tiles. A range goes
+ * live by adding a machineType with its models to src/data/machines.json —
+ * live types always come from the JSON, not from this list.
  */
-const MACHINE_TYPES = [
-  { id: 'loader', label: 'Loader', sublabel: 'Wheel Loader', icon: 'loader', available: true },
-  { id: 'excavator', label: 'Excavator', icon: 'excavator', available: false },
-  { id: 'dumptruck', label: 'Dump Truck', icon: 'dump-truck', available: false },
-  { id: 'mobilecrane', label: 'Mobile Crane', icon: 'mobile-crane', available: false },
-  { id: 'reachstacker', label: 'Reach Stacker', icon: 'reach-stacker', available: false },
-  { id: 'roller', label: 'Roller', icon: 'roller', available: false },
-  { id: 'drillingrig', label: 'Drilling Rig', icon: 'drilling-rig', available: false },
-  { id: 'concretepump', label: 'Concrete Pump', icon: 'concrete-pump', available: false },
+const COMING_SOON = [
+  { id: 'excavator', label: 'Excavator', icon: 'excavator' },
+  { id: 'dumptruck', label: 'Dump Truck', icon: 'dump-truck' },
+  { id: 'mobilecrane', label: 'Mobile Crane', icon: 'mobile-crane' },
+  { id: 'reachstacker', label: 'Reach Stacker', icon: 'reach-stacker' },
+  { id: 'roller', label: 'Roller', icon: 'roller' },
+  { id: 'drillingrig', label: 'Drilling Rig', icon: 'drilling-rig' },
+  { id: 'concretepump', label: 'Concrete Pump', icon: 'concrete-pump' },
 ];
 
-// Only the first few types are shown for now; the rest stay defined above so
-// they can be switched back on by bumping this count.
+// How many tiles the picker shows in total; live types come first and the
+// remaining slots are filled with "coming soon" placeholders.
 const VISIBLE_COUNT = 3;
 
 export default function MachineTypeSelector({ selectedType, onSelect }) {
-  const visibleTypes = MACHINE_TYPES.slice(0, VISIBLE_COUNT);
+  const liveTypes = MACHINE_TYPES.map((t) => ({
+    id: t.id,
+    label: t.displayName,
+    sublabel: `${t.models.length} model${t.models.length === 1 ? '' : 's'}`,
+    icon: ICON_ALIASES[t.id] ?? t.id,
+    available: true,
+  }));
+  const placeholders = COMING_SOON
+    .filter((p) => !liveTypes.some((t) => t.id === p.id))
+    .slice(0, Math.max(0, VISIBLE_COUNT - liveTypes.length))
+    .map((p) => ({ ...p, available: false }));
+  const visibleTypes = [...liveTypes, ...placeholders];
   return (
     <div className="machine-type-grid" style={{ '--type-cols': Math.min(visibleTypes.length, 4) }}>
       {visibleTypes.map(({ id, label, sublabel, icon, available }) => {

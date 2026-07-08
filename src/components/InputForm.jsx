@@ -1,4 +1,5 @@
-import { MACHINE_OPTIONS, FUEL_THEFT_LEVELS, getMachineForOption } from '../data/machinesConfig';
+import { FUEL_THEFT_LEVELS } from '../data/machinesConfig';
+import { getModelsForType } from '../data/machinesRepo';
 import { annualHours, interpolateConsumption, operationBand } from '../lib/calculationEngine';
 import MachineTypeSelector from './MachineTypeSelector';
 import MachineName from './MachineName';
@@ -22,8 +23,9 @@ function rangeWarning(value, min, max, unit) {
   return null;
 }
 
-export default function InputForm({ inputs, onUpdate, machineType, onMachineTypeChange, onToggleMachineOption }) {
-  const machineOptions = Array.isArray(inputs.machineOptions) ? inputs.machineOptions : [];
+export default function InputForm({ inputs, onUpdate, onSelectMachineType, onToggleModel }) {
+  const selectedModelIds = Array.isArray(inputs.machineModelIds) ? inputs.machineModelIds : [];
+  const models = getModelsForType(inputs.machineTypeId);
   const hours = annualHours(inputs);
   const band = operationBand(inputs.operationSlider);
   const cElec = interpolateConsumption('electric', inputs.operationSlider);
@@ -49,35 +51,34 @@ export default function InputForm({ inputs, onUpdate, machineType, onMachineType
       <div className="input-grid">
         <section className="input-card input-card--wide">
           <h3>Machine Type</h3>
-          <MachineTypeSelector selectedType={machineType} onSelect={onMachineTypeChange} />
+          <MachineTypeSelector selectedType={inputs.machineTypeId} onSelect={onSelectMachineType} />
         </section>
 
         <section className="input-card input-card--wide">
-          <h3>Machine Options</h3>
-          <p className="field__help">Select any combination to compare. Wet vs dry is the same SYL956H5 at a different price.</p>
-          <div className="machine-option-group" role="group" aria-label="Machines to compare">
-            {MACHINE_OPTIONS.map((opt) => {
-              const machine = getMachineForOption(opt.id);
-              const selected = machineOptions.includes(opt.id);
-              const isLastSelected = selected && machineOptions.length === 1;
+          <h3>Models to Compare</h3>
+          <p className="field__help">Select any combination of SANY models to compare — at least one stays selected.</p>
+          <div className="machine-option-group" role="group" aria-label="Models to compare">
+            {models.map((model) => {
+              const selected = selectedModelIds.includes(model.id);
+              const isLastSelected = selected && selectedModelIds.length === 1;
               return (
                 <button
-                  key={opt.id}
+                  key={model.id}
                   type="button"
                   role="checkbox"
                   aria-checked={selected}
                   className={`machine-option${selected ? ' is-active' : ''}`}
-                  onClick={() => onToggleMachineOption(opt.id)}
-                  title={isLastSelected ? 'At least one machine must stay selected' : undefined}
+                  onClick={() => onToggleModel(model.id)}
+                  title={isLastSelected ? 'At least one model must stay selected' : undefined}
                 >
                   <span className="machine-option__photo">
-                    <img src={opt.photo} alt="" loading="lazy" />
+                    <img src={model.photo} alt="" loading="lazy" />
                   </span>
                   <span className="machine-option__body">
-                    <MachineName machine={machine} className="machine-option__name" />
+                    <MachineName machine={model} className="machine-option__name" />
                     <span className="machine-option__meta">
-                      <span className={`machine-option__type machine-option__type--${opt.type}`}>{opt.type === 'electric' ? 'Electric' : 'Diesel'}</span>
-                      <span className="machine-option__price mono">R{opt.price.toLocaleString('en-US')} <span className="machine-option__exvat">ex VAT</span></span>
+                      <span className={`machine-option__type machine-option__type--${model.type}`}>{model.type === 'electric' ? 'Electric' : 'Diesel'}</span>
+                      <span className="machine-option__price mono">R{model.price.toLocaleString('en-US')} <span className="machine-option__exvat">ex VAT</span></span>
                     </span>
                   </span>
                   <span className="machine-option__check" aria-hidden="true">{selected ? '✓' : ''}</span>

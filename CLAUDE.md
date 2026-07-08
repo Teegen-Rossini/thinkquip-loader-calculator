@@ -59,7 +59,7 @@ npm run lint     # oxlint
   `src/thinkquip-assets-v3/logos-transparent/`.
 - **`src/components/Print*.jsx`** — the printed brochure (see "The printed
   brochure" below). Shared primitives (A4 page shell, turquoise band, ruled spec
-  rows, confidence dots) live in `PrintKit.jsx`; ALL print styling lives in the
+  rows) live in `PrintKit.jsx`; ALL print styling lives in the
   single `PrintBrochure.css`. The brochure consumes the same multi-select
   `selection` the screen uses.
 - **`src/App.jsx`** — top-level state, tab routing, wires inputs → engine → views.
@@ -105,18 +105,17 @@ computes `Page X of Y`, so page numbers stay correct whichever pages render:
    **pure static SVG** (`PrintChart.jsx`, no Recharts — Recharts can't render in
    the hidden print DOM), plotting every selected series, plus a sampled-points
    table.
-5. **Spec appendix** — one full page per unique selected machine family
-   (`PrintSpecSheet`); the two SYL956H5 brake variants collapse to one sheet.
+5. **Spec appendix** — one full page per selected machine (`PrintSpecSheet`);
+   the two SYL956H5 brake variants each get their own sheet, priced and
+   labelled for their brake variant.
 
 Conventions: each `.print-page` is a fixed 296.5 mm sheet (footer pinned to the
 bottom, `@page { size: A4; margin: 0 }`); design language follows ThinkQuip's
 physical SANY spec sheets (turquoise bands with white bold-italic titles,
-label-left/value-right ruled rows); every value prints its confidence dot
-(solid turquoise confirmed / amber outline estimate / grey pending) with a
-legend per spec page, and `unconfirmed` values print as *"Pending dealer
-quote"* in grey italic — **never a fake number**. `print-color-adjust: exact`
+label-left/value-right ruled rows). `print-color-adjust: exact`
 is set brochure-wide. Verify layout changes by loading
-`?printview=1&draft={...}` and printing to PDF at fleet sizes 1 and 4.
+`?printview=1&draft={...}` and printing to PDF at fleet sizes 1 and 4, at
+machine selections of one, two and all three.
 
 ## Inputs
 
@@ -190,20 +189,20 @@ battery-replacement injection, ending in that machine's TCO. A final savings /
 breakeven section (simple year-0 + escalated) appears **only when 2+ machines are
 selected**. Figures are normalized to per-machine, ex-VAT for readability.
 
-## Data confidence system — screen removed, print retained
+## Data confidence system — fully removed from the UI
 
-The confidence system was **removed from the on-screen UI** (the
+The confidence system was removed from the on-screen UI (the
 `ConfidenceBadge`/`ConfidenceLegend` components, `confidenceMeta.js`, the
-`.badge` styles and the screen usages are gone — with only SANY machines
-modelled they added no on-screen value). Do **not** reintroduce badges to the
-screen.
+`.badge` styles and the screen usages are gone) and later (July 2026, at
+Michael's request) from the **printed brochure** as well — no confidence dots,
+no "Confirmed / Estimate / Pending dealer quote" legend, no "Pending dealer
+quote" italic values. Do **not** reintroduce it in either place.
 
-It is **retained in the printed brochure**: `machinesConfig.js` still carries
-`'confirmed' | 'estimate' | 'unconfirmed'` string fields (`priceConfidence`,
-`*PriceConfidence`, per-spec `confidence`), and `PrintKit`'s `Dot`/`SpecValue`/
-`DotLegend` render them as dots (solid turquoise confirmed / amber outline
-estimate / grey pending). `unconfirmed` values print as "Pending dealer quote"
-— never invent a number for them.
+`machinesConfig.js` still carries the `'confirmed' | 'estimate' |
+'unconfirmed'` string fields (`priceConfidence`, `*PriceConfidence`, per-spec
+`confidence`) as data-provenance bookkeeping; nothing renders them. If a value
+is ever truly unknown, leave it out or resolve it — never print an invented
+number.
 
 Note: some `machinesConfig.js` fields are **printed-spec-sheet data only** and
 deliberately do NOT feed the TCO engine: `specConsumption` (rated 38 kWh/h /

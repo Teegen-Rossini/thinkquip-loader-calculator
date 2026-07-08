@@ -1,10 +1,9 @@
 import {
-  FUEL_THEFT_LEVELS, ESCALATION, CALC_DEFAULTS,
-  DEFAULT_PRICES, THINKQUIP_LOGO,
+  FUEL_THEFT_LEVELS, ESCALATION, CALC_DEFAULTS, THINKQUIP_LOGO,
 } from '../data/machinesConfig';
 import { annualHours, operationBand, interpolateConsumption, theftTheta } from '../lib/calculationEngine';
 import { formatHours } from '../lib/format';
-import { PrintPage, PageHeader, Band, SpecRows, DotLegend } from './PrintKit';
+import { PrintPage, PageHeader, Band, SpecRows } from './PrintKit';
 
 function pct(rate) {
   const p = Math.round(rate * 1000) / 10;
@@ -41,8 +40,8 @@ export default function PrintInputsPage({ selection, inputs, pageNumber, pageCou
 
       <Band>Energy Prices</Band>
       <SpecRows rows={[
-        { label: 'Electricity price', value: `R${inputs.electricityPrice} / kWh`, confidence: DEFAULT_PRICES.electricityPriceConfidence },
-        { label: 'Diesel price', value: `R${inputs.dieselPrice} / L`, confidence: DEFAULT_PRICES.dieselPriceConfidence },
+        { label: 'Electricity price', value: `R${inputs.electricityPrice} / kWh` },
+        { label: 'Diesel price', value: `R${inputs.dieselPrice} / L` },
       ]} />
 
       <Band>Site & Contract Terms</Band>
@@ -69,10 +68,8 @@ export default function PrintInputsPage({ selection, inputs, pageNumber, pageCou
         The comparison runs over operating hours, 0 → {formatHours(CALC_DEFAULTS.chartMaxHours)}, stepping cost in
         quarter-year slices escalated at each slice midpoint. The electric machine carries no routine mechanical-service
         line (R0/h); the diesel R29/h routine service is always counted. Escalation rates are researched annual trends —
-        not flat projections and not a forecast of your business income. Figures marked with an estimate dot should be
-        confirmed before a final proposal.
+        not flat projections and not a forecast of your business income.
       </p>
-      <DotLegend />
     </PrintPage>
   );
 }

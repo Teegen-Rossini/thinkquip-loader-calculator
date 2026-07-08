@@ -18,6 +18,12 @@ export function formatHoursCompact(value) {
   return `${Math.round(value)} h`;
 }
 
+/** Machine name with its configuration variant appended, so e.g. the two
+ *  SYL956H5 brake variants stay distinguishable when both are selected. */
+export function variantName(machine) {
+  return machine.variant ? `${machine.name} (${machine.variant})` : machine.name;
+}
+
 /** Operating hours expressed as approximate calendar years for a given
  *  hours/year utilization. */
 export function formatYearsFromHours(hours, hoursPerYear) {

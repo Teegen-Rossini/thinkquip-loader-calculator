@@ -7,7 +7,8 @@ import './PrintBrochure.css';
 
 /**
  * The printed brochure: Cover → Inputs & Assumptions → Machine Comparison →
- * Cost Timeline → Spec Appendix (one page per selected SANY machine family).
+ * Cost Timeline → Spec Appendix (one page per selected machine — the two
+ * SYL956H5 brake variants each get their own sheet with their own price).
  *
  * Hidden on screen (.print-only), it is the ONLY thing that prints. It renders
  * exactly the machines the user selected (multi-select), driven by the same
@@ -15,13 +16,7 @@ import './PrintBrochure.css';
  * Y" stays correct whichever pages render for the current selection.
  */
 export default function PrintBrochure({ selection, inputs, preview = false }) {
-  // One spec page per unique machine model among the selected set — the two
-  // SYL956H5 brake variants collapse to a single sheet (it lists both prices).
-  const specResults = [];
-  const seen = new Set();
-  for (const result of selection.machines) {
-    if (!seen.has(result.machine.id)) { seen.add(result.machine.id); specResults.push(result); }
-  }
+  const specResults = selection.machines;
 
   const pages = [
     (p) => <PrintCover key="cover" selection={selection} inputs={inputs} {...p} />,
@@ -29,7 +24,7 @@ export default function PrintBrochure({ selection, inputs, preview = false }) {
     (p) => <PrintComparisonPage key="comparison" selection={selection} inputs={inputs} {...p} />,
     (p) => <PrintTimelinePage key="timeline" selection={selection} inputs={inputs} {...p} />,
     ...specResults.map((result) => (p) => (
-      <PrintSpecSheet key={`spec-${result.machine.id}`} result={result} selection={selection} inputs={inputs} {...p} />
+      <PrintSpecSheet key={`spec-${result.machine.uid}`} result={result} selection={selection} inputs={inputs} {...p} />
     )),
   ];
 

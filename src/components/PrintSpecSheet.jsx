@@ -1,6 +1,6 @@
-import { DIESEL_SERVICE, MACHINE_OPTIONS } from '../data/machinesConfig';
+import { DIESEL_SERVICE } from '../data/machinesConfig';
 import { formatCurrency, formatHours } from '../lib/format';
-import { PrintPage, PageHeader, Band, SpecRows, DotLegend } from './PrintKit';
+import { PrintPage, PageHeader, Band, SpecRows } from './PrintKit';
 
 const TINT = { electric: 'var(--sany-electric-light)', diesel: 'var(--sany-diesel-light)' };
 
@@ -8,12 +8,11 @@ function maintenanceRows(machine) {
   return machine.maintenanceSchedule.map((m) => ({
     label: `Maintenance @ ${m.hoursPerYear.toLocaleString('en-US')} h/yr`,
     value: `${formatCurrency(m.costPerYear)}/yr`,
-    confidence: m.confidence,
   }));
 }
 
 function warrantyRows(machine) {
-  return machine.warrantyTiers.map((t) => ({ label: t.item, value: t.terms, confidence: t.confidence }));
+  return machine.warrantyTiers.map((t) => ({ label: t.item, value: t.terms }));
 }
 
 /** One spec block: turquoise band + ruled rows, kept unbreakable. */
@@ -49,7 +48,6 @@ export default function PrintSpecSheet({ result, selection, pageNumber, pageCoun
     {
       label: `Rated consumption (${machine.specConsumption.unit})`,
       value: `${machine.specConsumption.value} ${machine.specConsumption.unit}`,
-      confidence: machine.specConsumption.confidence,
     },
     {
       label: 'At your selected duty cycle',
@@ -63,8 +61,8 @@ export default function PrintSpecSheet({ result, selection, pageNumber, pageCoun
         {
           title: 'Battery & Charging',
           rows: [
-            { label: 'Battery capacity', value: `${machine.battery.capacityKWh} kWh`, confidence: machine.battery.confidence },
-            { label: 'Charger (included in price)', value: `${machine.battery.chargerRatingKW} kW`, confidence: machine.battery.confidence },
+            { label: 'Battery capacity', value: `${machine.battery.capacityKWh} kWh` },
+            { label: 'Charger (included in price)', value: `${machine.battery.chargerRatingKW} kW` },
             { label: 'Charge guns per charger', value: `${machine.battery.gunsPerCharger}` },
             { label: 'Fast charge', value: machine.battery.charge20to80 },
             { label: 'Full charge', value: machine.battery.charge20to100 },
@@ -76,17 +74,15 @@ export default function PrintSpecSheet({ result, selection, pageNumber, pageCoun
         {
           title: 'Life & Maintenance',
           rows: [
-            { label: 'Service life', value: machine.serviceLifeHours.label, confidence: machine.serviceLifeHours.confidence },
+            { label: 'Service life', value: machine.serviceLifeHours.label },
             ...maintenanceRows(machine),
             {
               label: `Battery replacement @ ${formatHours(machine.batteryReplacement.atHours)}`,
               value: formatCurrency(machine.batteryReplacement.baseCost),
-              confidence: machine.batteryReplacement.confidence,
             },
             ...(battery ? [{
               label: 'Projected when it lands (prices falling)',
               value: formatCurrency(battery.escalatedCost),
-              confidence: machine.batteryReplacement.confidence,
             }] : []),
           ],
         },
@@ -97,7 +93,6 @@ export default function PrintSpecSheet({ result, selection, pageNumber, pageCoun
             {
               label: 'Selling price (excl. VAT), charger incl.',
               value: formatCurrency(machine.price),
-              confidence: machine.priceConfidence,
             },
           ],
         },
@@ -115,18 +110,19 @@ export default function PrintSpecSheet({ result, selection, pageNumber, pageCoun
         {
           title: 'Maintenance',
           rows: [
-            { label: 'Routine engine service', value: `R${DIESEL_SERVICE.ratePerHour}/h — continuous`, confidence: DIESEL_SERVICE.confidence },
+            { label: 'Routine engine service', value: `R${DIESEL_SERVICE.ratePerHour}/h — continuous` },
             ...maintenanceRows(machine),
           ],
         },
         { title: 'Warranty', rows: warrantyRows(machine) },
         {
           title: 'Price',
-          rows: MACHINE_OPTIONS.filter((o) => o.type === 'diesel').map((o) => ({
-            label: `Selling price (excl. VAT) — ${o.brake} brake`,
-            value: formatCurrency(o.price),
-            confidence: machine.priceConfidence,
-          })),
+          rows: [
+            {
+              label: `Selling price (excl. VAT)${machine.variant ? ` — ${machine.variant}` : ''}`,
+              value: formatCurrency(machine.price),
+            },
+          ],
         },
       ];
 
@@ -136,7 +132,7 @@ export default function PrintSpecSheet({ result, selection, pageNumber, pageCoun
         logo={machine.logo}
         logoAlt={machine.brand}
         title="SANY Wheel Loader"
-        code={machine.name}
+        code={machine.variant ? `${machine.name} — ${machine.variant}` : machine.name}
         accent={machine.accentColor}
         logoRight
       />
@@ -145,7 +141,7 @@ export default function PrintSpecSheet({ result, selection, pageNumber, pageCoun
         <div className="print-spec__hero-price">
           <p className="print-spec__hero-price-label">{isElectric ? 'Electric wheel loader' : 'Diesel wheel loader'}</p>
           <p className="print-spec__hero-price-value">{formatCurrency(machine.price)}</p>
-          <p className="print-spec__hero-price-sub">excl. VAT{isElectric ? ' — 320 kW charger included' : ` — ${machine.brake} brake`}</p>
+          <p className="print-spec__hero-price-sub">excl. VAT{isElectric ? ' — 320 kW charger included' : `${machine.variant ? ` — ${machine.variant}` : ''}`}</p>
         </div>
       </div>
 
@@ -154,8 +150,6 @@ export default function PrintSpecSheet({ result, selection, pageNumber, pageCoun
           <Block key={b.title} title={b.title} rows={b.rows} />
         ))}
       </div>
-
-      <DotLegend />
     </PrintPage>
   );
 }

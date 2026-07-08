@@ -178,53 +178,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-.print-value--pending {
-  font-weight: 400;
-  font-style: italic;
-  color: var(--unconfirmed);
-}
-
-/* ---- Confidence dots (must survive printing) ---- */
-.print-dot {
-  display: inline-block;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  margin-right: 5px;
-  vertical-align: 1px;
-}
-
-.print-dot--confirmed {
-  background: var(--confirmed);
-}
-
-.print-dot--estimate {
-  background: #fff;
-  border: 1.5px solid var(--estimate);
-}
-
-.print-dot--unconfirmed {
-  background: var(--unconfirmed);
-}
-
-.print-legend {
-  margin-top: 4mm;
-  font-size: 8pt;
-  color: var(--text-muted);
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  column-gap: 4px;
-}
-
-.print-legend .print-dot {
-  margin-left: 12px;
-}
-
-.print-legend .print-dot:first-child {
-  margin-left: 0;
-}
-
 /* =========================================================
    Section 1 — Cover
    ========================================================= */
@@ -237,6 +190,10 @@
   align-items: center;
   justify-content: space-between;
   gap: 12mm;
+  /* The ThinkQuip block hangs into the left page margin so it sits flush with
+     the paper edge, aligned with the full-bleed turquoise band below it. The
+     SANY logo keeps its right edge on the normal content margin. */
+  margin-left: -15mm;
 }
 
 .print-cover__brands-thinkquip {
@@ -375,6 +332,39 @@
   page-break-inside: avoid;
 }
 
+/* Three machines selected: one row of three narrower columns, slightly
+   condensed, so the savings band and callout still fit on the sheet. */
+.print-compare--three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4mm;
+}
+
+.print-compare--three .print-compare__head {
+  padding: 2.5mm 3mm;
+  gap: 2mm;
+}
+
+.print-compare--three .print-compare__head img {
+  height: 22px;
+}
+
+.print-compare--three .print-compare__name {
+  font-size: 10.5pt;
+}
+
+.print-compare--three .print-row {
+  padding: 1.6mm 3mm;
+  gap: 3mm;
+}
+
+.print-compare--three .print-row__label {
+  font-size: 8.5pt;
+}
+
+.print-compare--three .print-value {
+  font-size: 9.5pt;
+}
+
 .print-compare__head {
   display: flex;
   align-items: center;
@@ -430,7 +420,7 @@
   color: var(--text);
 }
 
-/* Simple data tables (timeline samples, competitor spread) */
+/* Simple data tables (timeline samples) */
 .print-table {
   width: 100%;
   border-collapse: collapse;
@@ -466,12 +456,6 @@
 .print-table .num,
 .print-table td.num {
   text-align: right;
-}
-
-.print-table__pending {
-  font-style: italic;
-  color: var(--unconfirmed);
-  font-weight: 400;
 }
 
 /* =========================================================

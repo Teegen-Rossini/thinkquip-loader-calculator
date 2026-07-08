@@ -82,8 +82,8 @@
 }
 
 .cost-chart__legend-logo {
-  height: 16px;
-  width: 24px;
+  height: 24px;
+  width: 38px;
   object-fit: contain;
   flex-shrink: 0;
 }

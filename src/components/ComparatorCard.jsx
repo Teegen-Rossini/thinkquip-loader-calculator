@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { formatCurrency, formatHours, formatYearsFromHours } from '../lib/format';
+import { formatCurrency, formatHours, formatYearsFromHours, variantName } from '../lib/format';
 import { applyVat } from '../lib/calculationEngine';
 import { CALC_DEFAULTS } from '../data/machinesConfig';
 import MachineName from './MachineName';
@@ -31,7 +31,7 @@ export default function ComparatorCard({ result, selection, inputs }) {
   const totalPerH = applyVat(isElectric ? per.elecPerH : per.dieselPerH, inputs);
   const consumption = isElectric ? `${per.cElec} kWh/h` : `${per.cDiesel} L/h`;
 
-  const statusLabel = isElectric ? 'Electric' : `Diesel · ${machine.brake === 'wet' ? 'wet' : 'dry'} brake`;
+  const statusLabel = `${isElectric ? 'Electric' : 'Diesel'}${machine.variant ? ` · ${machine.variant}` : ''}`;
   const statusStyle = { background: machine.accentColor, color: isElectric ? '#0A2E40' : '#1A1A1A' };
   const cardStyle = { '--card-accent': machine.accentColor };
 
@@ -68,7 +68,12 @@ export default function ComparatorCard({ result, selection, inputs }) {
           <dt>Cost at {formatHours(maxHours)}</dt>
           <dd className="mono">{formatCurrency(result.tcoAtMax)}</dd>
         </div>
-        {cmp && (
+        {cmp && (cmp.sameRunningCosts ? (
+          <div>
+            <dt>Price vs {variantName(heroMachine)}</dt>
+            <dd className="mono">+{formatCurrency(cmp.priceGapFleet)}</dd>
+          </div>
+        ) : (
           <div>
             <dt>Savings start (vs {heroMachine.name})</dt>
             <dd className="mono">
@@ -77,7 +82,7 @@ export default function ComparatorCard({ result, selection, inputs }) {
                 : `Beyond ${formatHours(maxHours)}`}
             </dd>
           </div>
-        )}
+        ))}
         {isElectric && (
           <div>
             <dt>Mechanical service line</dt>

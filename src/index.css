@@ -27,10 +27,6 @@
   --sany-diesel-light: #FDF2E0;
   --sany-diesel-dark: #B87A17;
 
-  --competitor-yellow: #FFC72C;  /* shared CAT / Komatsu / Volvo accent */
-  --competitor-yellow-light: #FFF7E0;
-  --competitor-black: #1A1A1A;
-
   --bg: #F3F4F1;
   --surface: #FFFFFF;
   --surface-alt: #F8F8F6;
@@ -41,9 +37,7 @@
   --text-heading: #14150F;
   --dark-panel: #171A1D;
 
-  --confirmed: #0AA6A0;
-  --estimate: #B7791F;
-  --unconfirmed: #8A8C82;
+  --estimate: #B7791F;  /* amber for placeholder/estimate callouts */
 
   --shadow-sm: 0 1px 2px rgba(20, 21, 15, 0.08);
   --shadow-md: 0 6px 20px rgba(20, 21, 15, 0.12);

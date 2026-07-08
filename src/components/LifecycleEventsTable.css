@@ -23,6 +23,23 @@
   white-space: nowrap;
 }
 
+/* The machine-name column may wrap — long variant names (e.g. "SYL956H5
+   (Diesel, dry brake)") would otherwise overflow the cell and overlap the
+   next column in the narrow side panel. */
+.lifecycle-table th:first-child,
+.lifecycle-table td:first-child {
+  white-space: normal;
+}
+
+.lifecycle-table .machine-name {
+  flex-wrap: wrap;
+  row-gap: 2px;
+}
+
+.lifecycle-table .machine-name__model {
+  white-space: normal;
+}
+
 .lifecycle-table thead th {
   color: var(--text-muted);
   font-weight: 600;

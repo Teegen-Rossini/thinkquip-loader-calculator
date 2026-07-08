@@ -16,17 +16,14 @@
  */
 
 import {
-  ELECTRIC_MACHINE,
   CONSUMPTION_BREAKPOINTS,
   OPERATION_BANDS,
   FUEL_THEFT_LEVELS,
   DIESEL_SERVICE,
   ESCALATION,
   CALC_DEFAULTS,
-  getDieselMachineForOption,
-  getMachineForOption,
-  MACHINE_OPTION_ORDER,
 } from '../data/machinesConfig';
+import { ALL_MODELS, getModelById, orderedModelIds } from '../data/machinesRepo';
 
 /** annual_hours H = daily_hours × days_per_week × weeks_per_year */
 export function annualHours({ dailyHours, daysPerWeek, weeksPerYear }) {
@@ -207,47 +204,18 @@ export function simpleBreakevenHours({ electricPrice, dieselPrice, per }) {
   return priceGap / hourlyGap;
 }
 
-/** Escalated (declining) battery-replacement lump sum at its landing year. */
-export function batteryReplacementProjection(inputs) {
+/**
+ * Escalated (declining) battery-replacement lump sum at its landing year, for
+ * a given electric machine (defaults to the first electric model on file).
+ */
+export function batteryReplacementProjection(inputs, machine) {
+  const electric = machine ?? ALL_MODELS.find((m) => m.type === 'electric');
+  if (!electric?.batteryReplacement) return null;
   const H = annualHours(inputs);
-  const { atHours, baseCost } = ELECTRIC_MACHINE.batteryReplacement;
+  const { atHours, baseCost } = electric.batteryReplacement;
   const year = H > 0 ? atHours / H : null;
   const escalatedCost = year == null ? baseCost : baseCost * (1 + ESCALATION.batteryReplacement) ** year;
   return { atHours, baseCost, year, escalatedCost, rate: ESCALATION.batteryReplacement };
-}
-
-/**
- * Runs the electric machine against the selected diesel variant. Returns both
- * cost series, the escalated breakeven (hours), the simple year-0 breakeven
- * and the battery-replacement projection.
- */
-export function runComparison({ inputs, fleetSize = 1 }) {
-  const electricMachine = ELECTRIC_MACHINE;
-  const dieselMachine = getDieselMachineForOption(inputs.machineOption);
-
-  const electric = buildCostSeries({ machine: electricMachine, inputs, fleetSize });
-  const diesel = buildCostSeries({ machine: dieselMachine, inputs, fleetSize });
-
-  const breakevenHours = findBreakevenHours(electric.series, diesel.series);
-  const per = electric.perHour;
-  const simpleBreakeven = simpleBreakevenHours({
-    electricPrice: electricMachine.price,
-    dieselPrice: dieselMachine.price,
-    per,
-  });
-  const battery = batteryReplacementProjection(inputs);
-
-  return {
-    electricMachine,
-    dieselMachine,
-    electric,
-    diesel,
-    breakevenHours,
-    simpleBreakevenHours: simpleBreakeven,
-    battery,
-    hoursPerYear: electric.hoursPerYear,
-    fleetSize,
-  };
 }
 
 // ---------------------------------------------------------------------------
@@ -260,12 +228,10 @@ export function totalPerHourFor(result) {
   return result.machine.type === 'electric' ? result.perHour.elecPerH : result.perHour.dieselPerH;
 }
 
-/** Canonicalise a selection to the fixed display order and drop anything
- *  unknown. Never returns an empty list — falls back to the electric machine. */
-export function orderedSelection(optionIds) {
-  const set = new Set(Array.isArray(optionIds) ? optionIds : []);
-  const ordered = MACHINE_OPTION_ORDER.filter((id) => set.has(id));
-  return ordered.length ? ordered : ['electric'];
+/** Canonicalise a selection of model ids to display order, dropping anything
+ *  unknown. Never returns an empty list (falls back to the default models). */
+export function orderedSelection(modelIds) {
+  return orderedModelIds(modelIds);
 }
 
 /**
@@ -289,9 +255,9 @@ export function simpleBreakevenBetween(hero, opponent) {
  * standalone results still stand on their own.
  */
 export function runSelection({ inputs, fleetSize = 1 }) {
-  const selected = orderedSelection(inputs.machineOptions);
-  const machines = selected.map((optionId) =>
-    buildCostSeries({ machine: getMachineForOption(optionId), inputs, fleetSize }));
+  const selected = orderedSelection(inputs.machineModelIds);
+  const machines = selected.map((modelId) =>
+    buildCostSeries({ machine: getModelById(modelId), inputs, fleetSize }));
 
   const electricSelected = machines.some((m) => m.machine.type === 'electric');
 
@@ -313,6 +279,12 @@ export function runSelection({ inputs, fleetSize = 1 }) {
         .map(({ result }) => ({
           machine: result.machine,
           result,
+          // True when this machine runs at exactly the hero's cost per hour
+          // (e.g. the two SYL956H5 brake variants, which differ ONLY in
+          // price) — break-even framing is meaningless there, so the views
+          // compare on the price gap instead.
+          sameRunningCosts: totalPerHourFor(result) === totalPerHourFor(hero),
+          priceGapFleet: result.purchaseFleet - hero.purchaseFleet,
           breakevenHours: findBreakevenHours(hero.series, result.series),
           simpleBreakevenHours: simpleBreakevenBetween(hero, result),
           savingsAtMax: savingsAtHours(hero.series, result.series, CALC_DEFAULTS.chartMaxHours),
@@ -332,7 +304,9 @@ export function runSelection({ inputs, fleetSize = 1 }) {
     hasComparison,
     electricSelected,
     bestValueUid: machines[bestValueIndex].machine.uid,
-    battery: electricSelected ? batteryReplacementProjection(inputs) : null,
+    battery: electricSelected
+      ? batteryReplacementProjection(inputs, machines.find((m) => m.machine.type === 'electric')?.machine)
+      : null,
     hoursPerYear: hero.hoursPerYear,
     fleetSize,
   };

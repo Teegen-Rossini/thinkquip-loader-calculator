@@ -68,9 +68,11 @@
   margin-bottom: 28px;
 }
 
+/* 3 columns wide, 2 columns narrow — both divide the 6 tiles exactly, so the
+   grid never shows empty (grey) cells. */
 @media (min-width: 640px) and (max-width: 860px), (min-width: 1180px) {
   .dashboard__tiles {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 

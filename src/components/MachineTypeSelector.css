@@ -46,7 +46,7 @@
   max-height: 88px;
   background: var(--surface-alt);
   border-radius: var(--radius-sm);
-  color: var(--competitor-black);
+  color: #1A1A1A;
 }
 
 .machine-type-card__icon {

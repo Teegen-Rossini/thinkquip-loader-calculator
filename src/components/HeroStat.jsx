@@ -1,5 +1,5 @@
 import { applyVat } from '../lib/calculationEngine';
-import { formatCurrency, formatHours, formatYearsFromHours } from '../lib/format';
+import { formatCurrency, formatHours, formatYearsFromHours, variantName } from '../lib/format';
 import { CALC_DEFAULTS } from '../data/machinesConfig';
 import MachineName from './MachineName';
 import './HeroStat.css';
@@ -42,8 +42,8 @@ export default function HeroStat({ selection, fleetSize, inputs }) {
               <span className="hero-compare__divider" aria-hidden="true" />
 
               <div className="hero-compare__stat">
-                <span className="eyebrow">Running cost / h (year 0)</span>
-                <span className="hero-compare__value mono">{formatCurrency(perH)}</span>
+                <span className="eyebrow">Running cost / 1,000 h (year 0)</span>
+                <span className="hero-compare__value mono">{formatCurrency(perH * 1000 * fleetSize)}</span>
               </div>
             </div>
 
@@ -60,28 +60,42 @@ export default function HeroStat({ selection, fleetSize, inputs }) {
   }
 
   // ---- Comparison: hero vs each other selected machine. ----
-  const opponentNames = comparisons.map((c) => c.machine.name).join(', ');
+  const heroName = variantName(heroMachine);
+  const opponentNames = comparisons.map((c) => variantName(c.machine)).join(', ');
+  // When every opponent runs at the hero's exact cost per hour (the two
+  // diesel brake variants), break-even framing is meaningless — the whole
+  // comparison is the purchase-price gap.
+  const allSameRunning = comparisons.every((c) => c.sameRunningCosts);
 
   return (
     <div className="hero-stat">
       <div className="hero-stat__intro">
         <h3 className="hero-stat__title">
-          {heroMachine.name} vs {opponentNames}
+          {heroName} vs {opponentNames}
         </h3>
         <p className="hero-stat__lede">
           Every figure below is for {fleetLabel} over {formatHours(maxHours)} of operation, using the operating inputs you
-          entered. Each card compares the {heroMachine.name} against one of the other machines you selected.
+          entered. Each card compares the {heroName} against one of the other machines you selected.
         </p>
-        <p className="hero-stat__legend">
-          <span>
-            <strong>Savings starts</strong> — the operating-hours point where the {heroMachine.name}&rsquo;s higher purchase
-            price is fully repaid by its lower running costs. From there on, you&rsquo;re saving money.
-          </span>
-          <span>
-            <strong>Saving by choosing the {heroMachine.name}</strong> — total money you keep versus that machine, measured
-            at {formatHours(maxHours)}.
-          </span>
-        </p>
+        {allSameRunning ? (
+          <p className="hero-stat__legend">
+            <span>
+              <strong>Price difference</strong> — these machines run at exactly the same cost per hour at your inputs, so
+              the comparison comes down to what you pay upfront. That gap never closes or grows over the machine&rsquo;s life.
+            </span>
+          </p>
+        ) : (
+          <p className="hero-stat__legend">
+            <span>
+              <strong>Savings starts</strong> — the operating-hours point where the {heroName}&rsquo;s higher purchase
+              price is fully repaid by its lower running costs. From there on, you&rsquo;re saving money.
+            </span>
+            <span>
+              <strong>Saving by choosing the {heroName}</strong> — total money you keep versus that machine, measured
+              at {formatHours(maxHours)}.
+            </span>
+          </p>
+        )}
       </div>
 
       <div className="hero-stat__grid">
@@ -95,33 +109,63 @@ export default function HeroStat({ selection, fleetSize, inputs }) {
                 <MachineName machine={c.machine} as="h4" className="hero-compare__name" />
               </div>
 
-              <div className="hero-compare__stats">
-                <div className="hero-compare__stat">
-                  <span className="eyebrow">Savings starts</span>
-                  <span className="hero-compare__value">
+              {c.sameRunningCosts ? (
+                <>
+                  <div className="hero-compare__stats">
+                    <div className="hero-compare__stat">
+                      <span className="eyebrow">Price difference ({fleetLabel})</span>
+                      <span className="hero-compare__value hero-compare__value--save">
+                        <span className="mono">{formatCurrency(c.priceGapFleet)}</span>
+                      </span>
+                    </div>
+
+                    <span className="hero-compare__divider" aria-hidden="true" />
+
+                    <div className="hero-compare__stat">
+                      <span className="eyebrow">Running cost / h (year 0)</span>
+                      <span className="hero-compare__value">
+                        <span className="hero-compare__muted">Identical</span>
+                      </span>
+                    </div>
+                  </div>
+
+                  <p className="hero-compare__caption">
+                    The {variantName(c.machine)} costs {formatCurrency(c.priceGapFleet)} more to buy than the {heroName} and
+                    runs at the same cost per hour, so the {heroName} stays exactly that much cheaper across the full{' '}
+                    {formatHours(maxHours)}.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <div className="hero-compare__stats">
+                    <div className="hero-compare__stat">
+                      <span className="eyebrow">Savings starts</span>
+                      <span className="hero-compare__value">
+                        {hasBreakeven
+                          ? <span className="mono">{formatHours(c.breakevenHours)}</span>
+                          : <span className="hero-compare__muted">&gt; {formatHours(maxHours)}</span>}
+                      </span>
+                    </div>
+
+                    <span className="hero-compare__divider" aria-hidden="true" />
+
+                    <div className="hero-compare__stat">
+                      <span className="eyebrow">Saving @ {formatHours(maxHours)}</span>
+                      <span className="hero-compare__value hero-compare__value--save">
+                        {hasSavings
+                          ? <span className="mono">{formatCurrency(c.savingsAtMax)}</span>
+                          : <span className="hero-compare__muted">—</span>}
+                      </span>
+                    </div>
+                  </div>
+
+                  <p className="hero-compare__caption">
                     {hasBreakeven
-                      ? <span className="mono">{formatHours(c.breakevenHours)}</span>
-                      : <span className="hero-compare__muted">&gt; {formatHours(maxHours)}</span>}
-                  </span>
-                </div>
-
-                <span className="hero-compare__divider" aria-hidden="true" />
-
-                <div className="hero-compare__stat">
-                  <span className="eyebrow">Saving @ {formatHours(maxHours)}</span>
-                  <span className="hero-compare__value hero-compare__value--save">
-                    {hasSavings
-                      ? <span className="mono">{formatCurrency(c.savingsAtMax)}</span>
-                      : <span className="hero-compare__muted">—</span>}
-                  </span>
-                </div>
-              </div>
-
-              <p className="hero-compare__caption">
-                {hasBreakeven
-                  ? `${heroMachine.name} is cheaper from ${formatHours(c.breakevenHours)} (~${formatYearsFromHours(c.breakevenHours, hoursPerYear)} at these hours) onward.`
-                  : `${c.machine.name} stays cheaper within the ${formatHours(maxHours)} window at these inputs — try adjusting utilization or duty.`}
-              </p>
+                      ? `${heroName} is cheaper from ${formatHours(c.breakevenHours)} (~${formatYearsFromHours(c.breakevenHours, hoursPerYear)} at these hours) onward.`
+                      : `${variantName(c.machine)} stays cheaper within the ${formatHours(maxHours)} window at these inputs — try adjusting utilization or duty.`}
+                  </p>
+                </>
+              )}
             </div>
           );
         })}
