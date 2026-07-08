@@ -13,10 +13,10 @@ const HOW_IT_WORKS = [
 ];
 
 const FEATURES = [
-  { Icon: ShieldIcon, title: 'Accurate Cost Model', body: 'Real-world escalation and lifecycle events' },
-  { Icon: LifecycleIcon, title: 'Lifecycle Planning', body: 'Battery replacement, engine overhaul & more' },
-  { Icon: ConfidenceIcon, title: 'Data Confidence', body: 'Confirmed, estimate or pending quote' },
-  { Icon: ResearchIcon, title: 'Research Based', body: 'Industry data and transparent assumptions' },
+  { Icon: ShieldIcon, title: 'Accurate Cost Model', body: 'Real-world escalation over operating hours' },
+  { Icon: LifecycleIcon, title: 'Lifecycle Planning', body: 'Battery replacement and routine service' },
+  { Icon: ConfidenceIcon, title: 'Transparent Maths', body: 'Every step shown on the Calculation tab' },
+  { Icon: ResearchIcon, title: 'Research Based', body: 'SANY data and transparent assumptions' },
 ];
 
 export default function Dashboard({ onStart }) {
@@ -29,7 +29,7 @@ export default function Dashboard({ onStart }) {
             SANY Fleet Savings<br /><span className="dashboard__headline-accent">Calculator</span>
           </h1>
           <p className="dashboard__subhead">
-            Compare SANY electric vs diesel wheel loaders and other leading brands over time.
+            Compare the SANY SW956E electric vs SYL956H5 diesel wheel loader over 20,000 operating hours.
           </p>
 
           <div className="dashboard__tiles">

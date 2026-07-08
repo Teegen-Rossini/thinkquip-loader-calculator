@@ -1,37 +1,27 @@
-import { formatCurrency } from '../lib/format';
-import { DIESEL_OVERHAUL, ESCALATION } from '../data/machinesConfig';
-import ConfidenceBadge from './ConfidenceBadge';
+import { formatCurrency, formatHours, formatYearsFromHours } from '../lib/format';
+import { ESCALATION, DIESEL_SERVICE } from '../data/machinesConfig';
+import { applyVat } from '../lib/calculationEngine';
 import './SummaryTable.css';
-
-function bucketRange(machine) {
-  if (!machine.bucketCapacityM3) return '—';
-  const [min, max] = machine.bucketCapacityM3;
-  return `${min}–${max} m³`;
-}
 
 function formatRate(rate) {
   const pct = Math.round(rate * 1000) / 10;
   return `${pct > 0 ? '+' : ''}${pct}%/yr`;
 }
 
-function RequestQuoteButton({ machine }) {
-  const subject = encodeURIComponent(`Quote request — ${machine.displayName}`);
-  const body = encodeURIComponent(
-    `Hi,\n\nPlease provide a confirmed dealer quote for the ${machine.displayName}, including machine price, maintenance schedule and warranty terms.\n\nThanks.`
-  );
-  return (
-    <a className="request-quote-btn" href={`mailto:quotes@thinkquip.co.za?subject=${subject}&body=${body}`}>
-      Request Confirmed Quote
-    </a>
-  );
-}
-
-export default function SummaryTable({ electricMachine, electricResult, comparators, horizonYears, fleetSize, vatInclusive }) {
-  const rows = [
-    { machine: electricMachine, result: electricResult, breakeven: null },
-    ...comparators.map((c) => ({ machine: c.machine, result: c, breakeven: c.breakeven })),
-  ];
+export default function SummaryTable({ comparison, inputs }) {
+  const { electric, diesel, electricMachine, dieselMachine, breakevenHours, battery, hoursPerYear, fleetSize } = comparison;
+  const maxHours = 20000;
+  const vatInclusive = inputs.vatInclusive;
   const priceLabel = vatInclusive ? 'Unit price (incl. VAT)' : 'Unit price (excl. VAT)';
+
+  const rows = [
+    { machine: electricMachine, result: electric, isElectric: true },
+    { machine: dieselMachine, result: diesel, isElectric: false },
+  ];
+
+  const perHourEnergy = (r) => applyVat(r.isElectric ? r.result.perHour.elecEnergyPerH : r.result.perHour.dieselFuelPerH, inputs);
+  const perHourService = (r) => applyVat(r.isElectric ? r.result.perHour.elecMaintPerH : r.result.perHour.dieselServicePerH, inputs);
+  const perHourTotal = (r) => applyVat(r.isElectric ? r.result.perHour.elecPerH : r.result.perHour.dieselPerH, inputs);
 
   return (
     <div className="summary-tables panel-surface" id="spec-sheet-assumptions">
@@ -43,20 +33,16 @@ export default function SummaryTable({ electricMachine, electricResult, comparat
               <th>Machine</th>
               <th>{priceLabel}</th>
               <th>Fleet capital (×{fleetSize})</th>
-              <th>One-time infra cost</th>
-              <th>Action</th>
+              <th>TCO @ {formatHours(maxHours)}</th>
             </tr>
           </thead>
           <tbody>
             {rows.map(({ machine, result }) => (
               <tr key={machine.id}>
                 <td>{machine.displayName}</td>
-                <td>
-                  {formatCurrency(result.capitalTotal / result.fleetSize)} <ConfidenceBadge confidence={machine.costConfidence} tooltip={machine.costConfidence === 'unconfirmed' ? 'Machine price not yet quoted — pending a dealer quote.' : undefined} />
-                </td>
-                <td>{formatCurrency(result.capitalTotal)}</td>
-                <td>{result.oneTimeYear0 > 0 ? formatCurrency(result.oneTimeYear0) : '—'}</td>
-                <td>{machine.costConfidence === 'unconfirmed' ? <RequestQuoteButton machine={machine} /> : '—'}</td>
+                <td className="mono">{formatCurrency(result.purchaseFleet / result.fleetSize)}</td>
+                <td className="mono">{formatCurrency(result.purchaseFleet)}</td>
+                <td className="mono">{formatCurrency(result.tcoAtMax)}</td>
               </tr>
             ))}
           </tbody>
@@ -64,40 +50,62 @@ export default function SummaryTable({ electricMachine, electricResult, comparat
       </div>
 
       <div className="summary-table-block">
-        <h3>Annual Running Cost (per machine, year-1 base rate)</h3>
+        <h3>Machine Specifications</h3>
         <table className="summary-table">
           <thead>
             <tr>
               <th>Machine</th>
               <th>Operating weight</th>
-              <th>Bucket capacity</th>
-              <th>Annual energy</th>
-              <th>Annual maintenance</th>
-              <th>Annual total</th>
-              <th>Fleet annual total (×{fleetSize})</th>
+              <th>Rated payload</th>
+              <th>Bucket</th>
+              <th>Tyres</th>
+              <th>Engine / battery</th>
+              <th>Warranty</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(({ machine, isElectric }) => (
+              <tr key={machine.id}>
+                <td>{machine.displayName}</td>
+                <td className="mono">{machine.operatingWeightKg.toLocaleString()} kg</td>
+                <td className="mono">{machine.ratedPayloadKg.toLocaleString()} kg</td>
+                <td className="mono">{machine.bucketCapacityM3} m³</td>
+                <td className="mono">{machine.tyres}</td>
+                <td className="mono">{isElectric ? `${machine.battery.capacityKWh} kWh · ${machine.battery.chargerRatingKW} kW charger (incl.)` : machine.engine}</td>
+                <td className="mono">{machine.warranty}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="summary-table-block">
+        <h3>Year-0 Running Cost per Hour</h3>
+        <table className="summary-table">
+          <thead>
+            <tr>
+              <th>Machine</th>
+              <th>Consumption (current duty)</th>
+              <th>Energy / fuel / h</th>
+              <th>Service / h</th>
+              <th>Total / h</th>
               <th>Savings starts (vs electric)</th>
             </tr>
           </thead>
           <tbody>
-            {rows.map(({ machine, result, breakeven }) => (
-              <tr key={machine.id}>
-                <td>{machine.displayName}</td>
-                <td>{machine.operatingWeightKg.toLocaleString()} kg</td>
-                <td>{bucketRange(machine)}</td>
-                <td>{formatCurrency(result.annualEnergyCost)}</td>
-                <td>
-                  {result.maintenanceUnknown
-                    ? <ConfidenceBadge confidence="unconfirmed" tooltip="No maintenance figure yet — pending a dealer quote." />
-                    : formatCurrency(result.annualMaintenanceCost)}
-                </td>
-                <td>{formatCurrency(result.annualTotalCost)}</td>
-                <td>{formatCurrency(result.annualRunningTotal)}</td>
-                <td>
-                  {machine.type === 'electric'
+            {rows.map((r) => (
+              <tr key={r.machine.id}>
+                <td>{r.machine.displayName}</td>
+                <td className="mono">{r.isElectric ? `${r.result.perHour.cElec} kWh/h` : `${r.result.perHour.cDiesel} L/h`}</td>
+                <td className="mono">{formatCurrency(perHourEnergy(r))}</td>
+                <td className="mono">{r.isElectric ? 'R0' : formatCurrency(perHourService(r))}</td>
+                <td className="mono">{formatCurrency(perHourTotal(r))}</td>
+                <td className="mono">
+                  {r.isElectric
                     ? '—'
-                    : breakeven != null
-                      ? `Yr ${breakeven.toFixed(1)}`
-                      : `Beyond ${horizonYears}yr horizon`}
+                    : breakevenHours != null && breakevenHours <= maxHours
+                      ? `${formatHours(breakevenHours)} (~${formatYearsFromHours(breakevenHours, hoursPerYear)})`
+                      : `Beyond ${formatHours(maxHours)}`}
                 </td>
               </tr>
             ))}
@@ -106,84 +114,53 @@ export default function SummaryTable({ electricMachine, electricResult, comparat
       </div>
 
       <div className="summary-table-block">
-        <h3>Lifecycle Event Basis</h3>
+        <h3>Engine / Battery Maintenance</h3>
         <table className="summary-table">
           <thead>
             <tr>
               <th>Machine</th>
-              <th>Event</th>
-              <th>Interval</th>
-              <th>Base cost</th>
-              <th>Annual escalation</th>
-              <th>Confidence</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map(({ machine, result }) => (
-              <tr key={machine.id}>
-                <td>{machine.displayName}</td>
-                <td>{machine.type === 'electric' ? 'Battery replacement' : 'Engine overhaul'}</td>
-                <td>{machine.type === 'electric' ? `${machine.battery.lifeHours.toLocaleString()} h` : `${DIESEL_OVERHAUL.intervalHours.toLocaleString()} h`}</td>
-                <td>{formatCurrency(result.eventBaseCost)}</td>
-                <td>{formatRate(result.eventRate)}</td>
-                <td>
-                  {machine.type === 'electric'
-                    ? <ConfidenceBadge confidence="confirmed" />
-                    : <ConfidenceBadge confidence="estimate" tooltip={DIESEL_OVERHAUL.note} />}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <div className="summary-table-block">
-        <h3>Warranty &amp; Confidence</h3>
-        <table className="summary-table">
-          <thead>
-            <tr>
-              <th>Machine</th>
-              <th>Warranty</th>
-              <th>Price</th>
-              <th>Consumption</th>
               <th>Maintenance</th>
-              <th>Action</th>
+              <th>Rate / interval</th>
+              <th>Occurs at</th>
+              <th>Escalation</th>
             </tr>
           </thead>
           <tbody>
-            {rows.map(({ machine, result }) => (
-              <tr key={machine.id}>
-                <td>{machine.displayName}</td>
-                <td>
-                  {machine.warranty?.machine
-                    ? <>{machine.warranty.machine}{machine.warranty.battery ? `; ${machine.warranty.battery}` : ''}</>
-                    : <ConfidenceBadge confidence="unconfirmed" tooltip="Warranty terms not yet quoted — pending a dealer quote." />}
-                </td>
-                <td><ConfidenceBadge confidence={machine.costConfidence} /> {machine.costConfidence === 'confirmed' && 'Confirmed'}</td>
-                <td><ConfidenceBadge confidence={machine.consumption.confidence} tooltip={machine.consumption.confidence !== 'confirmed' ? machine.consumption.note : undefined} /> {machine.consumption.confidence === 'confirmed' && 'Confirmed'}</td>
-                <td>{result.maintenanceUnknown ? <ConfidenceBadge confidence="unconfirmed" /> : <><ConfidenceBadge confidence={machine.maintenance.confidence} /> Confirmed</>}</td>
-                <td>{(machine.costConfidence === 'unconfirmed' || machine.warranty?.confidence === 'unconfirmed') ? <RequestQuoteButton machine={machine} /> : '—'}</td>
-              </tr>
-            ))}
+            <tr>
+              <td>{electricMachine.displayName}</td>
+              <td>Battery replacement</td>
+              <td className="mono">{formatCurrency(battery.baseCost)} base</td>
+              <td className="mono">{formatHours(battery.atHours)} (~{formatYearsFromHours(battery.atHours, hoursPerYear)})</td>
+              <td className="mono">{formatRate(battery.rate)}</td>
+            </tr>
+            <tr>
+              <td>{dieselMachine.displayName}</td>
+              <td>Routine engine service</td>
+              <td className="mono">R{DIESEL_SERVICE.ratePerHour}/h (continuous)</td>
+              <td className="mono">Ongoing</td>
+              <td className="mono">{formatRate(ESCALATION.maintenance)}</td>
+            </tr>
           </tbody>
         </table>
+        <p className="summary-note">
+          The electric machine carries no mechanical-maintenance line until its battery reaches replacement at
+          {' '}{formatHours(battery.atHours)} — beyond the first owner’s lifecycle and the 20,000 h chart. That absence is the
+          long-term advantage to highlight.
+        </p>
       </div>
 
       <div className="summary-table-block">
         <h3>Source Notes</h3>
         <ul className="source-notes">
-          {rows.map(({ machine }) => (
-            <li key={machine.id}>
-              <strong>{machine.displayName} consumption:</strong> {machine.consumption.note}
-            </li>
-          ))}
-          <li><strong>Diesel overhaul cost &amp; interval:</strong> {DIESEL_OVERHAUL.note}</li>
+          <li><strong>Consumption:</strong> interpolated linearly from the SANY-supplied breakpoints (electric 20–40 kWh/h, diesel 10–16 L/h) across the 50–100 duty slider.</li>
+          <li><strong>Diesel routine service:</strong> {DIESEL_SERVICE.note}</li>
+          <li><strong>Fuel theft:</strong> diesel fuel cost × (1 + θ) for the selected site-control level; electricity is never affected.</li>
           <li>
-            <strong>Escalation assumptions:</strong> diesel price {formatRate(ESCALATION.dieselPrice)}, electricity price {formatRate(ESCALATION.electricityPrice)},
-            maintenance {formatRate(ESCALATION.maintenance)}, diesel overhaul cost {formatRate(ESCALATION.dieselOverhaul)}, battery replacement cost {formatRate(ESCALATION.batteryReplacement)} —
-            researched industry trends applied to running costs and lifecycle event lump sums, not flat projections.
+            <strong>Escalation assumptions:</strong> diesel fuel {formatRate(ESCALATION.dieselFuel)}, electricity {formatRate(ESCALATION.electricity)},
+            routine service {formatRate(ESCALATION.maintenance)}, battery replacement {formatRate(ESCALATION.batteryReplacement)} —
+            researched trends applied per 0.25-year slice at its midpoint year, not flat projections.
           </li>
-          <li><strong>Pricing shown:</strong> {vatInclusive ? `Includes 15% VAT.` : `Excludes VAT — toggle "Show prices including VAT" on the Inputs tab to add 15%.`}</li>
+          <li><strong>Pricing shown:</strong> {vatInclusive ? 'Includes 15% VAT.' : 'Excludes VAT — toggle "Show prices including VAT" on the Inputs tab to add 15%.'}</li>
         </ul>
       </div>
     </div>

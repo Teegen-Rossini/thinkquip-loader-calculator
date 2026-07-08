@@ -1,27 +1,13 @@
-import { cheapestAtYear } from '../lib/calculationEngine';
-import { formatCurrency } from '../lib/format';
+import { savingsAtHours } from '../lib/calculationEngine';
+import { formatCurrency, formatHours, formatYearsFromHours } from '../lib/format';
+import { CALC_DEFAULTS } from '../data/machinesConfig';
 import './PrintCover.css';
 
-function earliestBreakeven(comparators) {
-  let best = null;
-  comparators.forEach((c) => {
-    if (c.breakeven == null) return;
-    if (!best || c.breakeven < best.breakeven) best = c;
-  });
-  return best;
-}
-
-export default function PrintCover({ inputs, electricMachine, electricResult, comparators, horizonYears }) {
-  const allResults = [{ machine: electricMachine, ...electricResult }, ...comparators];
-  const snapshotYear = Math.min(5, horizonYears);
-  const best = cheapestAtYear(allResults, snapshotYear);
-  const payback = earliestBreakeven(comparators);
-
-  const electricAtSnapshot = cheapestAtYear([{ machine: electricMachine, ...electricResult }], snapshotYear);
-  const referenceComparator = comparators[0];
-  const savings = referenceComparator
-    ? cheapestAtYear([referenceComparator], snapshotYear)?.cost - (electricAtSnapshot?.cost ?? 0)
-    : null;
+export default function PrintCover({ comparison, inputs }) {
+  const { electric, diesel, electricMachine, breakevenHours, hoursPerYear } = comparison;
+  const maxHours = CALC_DEFAULTS.chartMaxHours;
+  const savings = savingsAtHours(electric.series, diesel.series, maxHours);
+  const hasBreakeven = breakevenHours != null && breakevenHours <= maxHours;
 
   const today = new Date().toLocaleDateString('en-ZA', { year: 'numeric', month: 'long', day: 'numeric' });
 
@@ -47,23 +33,23 @@ export default function PrintCover({ inputs, electricMachine, electricResult, co
 
       <div className="print-cover__stats">
         <div>
-          <span className="eyebrow print-cover__stat-label">Best-value machine</span>
-          <p className="print-cover__stat-value">{best?.machine.name ?? electricMachine.name}</p>
-          <p className="print-cover__stat-sub">{best?.machine.type === 'electric' ? 'Electric' : 'Diesel'}</p>
+          <span className="eyebrow print-cover__stat-label">Recommended machine</span>
+          <p className="print-cover__stat-value">{electricMachine.name}</p>
+          <p className="print-cover__stat-sub">Electric</p>
         </div>
         <div>
           <span className="eyebrow print-cover__stat-label">Savings starts</span>
           <p className="print-cover__stat-value print-cover__stat-value--accent">
-            {payback ? `Yr ${payback.breakeven.toFixed(1)}` : `>${horizonYears}yr`}
+            {hasBreakeven ? formatHours(breakevenHours) : `>${formatHours(maxHours)}`}
           </p>
-          <p className="print-cover__stat-sub">{payback ? `vs ${payback.machine.displayName}` : 'beyond horizon'}</p>
+          <p className="print-cover__stat-sub">{hasBreakeven ? `~${formatYearsFromHours(breakevenHours, hoursPerYear)} at these hours` : 'beyond 20,000 h'}</p>
         </div>
         <div>
-          <span className="eyebrow print-cover__stat-label">{snapshotYear}-year saving by going electric ({inputs.fleetSize} machine{inputs.fleetSize > 1 ? 's' : ''})</span>
+          <span className="eyebrow print-cover__stat-label">Saving by going electric @ {formatHours(maxHours)} ({inputs.fleetSize} machine{inputs.fleetSize > 1 ? 's' : ''})</span>
           <p className="print-cover__stat-value print-cover__stat-value--accent">
             {savings != null && savings > 0 ? formatCurrency(savings) : '—'}
           </p>
-          <p className="print-cover__stat-sub">{referenceComparator ? `vs ${referenceComparator.machine.displayName}` : ''}</p>
+          <p className="print-cover__stat-sub">vs SANY SYL956H5 diesel</p>
         </div>
       </div>
     </div>

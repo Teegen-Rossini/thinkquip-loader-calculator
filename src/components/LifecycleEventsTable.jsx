@@ -1,46 +1,41 @@
+import { formatCurrency, formatHours, formatYearsFromHours } from '../lib/format';
 import './LifecycleEventsTable.css';
 
-export default function LifecycleEventsTable({ table, onViewAssumptions }) {
-  if (!table || table.rows.length === 0) {
-    return (
-      <div className="lifecycle-table panel-surface">
-        <h3 className="section-heading section-heading--flush">Lifecycle events</h3>
-        <p className="lifecycle-table__empty">No lifecycle events land within the planning horizon at these inputs.</p>
-      </div>
-    );
-  }
-
-  const { machines, rows } = table;
+export default function LifecycleEventsTable({ comparison, onViewAssumptions }) {
+  const { battery, hoursPerYear } = comparison;
 
   return (
     <div className="lifecycle-table panel-surface">
-      <h3 className="section-heading section-heading--flush">Lifecycle events ({machines.length} machine{machines.length > 1 ? 's' : ''})</h3>
+      <h3 className="section-heading section-heading--flush">Maintenance &amp; lifecycle</h3>
       <div className="lifecycle-table__scroll">
         <table>
           <thead>
             <tr>
-              <th>Event</th>
-              {machines.map((m) => (
-                <th key={m.id}>{m.name}</th>
-              ))}
+              <th>Machine</th>
+              <th>Engine / battery maintenance</th>
+              <th>When</th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((row, i) => (
-              <tr key={`${row.label}-${i}`}>
-                <td>{row.label}</td>
-                {machines.map((m) => (
-                  <td key={m.id} className="mono">
-                    {row.byMachine[m.id] != null ? `Yr ${row.byMachine[m.id].toFixed(1)}` : '—'}
-                  </td>
-                ))}
-              </tr>
-            ))}
+            <tr>
+              <td>SW956E (Electric)</td>
+              <td className="mono">Battery replacement · {formatCurrency(battery.baseCost)} base</td>
+              <td className="mono">{formatHours(battery.atHours)} (~{formatYearsFromHours(battery.atHours, hoursPerYear)})</td>
+            </tr>
+            <tr>
+              <td>SYL956H5 (Diesel)</td>
+              <td className="mono">Routine service · R29/h (continuous)</td>
+              <td className="mono">Ongoing</td>
+            </tr>
           </tbody>
         </table>
       </div>
       <div className="lifecycle-table__note">
-        <p>Costs escalate each year based on researched trends, not flat projections.</p>
+        <p>
+          The diesel machine’s routine service runs continuously; the electric machine carries <strong>no mechanical-maintenance
+          line</strong> until its battery reaches replacement at {formatHours(battery.atHours)} — beyond the first owner’s
+          lifecycle. That is the point to highlight.
+        </p>
         <button type="button" className="lifecycle-table__link" onClick={onViewAssumptions}>View assumptions in Spec Sheet &rarr;</button>
       </div>
     </div>

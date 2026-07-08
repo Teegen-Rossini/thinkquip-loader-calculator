@@ -3,36 +3,18 @@ import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ReferenceLine, ReferenceDot,
 } from 'recharts';
-import { formatCurrency, formatCurrencyCompact } from '../lib/format';
-import { ESCALATION } from '../data/machinesConfig';
-import { cumulativeCostAtYear, cheapestAtYear } from '../lib/calculationEngine';
+import { formatCurrency, formatCurrencyCompact, formatHours, formatHoursCompact, formatYearsFromHours } from '../lib/format';
+import { ESCALATION, CALC_DEFAULTS } from '../data/machinesConfig';
+import { cumulativeCostAtHours } from '../lib/calculationEngine';
 import './CostChart.css';
 
-function buildChartData(allResults) {
-  const xs = new Set();
-  allResults.forEach((r) => r.series.forEach((p) => xs.add(p.year)));
-  const sortedX = [...xs].sort((a, b) => a - b);
-  return sortedX.map((year) => {
-    const row = { year };
-    allResults.forEach((r) => {
-      row[r.machine.id] = cumulativeCostAtYear(r.series, year);
-    });
-    return row;
-  });
-}
-
-function findNearbyEvent(allResults, year, horizonYears) {
-  const eps = Math.max(0.12, horizonYears * 0.012);
-  let best = null;
-  allResults.forEach((r) => {
-    r.events.forEach((e) => {
-      const dist = Math.abs(e.year - year);
-      if (dist < eps && (!best || dist < best.dist)) {
-        best = { dist, machine: r.machine, event: e, eventLabel: r.eventLabel };
-      }
-    });
-  });
-  return best;
+function buildChartData(electric, diesel) {
+  const xs = [...new Set([...electric.series.map((p) => p.hours), ...diesel.series.map((p) => p.hours)])].sort((a, b) => a - b);
+  return xs.map((hours) => ({
+    hours,
+    sw956e: cumulativeCostAtHours(electric.series, hours),
+    syl956h5: cumulativeCostAtHours(diesel.series, hours),
+  }));
 }
 
 function formatRate(rate) {
@@ -40,59 +22,29 @@ function formatRate(rate) {
   return `${pct > 0 ? '+' : ''}${pct}%`;
 }
 
-function LegendRow({ allResults, winnerId }) {
+function LegendRow({ machines, winnerId }) {
   return (
     <div className="cost-chart__legend">
-      {allResults.map((r) => (
-        <div key={r.machine.id} className={`cost-chart__legend-item${winnerId === r.machine.id ? ' is-winner' : ''}`}>
-          <span
-            className="cost-chart__legend-swatch"
-            style={{
-              background: r.machine.chartDash ? 'transparent' : r.machine.chartColor,
-              borderBottom: r.machine.chartDash ? `3px ${r.machine.chartDash === '1 4' ? 'dotted' : 'dashed'} ${r.machine.chartColor}` : 'none',
-            }}
-          />
-          <img src={r.machine.logo} alt="" className="cost-chart__legend-logo" />
-          <span className="cost-chart__legend-name">{r.machine.displayName}</span>
+      {machines.map((m) => (
+        <div key={m.id} className={`cost-chart__legend-item${winnerId === m.id ? ' is-winner' : ''}`}>
+          <span className="cost-chart__legend-swatch" style={{ background: m.chartColor }} />
+          <img src={m.logo} alt="" className="cost-chart__legend-logo" />
+          <span className="cost-chart__legend-name">{m.displayName}</span>
         </div>
       ))}
     </div>
   );
 }
 
-function ChartTooltip({ active, payload, label, allResults, winnerId, horizonYears }) {
+function ChartTooltip({ active, payload, label, machines, winnerId, hoursPerYear }) {
   if (!active || !payload?.length) return null;
-  const year = Number(label);
-
-  const nearbyEvent = findNearbyEvent(allResults, year, horizonYears);
-  if (nearbyEvent) {
-    const { machine, event, eventLabel } = nearbyEvent;
-    return (
-      <div className="cost-chart__tooltip cost-chart__tooltip--event">
-        <div className="cost-chart__tooltip-event-title">{eventLabel.toUpperCase()}</div>
-        <div className="cost-chart__tooltip-event-machine">{machine.displayName}</div>
-        <div className="cost-chart__tooltip-event-year mono">Year {event.year.toFixed(1)}</div>
-        <div className="cost-chart__tooltip-event-row">
-          <span>Base cost:</span>
-          <span className="mono">{formatCurrency(event.baseCost)}</span>
-        </div>
-        <div className="cost-chart__tooltip-event-row">
-          <span>Escalated cost:</span>
-          <span className="mono">{formatCurrency(event.escalatedCost)}</span>
-        </div>
-        <div className="cost-chart__tooltip-event-trend">({formatRate(event.rate)} annual escalation)</div>
-      </div>
-    );
-  }
-
-  const byId = new Map(allResults.map((r) => [r.machine.id, r.machine]));
-  const rows = payload
-    .filter((p) => p.value != null)
-    .sort((a, b) => a.value - b.value);
+  const hours = Number(label);
+  const byId = new Map(machines.map((m) => [m.id, m]));
+  const rows = payload.filter((p) => p.value != null).sort((a, b) => a.value - b.value);
 
   return (
     <div className="cost-chart__tooltip">
-      <div className="cost-chart__tooltip-year mono">Year {year.toFixed(1)}</div>
+      <div className="cost-chart__tooltip-year mono">{formatHours(hours)} · ~{formatYearsFromHours(hours, hoursPerYear)}</div>
       {rows.map((p) => {
         const machine = byId.get(p.dataKey);
         if (!machine) return null;
@@ -109,144 +61,100 @@ function ChartTooltip({ active, payload, label, allResults, winnerId, horizonYea
   );
 }
 
-export default function CostChart({ electricResult, electricMachine, comparators, horizonYears, showLifecycleEvents, onToggleLifecycleEvents }) {
-  const [hoverYear, setHoverYear] = useState(null);
+export default function CostChart({ comparison }) {
+  const { electric, diesel, electricMachine, dieselMachine, breakevenHours, battery, hoursPerYear } = comparison;
+  const [hoverHours, setHoverHours] = useState(null);
+  const maxHours = CALC_DEFAULTS.chartMaxHours;
+  const machines = useMemo(() => [electricMachine, dieselMachine], [electricMachine, dieselMachine]);
 
-  const allResults = useMemo(
-    () => [{ machine: electricMachine, ...electricResult }, ...comparators],
-    [electricMachine, electricResult, comparators]
-  );
+  const chartData = useMemo(() => buildChartData(electric, diesel), [electric, diesel]);
+  const hasBreakeven = breakevenHours != null && breakevenHours <= maxHours;
 
-  const chartData = useMemo(() => buildChartData(allResults), [allResults]);
-  const withBreakeven = comparators.filter((c) => c.breakeven != null);
-  const withoutBreakeven = comparators.filter((c) => c.breakeven == null);
+  const winnerId = useMemo(() => {
+    if (hoverHours == null) return null;
+    const e = cumulativeCostAtHours(electric.series, hoverHours);
+    const d = cumulativeCostAtHours(diesel.series, hoverHours);
+    if (e == null || d == null) return null;
+    return e <= d ? electricMachine.id : dieselMachine.id;
+  }, [hoverHours, electric, diesel, electricMachine, dieselMachine]);
 
-  const winner = hoverYear != null ? cheapestAtYear(allResults, hoverYear) : null;
-  const winnerId = winner?.machine.id ?? null;
+  const winnerCost = winnerId
+    ? cumulativeCostAtHours(winnerId === electricMachine.id ? electric.series : diesel.series, hoverHours)
+    : null;
 
   const handleMove = (state) => {
-    if (state?.activeLabel != null) setHoverYear(Number(state.activeLabel));
+    if (state?.activeLabel != null) setHoverHours(Number(state.activeLabel));
   };
-  const handleLeave = () => setHoverYear(null);
+  const handleLeave = () => setHoverHours(null);
+
+  const breakevenY = hasBreakeven ? cumulativeCostAtHours(electric.series, breakevenHours) : null;
 
   return (
     <div className="cost-chart">
       <div className="cost-chart__toolbar">
-        <LegendRow allResults={allResults} winnerId={winnerId} />
-        <label className="cost-chart__lifecycle-toggle">
-          <span>Show lifecycle events</span>
-          <span className={`switch${showLifecycleEvents ? ' is-on' : ''}`} onClick={() => onToggleLifecycleEvents(!showLifecycleEvents)}>
-            <span className="switch__knob" />
-          </span>
-        </label>
+        <LegendRow machines={machines} winnerId={winnerId} />
       </div>
 
       <ResponsiveContainer width="100%" height={420}>
         <LineChart
           data={chartData}
-          margin={{ top: 10 + withBreakeven.length * 15, right: 24, left: 8, bottom: 8 }}
+          margin={{ top: 24, right: 24, left: 8, bottom: 8 }}
           onMouseMove={handleMove}
           onClick={handleMove}
           onMouseLeave={handleLeave}
         >
           <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
-          <XAxis dataKey="year" type="number" domain={[0, horizonYears]} allowDecimals={false}
-            tickFormatter={(y) => `Yr ${y}`} stroke="var(--text-muted)"
-            label={{ value: 'Years of operation', position: 'insideBottom', offset: -4, fill: 'var(--text-muted)' }} />
+          <XAxis dataKey="hours" type="number" domain={[0, maxHours]}
+            ticks={[0, 2500, 5000, 7500, 10000, 12500, 15000, 17500, 20000]}
+            tickFormatter={formatHoursCompact} stroke="var(--text-muted)"
+            label={{ value: 'Operating hours', position: 'insideBottom', offset: -4, fill: 'var(--text-muted)' }} />
           <YAxis tickFormatter={formatCurrencyCompact} stroke="var(--text-muted)" width={70} />
-          <Tooltip content={<ChartTooltip allResults={allResults} winnerId={winnerId} horizonYears={horizonYears} />} />
+          <Tooltip content={<ChartTooltip machines={machines} winnerId={winnerId} hoursPerYear={hoursPerYear} />} />
 
-          {withBreakeven.map((c, i) => (
+          {hasBreakeven && (
             <ReferenceLine
-              key={`ref-${c.machine.id}`}
-              x={c.breakeven}
-              stroke={c.machine.chartColor}
+              x={breakevenHours}
+              stroke={electricMachine.chartColor}
               strokeDasharray="4 4"
               label={(props) => (
-                <text
-                  x={props.viewBox.x}
-                  y={12 + i * 15}
-                  textAnchor="middle"
-                  fill={c.machine.chartColor}
-                  fontSize={11}
-                >
-                  {`Yr ${c.breakeven.toFixed(1)} vs ${c.machine.name}`}
+                <text x={props.viewBox.x} y={14} textAnchor="middle" fill={electricMachine.chartColor} fontSize={11}>
+                  {`Savings start ${formatHoursCompact(breakevenHours)}`}
                 </text>
               )}
             />
-          ))}
-          {withBreakeven.map((c) => {
-            const y = cumulativeCostAtYear(electricResult.series, c.breakeven);
-            if (y == null) return null;
-            return (
-              <ReferenceDot
-                key={`dot-${c.machine.id}`}
-                x={c.breakeven}
-                y={y}
-                r={5}
-                fill={c.machine.chartColor}
-                stroke="#fff"
-              />
-            );
-          })}
-
-          {showLifecycleEvents && allResults.flatMap((r) =>
-            r.events.map((e, idx) => (
-              <ReferenceLine
-                key={`event-${r.machine.id}-${idx}`}
-                x={e.year}
-                stroke={r.machine.chartColor}
-                strokeOpacity={0.45}
-                strokeDasharray="2 3"
-              />
-            ))
           )}
-          {showLifecycleEvents && allResults.flatMap((r) =>
-            r.events.map((e, idx) => {
-              const y = cumulativeCostAtYear(r.series, e.year);
-              if (y == null) return null;
-              return (
-                <ReferenceDot
-                  key={`event-dot-${r.machine.id}-${idx}`}
-                  x={e.year}
-                  y={y}
-                  r={4}
-                  fill={r.machine.chartColor}
-                  stroke="#fff"
-                />
-              );
-            })
+          {hasBreakeven && breakevenY != null && (
+            <ReferenceDot x={breakevenHours} y={breakevenY} r={5} fill={electricMachine.chartColor} stroke="#fff" />
           )}
 
-          {hoverYear != null && (
-            <ReferenceLine x={hoverYear} stroke="var(--text-muted)" strokeDasharray="2 3" />
+          {hoverHours != null && (
+            <ReferenceLine x={hoverHours} stroke="var(--text-muted)" strokeDasharray="2 3" />
           )}
 
-          {allResults.map((r) => {
-            const isWinner = winnerId === r.machine.id;
+          {machines.map((m) => {
+            const isWinner = winnerId === m.id;
             const dimmed = winnerId != null && !isWinner;
             return (
               <Line
-                key={r.machine.id}
+                key={m.id}
                 type="linear"
-                dataKey={r.machine.id}
-                name={r.machine.displayName}
-                stroke={r.machine.chartColor}
-                strokeWidth={isWinner ? 4 : (r.machine.id === electricMachine.id ? 3 : 2)}
-                strokeOpacity={dimmed ? 0.3 : 1}
-                strokeDasharray={r.machine.chartDash}
+                dataKey={m.id}
+                name={m.displayName}
+                stroke={m.chartColor}
+                strokeWidth={isWinner ? 4 : 3}
+                strokeOpacity={dimmed ? 0.35 : 1}
                 dot={false}
                 isAnimationActive={false}
               />
             );
           })}
 
-          {winner && (
+          {winnerId && winnerCost != null && (
             <ReferenceDot
-              x={hoverYear}
-              y={winner.cost}
+              x={hoverHours}
+              y={winnerCost}
               r={7}
-              fill={winner.machine.chartColor}
+              fill={winnerId === electricMachine.id ? electricMachine.chartColor : dieselMachine.chartColor}
               stroke="#fff"
               strokeWidth={2}
             />
@@ -254,23 +162,22 @@ export default function CostChart({ electricResult, electricMachine, comparators
         </LineChart>
       </ResponsiveContainer>
 
-      {winner && (
+      {winnerId && winnerCost != null && (
         <p className="cost-chart__winner">
-          Cheapest at year {hoverYear.toFixed(1)}: <strong>{winner.machine.displayName}</strong> ({formatCurrency(winner.cost)})
+          Cheaper at {formatHours(hoverHours)}: <strong>{(winnerId === electricMachine.id ? electricMachine : dieselMachine).displayName}</strong> ({formatCurrency(winnerCost)})
         </p>
       )}
 
-      {withoutBreakeven.length > 0 && (
-        <p className="cost-chart__note">
-          Savings don&rsquo;t start within the {horizonYears}-year horizon shown for:{' '}
-          {withoutBreakeven.map((c) => c.machine.name).join(', ')}.
-        </p>
-      )}
+      <p className="cost-chart__note">
+        Battery replacement lands at {formatHours(battery.atHours)} (~{formatYearsFromHours(battery.atHours, hoursPerYear)}) — beyond this
+        20,000 h chart and the first owner’s lifecycle, so it is not plotted here. Escalated cost when it lands:{' '}
+        <strong className="mono">{formatCurrency(battery.escalatedCost)}</strong>.
+      </p>
 
       <p className="cost-chart__footnote">
-        Projection includes annual escalation assumptions for diesel ({formatRate(ESCALATION.dieselPrice)}), electricity ({formatRate(ESCALATION.electricityPrice)}),
-        maintenance ({formatRate(ESCALATION.maintenance)}), diesel overhaul ({formatRate(ESCALATION.dieselOverhaul)}) and battery replacement ({formatRate(ESCALATION.batteryReplacement)}).
-        See the Spec Sheet for full assumptions.
+        Projection applies annual escalation for diesel fuel ({formatRate(ESCALATION.dieselFuel)}), electricity ({formatRate(ESCALATION.electricity)}),
+        routine service ({formatRate(ESCALATION.maintenance)}) and battery replacement ({formatRate(ESCALATION.batteryReplacement)}).
+        The electric machine carries no mechanical-service line. See the Calculation and Spec Sheet tabs for full workings.
       </p>
     </div>
   );
