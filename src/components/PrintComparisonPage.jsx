@@ -43,7 +43,7 @@ export default function PrintComparisonPage({ comparison, inputs, pageNumber, pa
 
   return (
     <PrintPage pageNumber={pageNumber} pageCount={pageCount}>
-      <PageHeader logo={THINKQUIP_LOGO} logoAlt="ThinkQuip" title="Machine Comparison" code="SW956E vs SYL956H5" />
+      <PageHeader logo={THINKQUIP_LOGO} logoAlt="ThinkQuip" title="Machine Comparison" />
       <p className="print-intro">
         Both machines are compared over the same operating hours with your utilization, duty cycle and energy
         prices. The diesel machine is cheaper to buy; the electric machine is cheaper to run every hour after that.

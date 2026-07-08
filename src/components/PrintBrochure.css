@@ -82,7 +82,7 @@
 }
 
 .print-page__footer-logo {
-  height: 14px;
+  height: 28px;
   width: auto;
 }
 
@@ -104,20 +104,15 @@
   display: flex;
   align-items: center;
   gap: 14px;
-  padding-bottom: 4mm;
-  margin-bottom: 6mm;
+  padding-bottom: 3mm;
+  margin-bottom: 4mm;
   border-bottom: 2.5pt solid var(--tq-turquoise);
 }
 
 .print-header__logo {
-  height: 34px;
+  height: 68px;
   width: auto;
   object-fit: contain;
-}
-
-/* SANY wordmark on the spec-sheet headers — larger than the default logo. */
-.print-header__logo--large {
-  height: 52px;
 }
 
 .print-header__title {
@@ -161,7 +156,7 @@
   justify-content: space-between;
   align-items: baseline;
   gap: 8mm;
-  padding: 2.2mm 4mm;
+  padding: 1.8mm 4mm;
   border-bottom: 0.5pt solid var(--border);
   break-inside: avoid;
   page-break-inside: avoid;
@@ -241,12 +236,12 @@
 }
 
 .print-cover__brands-thinkquip {
-  height: 42px;
+  height: 84px;
   width: auto;
 }
 
 .print-cover__brands-sany {
-  height: 56px;
+  height: 84px;
   width: auto;
 }
 

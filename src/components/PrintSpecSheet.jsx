@@ -138,7 +138,6 @@ export default function PrintSpecSheet({ machine, comparison, pageNumber, pageCo
         title="SANY Wheel Loader"
         code={machine.name}
         accent={machine.accentColor}
-        largeLogo
       />
       <div className="print-spec__hero" style={{ background: TINT[machine.type] }}>
         <img src={machine.photo} alt={machine.displayName} />

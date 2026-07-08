@@ -30,10 +30,10 @@ export function PrintPage({ pageNumber, pageCount, isLast, className = '', child
 
 /** Brand page header: logo + machine/section name in large type, with the
  *  model code in a lighter weight beside it. */
-export function PageHeader({ logo, logoAlt = '', title, code, accent, largeLogo = false }) {
+export function PageHeader({ logo, logoAlt = '', title, code, accent }) {
   return (
     <div className="print-header" style={accent ? { borderBottomColor: accent } : undefined}>
-      {logo && <img src={logo} alt={logoAlt} className={`print-header__logo${largeLogo ? ' print-header__logo--large' : ''}`} />}
+      {logo && <img src={logo} alt={logoAlt} className="print-header__logo" />}
       <h1 className="print-header__title">
         {title}
         {code && <span className="print-header__code"> {code}</span>}
