@@ -1,4 +1,4 @@
-import { THINKQUIP_LOGO } from '../data/machinesConfig';
+import { THINKQUIP_LOGO, DIESEL_SERVICE } from '../data/machinesConfig';
 import { applyVat } from '../lib/calculationEngine';
 import { formatCurrency, formatHours, formatYearsFromHours, variantName } from '../lib/format';
 import { PrintPage, PageHeader, Band, SpecRows } from './PrintKit';
@@ -26,7 +26,7 @@ function MachineColumn({ machine, result, inputs, isElectric, windowHours }) {
         { label: isElectric ? 'Electricity cost / h' : 'Fuel cost / h (incl. theft θ)', value: formatCurrency(energyPerH) },
         { label: 'Mechanical service / h', value: isElectric ? 'R0 — none' : formatCurrency(servicePerH) },
         { label: 'Total running cost / h (year 0)', value: formatCurrency(totalPerH) },
-        { label: `Total cost @ ${formatHours(windowHours)}`, value: formatCurrency(result.tcoAtWindow) },
+        { label: `Total cost @ ${formatHours(windowHours)}`, value: formatCurrency(result.tcoAtWindow), emph: true },
       ]} />
     </div>
   );
@@ -117,7 +117,7 @@ export default function PrintComparisonPage({ selection, inputs, pageNumber, pag
 
       <p className="print-note">
         Diesel fuel is {inputs.fuelIncludedInRate ? 'included' : 'excluded (not in the contract rate)'} in this comparison;
-        electricity for the electric machine and the R29/h diesel routine service are always counted.
+        electricity for the electric machine and the R{DIESEL_SERVICE.ratePerHour}/h diesel routine service are always counted.
       </p>
     </PrintPage>
   );

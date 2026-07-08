@@ -1,15 +1,9 @@
-import { DIESEL_SERVICE } from '../data/machinesConfig';
+import { DIESEL_SERVICE, ESCALATION } from '../data/machinesConfig';
+import { operationBand } from '../lib/calculationEngine';
 import { formatCurrency, formatHours } from '../lib/format';
 import { PrintPage, PageHeader, Band, SpecRows } from './PrintKit';
 
 const TINT = { electric: 'var(--sany-electric-light)', diesel: 'var(--sany-diesel-light)' };
-
-function maintenanceRows(machine) {
-  return machine.maintenanceSchedule.map((m) => ({
-    label: `Maintenance @ ${m.hoursPerYear.toLocaleString('en-US')} h/yr`,
-    value: `${formatCurrency(m.costPerYear)}/yr`,
-  }));
-}
 
 function warrantyRows(machine) {
   return machine.warrantyTiers.map((t) => ({ label: t.item, value: t.terms }));
@@ -31,11 +25,12 @@ function Block({ title, rows }) {
  * on a tinted hero panel with the price, then banded two-column spec sections.
  * Figures come from machinesConfig.js and this machine's computed result.
  */
-export default function PrintSpecSheet({ result, selection, pageNumber, pageCount, isLast }) {
+export default function PrintSpecSheet({ result, selection, inputs, pageNumber, pageCount, isLast }) {
   const machine = result.machine;
   const isElectric = machine.type === 'electric';
   const per = result.perHour;
   const battery = selection.battery;
+  const band = operationBand(inputs.operationSlider);
 
   const identity = [
     { label: 'Operating weight', value: `${machine.operatingWeightKg.toLocaleString('en-US')} kg` },
@@ -44,14 +39,16 @@ export default function PrintSpecSheet({ result, selection, pageNumber, pageCoun
     { label: 'Tyres', value: machine.tyres },
   ];
 
+  // Consumption is LIVE — the interpolated figure at the customer's duty-cycle
+  // slider, the same value the Inputs page and the engine use.
   const consumption = [
     {
-      label: `Rated consumption (${machine.specConsumption.unit})`,
-      value: `${machine.specConsumption.value} ${machine.specConsumption.unit}`,
+      label: `Consumption at your duty cycle (${band.label})`,
+      value: isElectric ? `${Math.round(per.cElec)} kWh/h` : `${Math.round(per.cDiesel)} L/h`,
     },
     {
-      label: 'At your selected duty cycle',
-      value: isElectric ? `${Math.round(per.cElec)} kWh/h` : `${Math.round(per.cDiesel)} L/h`,
+      label: 'Energy price applied',
+      value: isElectric ? `R${inputs.electricityPrice} / kWh` : `R${inputs.dieselPrice} / L`,
     },
   ];
 
@@ -75,7 +72,7 @@ export default function PrintSpecSheet({ result, selection, pageNumber, pageCoun
           title: 'Life & Maintenance',
           rows: [
             { label: 'Service life', value: machine.serviceLifeHours.label },
-            ...maintenanceRows(machine),
+            { label: 'Mechanical service line', value: 'R0 — none required' },
             {
               label: `Battery replacement @ ${formatHours(machine.batteryReplacement.atHours)}`,
               value: formatCurrency(machine.batteryReplacement.baseCost),
@@ -111,7 +108,8 @@ export default function PrintSpecSheet({ result, selection, pageNumber, pageCoun
           title: 'Maintenance',
           rows: [
             { label: 'Routine engine service', value: `R${DIESEL_SERVICE.ratePerHour}/h — continuous` },
-            ...maintenanceRows(machine),
+            { label: 'Per 1,000 operating hours', value: formatCurrency(DIESEL_SERVICE.ratePerHour * 1000) },
+            { label: 'Service escalation', value: `+${Math.round(ESCALATION.maintenance * 1000) / 10}% / yr` },
           ],
         },
         { title: 'Warranty', rows: warrantyRows(machine) },
@@ -141,7 +139,7 @@ export default function PrintSpecSheet({ result, selection, pageNumber, pageCoun
         <div className="print-spec__hero-price">
           <p className="print-spec__hero-price-label">{isElectric ? 'Electric wheel loader' : 'Diesel wheel loader'}</p>
           <p className="print-spec__hero-price-value">{formatCurrency(machine.price)}</p>
-          <p className="print-spec__hero-price-sub">excl. VAT{isElectric ? ' — 320 kW charger included' : `${machine.variant ? ` — ${machine.variant}` : ''}`}</p>
+          <p className="print-spec__hero-price-sub">excl. VAT{isElectric ? ` — ${machine.battery.chargerRatingKW} kW charger included` : `${machine.variant ? ` — ${machine.variant}` : ''}`}</p>
         </div>
       </div>
 

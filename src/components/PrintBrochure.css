@@ -29,6 +29,12 @@
   -webkit-print-color-adjust: exact;
 }
 
+/* Every money / hours figure sits in tabular numerals so columns of values
+   align digit-for-digit across the whole document. */
+.print-brochure .num {
+  font-variant-numeric: tabular-nums;
+}
+
 /* On-screen preview (?printview=1): show the sheets exactly as they print. */
 .print-brochure--preview {
   display: block;
@@ -178,6 +184,22 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Emphasized "total" row — the figure a block tallies to. */
+.print-row--emph {
+  background: var(--tq-turquoise-light);
+  border-top: 1pt solid var(--tq-turquoise);
+  border-bottom: 0.75pt solid var(--tq-turquoise-mid);
+}
+
+.print-row--emph .print-row__label {
+  color: var(--text-heading);
+  font-weight: 600;
+}
+
+.print-row--emph .print-value {
+  font-weight: 700;
+}
+
 /* =========================================================
    Section 1 — Cover
    ========================================================= */
@@ -232,13 +254,29 @@
 }
 
 .print-cover__hero {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 8mm 0 4mm;
+  padding: 8mm 0 6mm;
+}
+
+/* Soft elliptical ground shadow under the machine cutout so the hero sits ON
+   the page instead of floating. Pure CSS — prints as a light grey wash. */
+.print-cover__hero::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 4mm;
+  transform: translateX(-50%);
+  width: 118mm;
+  height: 9mm;
+  background: radial-gradient(50% 50% at 50% 50%, rgba(20, 21, 15, 0.16) 0%, rgba(20, 21, 15, 0) 72%);
 }
 
 .print-cover__hero img {
+  position: relative;
+  z-index: 1;
   max-width: 130mm;
   max-height: 78mm;
   object-fit: contain;
@@ -309,6 +347,14 @@
   border: 0.75pt solid var(--border);
   border-top: 2.5pt solid var(--tq-turquoise);
   padding: 4mm;
+  background: #FBFCFB;
+}
+
+/* The first tile — the cheapest-machine call — carries the headline tint. */
+.print-cover__stat:first-child {
+  background: var(--tq-turquoise-light);
+  border-color: var(--tq-turquoise-mid);
+  border-top-color: var(--tq-turquoise);
 }
 
 .print-cover__stat-label {
@@ -483,6 +529,16 @@
   page-break-inside: avoid;
 }
 
+.print-table tbody tr:nth-child(even) td {
+  background: #F7F8F5;
+}
+
+/* The customer's chosen comparison window — the anchor row of the table. */
+.print-table tbody tr.print-table__window td {
+  background: var(--tq-turquoise-light);
+  font-weight: 600;
+}
+
 .print-table .num,
 .print-table td.num {
   text-align: right;
@@ -518,9 +574,9 @@
 }
 
 .print-chart__legend-swatch {
-  width: 14px;
-  height: 3px;
-  border-radius: 1.5px;
+  width: 16px;
+  height: 3.5px;
+  border-radius: 1.75px;
 }
 
 /* =========================================================
@@ -531,6 +587,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 8mm;
+  border: 0.5pt solid var(--border);
   border-radius: 2mm;
   padding: 5mm 7mm;
   margin-bottom: 1mm;

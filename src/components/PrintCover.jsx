@@ -8,7 +8,7 @@ import { PrintPage } from './PrintKit';
  *  NEUTRAL — whichever selected machine has the lowest total cost of ownership
  *  at the comparison window chosen on screen (electric or diesel). */
 export default function PrintCover({ selection, inputs, pageNumber, pageCount }) {
-  const { heroMachine, machines, comparisons, hasComparison, hoursPerYear, windowHours } = selection;
+  const { heroMachine, machines, comparisons, hasComparison, hoursPerYear, windowHours, electricSelected } = selection;
   const heroResult = machines.find((m) => m.machine.uid === heroMachine.uid) ?? machines[0];
 
   // Strongest sales figure: the opponent with the widest gap at the window.
@@ -36,7 +36,7 @@ export default function PrintCover({ selection, inputs, pageNumber, pageCount })
       <div className="print-cover__band">
         <p className="print-cover__eyebrow">Cost comparison — built on your operating numbers</p>
         <h1 className="print-cover__headline">
-          Electric Loader<br />Fleet Savings Proposal
+          {electricSelected ? <>Electric Loader<br />Fleet Savings Proposal</> : <>Wheel Loader<br />Fleet Cost Proposal</>}
         </h1>
       </div>
 

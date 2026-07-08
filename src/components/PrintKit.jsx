@@ -54,12 +54,13 @@ export function SpecValue({ value }) {
 }
 
 /** Two-column spec rows — label left, value right, thin rules between rows.
- *  rows: [{ label, value }] */
+ *  rows: [{ label, value, emph? }] — emph renders the row as the block's
+ *  tallied total (tinted, ruled top, bold value). */
 export function SpecRows({ rows }) {
   return (
     <div className="print-rows">
       {rows.map((row) => (
-        <div className="print-row" key={row.label}>
+        <div className={`print-row${row.emph ? ' print-row--emph' : ''}`} key={row.label}>
           <span className="print-row__label">{row.label}</span>
           <SpecValue value={row.value} />
         </div>

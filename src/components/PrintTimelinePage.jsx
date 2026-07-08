@@ -1,7 +1,8 @@
 import { CALC_DEFAULTS, ESCALATION, THINKQUIP_LOGO } from '../data/machinesConfig';
 import { cumulativeCostAtHours, savingsAtHours } from '../lib/calculationEngine';
-import { formatCurrency, formatHours, formatYearsFromHours } from '../lib/format';
+import { formatCurrency, formatHours, formatYearsFromHours, variantName } from '../lib/format';
 import { PrintPage, PageHeader, Band } from './PrintKit';
+import { printSeriesInk } from '../lib/printInks';
 import PrintChart from './PrintChart';
 
 function pct(rate) {
@@ -13,9 +14,15 @@ function pct(rate) {
  *  static print SVG, its sampled data table, and (when electric is selected)
  *  the battery-replacement callout that lands beyond the chart. */
 export default function PrintTimelinePage({ selection, inputs, pageNumber, pageCount }) {
-  const { machines, hero, heroMachine, comparisons, hasComparison, battery, hoursPerYear } = selection;
+  const { machines, hero, heroMachine, comparisons, hasComparison, battery, hoursPerYear, windowHours } = selection;
   const maxHours = CALC_DEFAULTS.chartMaxHours;
-  const sampleHours = [2500, 5000, 10000, 15000];
+  // Sample points derive from the live chart horizon; the customer's chosen
+  // comparison window is always among them (highlighted below).
+  const sampleHours = [...new Set(
+    [maxHours / 6, maxHours / 3, (2 * maxHours) / 3, maxHours, windowHours]
+      .map(Math.round)
+      .filter((h) => h > 0),
+  )].sort((a, b) => a - b);
 
   // Best opponent for the "advantage" column (widest gap at the window).
   const best = hasComparison
@@ -34,7 +41,7 @@ export default function PrintTimelinePage({ selection, inputs, pageNumber, pageC
         <div className="print-chart__legend">
           {machines.map((m) => (
             <span key={m.machine.uid} className="print-chart__legend-item">
-              <span className="print-chart__legend-swatch" style={{ background: m.machine.chartColor }} />
+              <span className="print-chart__legend-swatch" style={{ background: printSeriesInk(m.machine) }} />
               {m.machine.displayName}
             </span>
           ))}
@@ -53,13 +60,13 @@ export default function PrintTimelinePage({ selection, inputs, pageNumber, pageC
                 {m.machine.variant ? `${m.machine.name} (${m.machine.variant})` : m.machine.name} cumulative
               </th>
             ))}
-            {best && <th className="num">{heroMachine.name} advantage</th>}
+            {best && <th className="num">{variantName(heroMachine)} advantage</th>}
           </tr>
         </thead>
         <tbody>
           {sampleHours.map((h) => (
-            <tr key={h}>
-              <td>{formatHours(h)}</td>
+            <tr key={h} className={h === windowHours ? 'print-table__window' : undefined}>
+              <td>{formatHours(h)}{h === windowHours ? ' — your window' : ''}</td>
               <td>{formatYearsFromHours(h, hoursPerYear)}</td>
               {machines.map((m) => (
                 <td key={m.machine.uid} className="num">{formatCurrency(cumulativeCostAtHours(m.series, h))}</td>
