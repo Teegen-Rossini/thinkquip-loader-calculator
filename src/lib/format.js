@@ -9,6 +9,19 @@ export function formatCurrencyCompact(value) {
   return `R${Math.round(value)}`;
 }
 
-export function formatYearLabel(year) {
-  return Number.isInteger(year) ? `Yr ${year}` : `Yr ${year.toFixed(1)}`;
+export function formatHours(value) {
+  return `${Math.round(value).toLocaleString('en-US')} h`;
+}
+
+export function formatHoursCompact(value) {
+  if (Math.abs(value) >= 1000) return `${(value / 1000).toFixed(value % 1000 === 0 ? 0 : 1)}k h`;
+  return `${Math.round(value)} h`;
+}
+
+/** Operating hours expressed as approximate calendar years for a given
+ *  hours/year utilization. */
+export function formatYearsFromHours(hours, hoursPerYear) {
+  if (!hoursPerYear) return '—';
+  const years = hours / hoursPerYear;
+  return `${years.toFixed(1)} yr`;
 }

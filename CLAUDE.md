@@ -6,9 +6,15 @@ Guidance for working in this repository.
 
 The **ThinkQuip SANY Electric Loader Savings Calculator** — an in-person sales
 tool. A salesperson enters a customer's operating parameters; the app produces a
-cost comparison arguing for the **SANY SW956E electric wheel loader** vs. its
-diesel equivalents, backed by the customer's own numbers. The cumulative
-cost-over-time chart with the crossover (breakeven) point is the centerpiece.
+cost comparison arguing for the **SANY SW956E electric wheel loader** vs. the
+**SANY SYL956H5 diesel** loader, backed by the customer's own numbers. The
+cumulative **cost-over-operating-hours** chart with the crossover (breakeven)
+point is the centerpiece.
+
+The tool compares **exactly two machine families** — SW956E electric vs
+SYL956H5 diesel. There are **no competitor machines** (CAT / Komatsu / Volvo
+were removed), **no solar**, **no tender logic**, and **no separate charging-
+infrastructure cost** (the charger is included in the electric price).
 
 Stack: **React 19 + Vite 8**, charts via **Recharts 3**, linting via **Oxlint**.
 No TypeScript. No test framework is set up yet.
@@ -24,16 +30,16 @@ npm run lint     # oxlint
 
 ## Architecture & where things live
 
-- **`src/data/machinesConfig.js`** — the single source of truth for all
-  manufacturer specs, prices, consumption, maintenance, escalation rates and
-  calc defaults. **All figures live here and nowhere else.** As real dealer
-  quotes come back, update values here — the engine and components should not
-  need to change.
-- **`src/lib/calculationEngine.js`** — pure functions only. Takes machine config
-  + customer inputs, returns numbers. No React state duplicates this math. If a
+- **`src/data/machinesConfig.js`** — the single source of truth for all specs,
+  prices, consumption breakpoints, escalation rates and calc defaults. **All
+  figures live here and nowhere else.** As real figures firm up, update values
+  here — the engine and components should not need to change.
+- **`src/lib/calculationEngine.js`** — pure functions only. Takes config +
+  customer inputs, returns numbers. No React state duplicates this math. If a
   calculation exists, it belongs here.
-- **`src/lib/format.js`** — display formatting (currency, etc.).
-- **`src/data/confidenceMeta.js`** — metadata for the confidence-badge system.
+- **`src/lib/format.js`** — display formatting (currency, hours, years).
+- **`src/data/confidenceMeta.js`** — metadata for the confidence-badge system
+  (now used mainly for the placeholder energy prices).
 - **`src/components/`** — the tabbed UI (see flow below), each with a colocated
   `.css` file.
 - **`src/App.jsx`** — top-level state, tab routing, wires inputs → engine → views.
@@ -41,54 +47,93 @@ npm run lint     # oxlint
 ## App flow
 
 Landing `Dashboard` → then a tab bar: **01 Inputs** → **02 Comparison** →
-**03 Cost Over Time** → **04 Spec Sheet**. Note: `activeTab` initializes to
-`'dashboard'`, which is intentionally **not** a member of the `TABS` array — the
-dashboard is a separate landing view rendered outside the tab bar. Keep that in
-mind before touching navigation.
+**03 Cost Over Time** → **04 Calculation** → **05 Spec Sheet**. Note: `activeTab`
+initializes to `'dashboard'`, which is intentionally **not** a member of the
+`TABS` array — the dashboard is a separate landing view rendered outside the tab
+bar. Keep that in mind before touching navigation.
 
 Customer inputs are persisted to `localStorage` under
 `thinkquip-loader-calc-draft` and restored on load.
 
+## Inputs
+
+- **Machine option** (`machineOption`): one of three — `electric`, `diesel-dry`,
+  `diesel-wet`. Both the electric and a diesel line are always compared; wet vs
+  dry brake changes **only the diesel purchase price** (dry R1,850,000, wet
+  R2,200,000; electric fixed R3,150,000, charger included).
+- **Fuel included in rate** (`fuelIncludedInRate`): `No` drops diesel **fuel**
+  cost (and its theft uplift) from the diesel total. Electricity is **always**
+  counted for the electric machine; the R29/h diesel service is **always**
+  counted.
+- **Operation slider** (`operationSlider`, 50–100): drives **consumption only**,
+  never the time axis. UI shows the band label (Light/Normal/Heavy) and the
+  resulting kWh/h · L/h — never the raw percentage.
+- **Utilization**: `dailyHours` × `daysPerWeek` (6) × `weeksPerYear` (50) → H.
+- **Energy prices**: editable, auto-filled placeholders (`DEFAULT_PRICES`).
+- **Fuel-theft control** (`fuelTheftLevel`): low/moderate/well → θ 10/3.5/1% on
+  diesel fuel only.
+- **Fleet size** (1–4): multiplies all costs by N.
+
 ## The financial model (important conventions)
 
-- **Escalation is real, not flat.** Running costs (energy + maintenance)
-  compound annually, sampled monthly for a smooth curve. Rates live in
-  `ESCALATION` in `machinesConfig.js` (note `batteryReplacement` is **negative**
-  — battery cost is projected to fall).
-- **Lifecycle events** (battery replacement for electric, engine overhaul for
-  diesel) land as sharp vertical steps at their *true fractional year*, computed
-  from the machine's real hours/year vs. its interval — not a fixed year. Their
-  lump sums are escalated/de-escalated to the price level of the year they land.
-- **Fleet scaling:** capital, energy, maintenance and event costs scale with
-  fleet size; charging infrastructure does **not** scale 1:1 — one charger
-  (2 guns) serves 2 machines, so `chargersNeeded = ceil(N / 2)`.
-- **Tender jobs:** if it's a tender job and fuel is excluded, energy cost is
-  dropped from the comparison entirely (`shouldIncludeFuelCost`).
-- **Horizon auto-extends** from `horizonYears` (10) up to `horizonYearsMax` (20)
-  if no breakeven is found in the default window.
+- **X-axis is OPERATING HOURS, 0 → 20,000 h** (`CALC_DEFAULTS.chartMaxHours`),
+  not years. Convert with `t(x) = x / H`.
+- **Consumption is continuous.** Interpolated linearly between the breakpoints in
+  `CONSUMPTION_BREAKPOINTS` (electric 20→40 kWh/h, diesel 10→16 L/h across slider
+  50→100). The bands are only where the slope changes.
+- **Cumulative cost is built in Δt = 0.25-year slices** (`CALC_DEFAULTS.sliceYears`);
+  each slice spans `H·Δt` hours and is escalated at its **midpoint year**.
+  Electric slice = C·price·(1.08)^t; diesel slice = fuel·(1.06)^t·(1+θ) +
+  R29·(1.06)^t. See `buildCostSeries`.
+- **Escalation is real, not flat.** Rates in `ESCALATION`: diesel fuel +6%,
+  electricity +8%, maintenance/service +6%, battery replacement **−5%** (it
+  declines — do not inflate it).
+- **Battery replacement @ 30,000 h** (electric only, base R1,120,000, escalated
+  by (0.95)^t). This is **beyond the 20,000 h chart** — it is **never plotted on
+  the curve**. It is surfaced in the lifecycle/spec tables and a chart callout,
+  labelled as occurring beyond the first owner's lifecycle. Its calendar year =
+  30,000 / H (`batteryReplacementProjection`).
+- **No diesel overhaul event.** Diesel maintenance is the continuous R29/h
+  routine-service line (`DIESEL_SERVICE`), linear R29,000 @1,000h → R377,000
+  @13,000h, continued at the same rate to 20,000 h. Electric carries **no
+  mechanical-service line (R0/h)** — a deliberate long-term advantage to surface.
+- **Fleet scaling:** every cost (capital, energy, service) scales ×N. The charger
+  is included in the electric price, so there is no separate infra line.
+- **Outputs:** `Savings(x) = TCO_diesel − TCO_electric`; breakeven = smallest
+  hour where Savings ≥ 0 (`findBreakevenHours`); a simple year-0 breakeven
+  (`simpleBreakevenHours` = price gap ÷ hourly saving) is shown alongside the
+  escalated one as a sanity check.
 - **VAT** is a display toggle (`vatInclusive`), applied at the engine's output
   boundary via `applyVat`, at the SA rate in `CALC_DEFAULTS.vatRate` (15%).
+
+## The Calculation tab
+
+`CalculationView` transparently shows, with the live input numbers plugged in:
+H, the slider→consumption interpolation arithmetic, the year-0 per-hour cost
+lines, the four escalation formulas, sampled (hour, year, cumulative) points, the
+battery-replacement injection, and the final TCO / savings / breakeven (both the
+simple year-0 and the fuller escalated figure). It normalizes figures to
+per-machine, ex-VAT for readability.
 
 ## Data confidence system
 
 Every figure carries a confidence level: `'confirmed'` | `'estimate'` |
-`'unconfirmed'`. `unconfirmed` maintenance/cost renders as "Pending quote" in the
-UI and (for maintenance) is treated as `null` by the engine. Preserve and set
-these accurately whenever you touch data in `machinesConfig.js`.
+`'unconfirmed'`. With the two-machine SANY scope, most specs are `confirmed`; the
+placeholder **energy prices** are `estimate`. Preserve/set these accurately in
+`machinesConfig.js`.
 
 ## Known open items
 
-- **Pending dealer quotes:** CAT / Komatsu / Volvo machine prices, maintenance
-  costs and warranty terms are estimates or unconfirmed. Komatsu & Volvo fuel
-  figures are reasoned estimates scaled from CAT telematics data.
-- **Placeholder prices:** electricity, diesel, charger-install and solar costs
-  are placeholder defaults — no live feeds wired up yet (see spec §7).
+- **Placeholder prices:** electricity (R2.80/kWh) and diesel (R23.50/L) defaults
+  are placeholders — no live feed wired up yet. Always confirm against the
+  customer's real rates.
 - **Not yet built (spec):** client-info capture/save for follow-up (POPIA
   consent), and live-ish diesel/electricity price sourcing.
 
 ## Reference
 
-`thinkquip-electric-loader-calculator-spec.md` is the authoritative project spec
-(machines, variables, calc logic, outputs, open questions, branding). Consult it
-before adding features or changing the model. Brand colors are defined in
-`COLORS` in `machinesConfig.js` — use those exact hex values.
+`thinkquip-electric-loader-calculator-spec.md` is the older project spec — note
+that the current two-machine, hours-based model in this file (and the code)
+supersedes it where they conflict. Brand colors are in `COLORS` in
+`machinesConfig.js` — turquoise chrome, yellow CTA, electric line blue, diesel
+line amber/yellow. Use those exact hex values.

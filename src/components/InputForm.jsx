@@ -1,5 +1,5 @@
-import { DEFAULT_PRICES } from '../data/machinesConfig';
-import { annualHours } from '../lib/calculationEngine';
+import { DEFAULT_PRICES, MACHINE_OPTIONS, FUEL_THEFT_LEVELS } from '../data/machinesConfig';
+import { annualHours, interpolateConsumption, operationBand } from '../lib/calculationEngine';
 import ConfidenceBadge from './ConfidenceBadge';
 import ConfidenceLegend from './ConfidenceLegend';
 import { ArrowRightIcon } from './icons';
@@ -23,17 +23,11 @@ function rangeWarning(value, min, max, unit) {
   return null;
 }
 
-export default function InputForm({ inputs, onUpdate, dieselComparators, onNext }) {
+export default function InputForm({ inputs, onUpdate, onNext }) {
   const hours = annualHours(inputs);
-
-  const toggleComparator = (id) => {
-    const isSelected = inputs.selectedComparatorIds.includes(id);
-    onUpdate({
-      selectedComparatorIds: isSelected
-        ? inputs.selectedComparatorIds.filter((c) => c !== id)
-        : [...inputs.selectedComparatorIds, id],
-    });
-  };
+  const band = operationBand(inputs.operationSlider);
+  const cElec = interpolateConsumption('electric', inputs.operationSlider);
+  const cDiesel = interpolateConsumption('diesel', inputs.operationSlider);
 
   const dailyHoursWarning = rangeWarning(inputs.dailyHours, 1, 24, 'h/day');
   const daysPerWeekWarning = rangeWarning(inputs.daysPerWeek, 1, 7, ' days');
@@ -53,49 +47,82 @@ export default function InputForm({ inputs, onUpdate, dieselComparators, onNext 
       </div>
 
       <div className="input-grid">
-        <section className="input-card">
-          <h3>Tender &amp; Fuel Terms</h3>
-          <div className="field">
-            <span className="field__label">
-              Is this a tender job? <InfoTip text="A tender job is priced against a fixed customer contract rate. This affects whether fuel cost counts toward the comparison below." />
-            </span>
-            <div className="toggle-group">
-              <button type="button" className={inputs.isTenderJob ? 'toggle-btn is-active' : 'toggle-btn'}
-                onClick={() => onUpdate({ isTenderJob: true })}>Yes</button>
-              <button type="button" className={!inputs.isTenderJob ? 'toggle-btn is-active' : 'toggle-btn'}
-                onClick={() => onUpdate({ isTenderJob: false })}>No</button>
-            </div>
+        <section className="input-card input-card--wide">
+          <h3>Machine Option</h3>
+          <p className="field__help">Both the SW956E electric and the SYL956H5 diesel are always compared. Wet vs dry brake changes only the diesel purchase price.</p>
+          <div className="machine-option-group" role="radiogroup" aria-label="Machine option">
+            {MACHINE_OPTIONS.map((opt) => {
+              const selected = inputs.machineOption === opt.id;
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  className={selected ? 'machine-option is-active' : 'machine-option'}
+                  onClick={() => onUpdate({ machineOption: opt.id })}
+                >
+                  <span className={`machine-option__type machine-option__type--${opt.type}`}>{opt.type === 'electric' ? 'Electric' : 'Diesel'}</span>
+                  <span className="machine-option__label">{opt.label}</span>
+                  <span className="machine-option__price mono">R{opt.price.toLocaleString('en-US')} <span className="machine-option__exvat">ex VAT</span></span>
+                </button>
+              );
+            })}
           </div>
-
-          {inputs.isTenderJob && (
-            <div className="field">
-              <span className="field__label">Fuel cost included in tender?</span>
-              <div className="toggle-group toggle-group--wrap">
-                <button type="button" className={inputs.fuelIncludedInTender ? 'toggle-btn is-active' : 'toggle-btn'}
-                  onClick={() => onUpdate({ fuelIncludedInTender: true })}>Yes — customer pays fuel</button>
-                <button type="button" className={!inputs.fuelIncludedInTender ? 'toggle-btn is-active' : 'toggle-btn'}
-                  onClick={() => onUpdate({ fuelIncludedInTender: false })}>No — excluded from their cost calc</button>
-              </div>
-              {!inputs.fuelIncludedInTender && (
-                <p className="field__help">Energy cost will be excluded from the comparison below — it isn’t part of what this customer actually pays.</p>
-              )}
-            </div>
-          )}
         </section>
 
         <section className="input-card">
-          <h3>Operation Mix</h3>
+          <h3>Fuel Terms</h3>
           <div className="field">
             <span className="field__label">
-              Duty cycle blend <InfoTip text="Blended consumption = heavy% x heavy rate + light% x light rate. Move the slider to match how hard the machine typically works." />
+              Fuel included in rate? <InfoTip text="If the customer’s contract rate does not include diesel fuel, the diesel machine’s fuel cost (and fuel-theft uplift) is dropped from the comparison. Electricity for the electric machine and the R29/h diesel service are always counted." />
+            </span>
+            <div className="toggle-group">
+              <button type="button" className={inputs.fuelIncludedInRate ? 'toggle-btn is-active' : 'toggle-btn'}
+                onClick={() => onUpdate({ fuelIncludedInRate: true })}>Yes</button>
+              <button type="button" className={!inputs.fuelIncludedInRate ? 'toggle-btn is-active' : 'toggle-btn'}
+                onClick={() => onUpdate({ fuelIncludedInRate: false })}>No</button>
+            </div>
+            {!inputs.fuelIncludedInRate && (
+              <p className="field__help">Diesel fuel cost is excluded — electricity and the R29/h diesel service still count.</p>
+            )}
+          </div>
+        </section>
+
+        <section className="input-card">
+          <h3>Fuel-Theft Control</h3>
+          <div className="field">
+            <span className="field__label">
+              Site control level <InfoTip text="Diesel fuel cost is multiplied by (1 + θ) to reflect on-site fuel losses. Electricity is never affected." />
+            </span>
+            <div className="toggle-group toggle-group--wrap">
+              {FUEL_THEFT_LEVELS.map((lvl) => (
+                <button key={lvl.id} type="button"
+                  className={inputs.fuelTheftLevel === lvl.id ? 'toggle-btn is-active' : 'toggle-btn'}
+                  onClick={() => onUpdate({ fuelTheftLevel: lvl.id })}>
+                  {lvl.label} ({lvl.range})
+                </button>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="input-card">
+          <h3>Operation</h3>
+          <div className="field">
+            <span className="field__label">
+              Duty cycle <InfoTip text="Moves consumption between the light/normal/heavy breakpoints. This drives consumption only — never the time axis." />
             </span>
             <div className="slider-labels">
-              <span>Light duty {100 - inputs.operationMixHeavyPct}%</span>
-              <span>Heavy duty {inputs.operationMixHeavyPct}%</span>
+              <span className="slider-labels__band">{band.label} duty</span>
+              <span className="mono">{cElec} kWh/h · {cDiesel} L/h</span>
             </div>
-            <input type="range" min="0" max="100" step="5" className="slider"
-              value={inputs.operationMixHeavyPct}
-              onChange={(e) => onUpdate({ operationMixHeavyPct: Number(e.target.value) })} />
+            <input type="range" min="50" max="100" step="1" className="slider"
+              value={inputs.operationSlider}
+              onChange={(e) => onUpdate({ operationSlider: Number(e.target.value) })} />
+            <div className="slider-scale">
+              <span>Light</span><span>Normal</span><span>Heavy</span>
+            </div>
           </div>
         </section>
 
@@ -139,30 +166,6 @@ export default function InputForm({ inputs, onUpdate, dieselComparators, onNext 
         </section>
 
         <section className="input-card">
-          <h3>Energy Source (Electric Machine)</h3>
-          <div className="field">
-            <div className="toggle-group">
-              <button type="button" className={inputs.energySource === 'grid' ? 'toggle-btn is-active' : 'toggle-btn'}
-                onClick={() => onUpdate({ energySource: 'grid' })}>Grid charger</button>
-              <button type="button" className={inputs.energySource === 'solar' ? 'toggle-btn is-active' : 'toggle-btn'}
-                onClick={() => onUpdate({ energySource: 'solar' })}>Solar</button>
-            </div>
-          </div>
-          <div className="field">
-            <span className="field__label">Charging infrastructure already installed?</span>
-            <div className="toggle-group">
-              <button type="button" className={inputs.chargingInfraInstalled ? 'toggle-btn is-active' : 'toggle-btn'}
-                onClick={() => onUpdate({ chargingInfraInstalled: true })}>Yes</button>
-              <button type="button" className={!inputs.chargingInfraInstalled ? 'toggle-btn is-active' : 'toggle-btn'}
-                onClick={() => onUpdate({ chargingInfraInstalled: false })}>No</button>
-            </div>
-            {!inputs.chargingInfraInstalled && (
-              <p className="field__help">A one-time installation cost will be added to the electric machine’s capital cost.</p>
-            )}
-          </div>
-        </section>
-
-        <section className="input-card">
           <h3>Energy Prices</h3>
           <div className="field-row">
             <div className="field">
@@ -188,27 +191,15 @@ export default function InputForm({ inputs, onUpdate, dieselComparators, onNext 
         </section>
 
         <section className="input-card">
-          <h3>Comparison Machines</h3>
-          <div className="comparator-list">
-            <label className="comparator-item comparator-item--locked">
-              <input type="checkbox" checked disabled />
-              <span>SANY SYL956H5 (Diesel)</span>
-              <span className="comparator-item__status">Included</span>
-            </label>
-            {dieselComparators.map((machine) => {
-              const included = inputs.selectedComparatorIds.includes(machine.id);
-              return (
-                <label className="comparator-item" key={machine.id}>
-                  <input type="checkbox"
-                    checked={included}
-                    onChange={() => toggleComparator(machine.id)} />
-                  <span>{machine.displayName}</span>
-                  <span className={included ? 'comparator-item__status comparator-item__status--included' : 'comparator-item__status'}>
-                    {included ? 'Included' : 'Pending quote'}
-                  </span>
-                </label>
-              );
-            })}
+          <h3>Fleet Size</h3>
+          <div className="field">
+            <span className="field__label">Number of machines <InfoTip text="Multiplies all costs (capital, energy and service) by the fleet size." /></span>
+            <div className="toggle-group">
+              {[1, 2, 3, 4].map((n) => (
+                <button key={n} type="button" className={inputs.fleetSize === n ? 'toggle-btn is-active' : 'toggle-btn'}
+                  onClick={() => onUpdate({ fleetSize: n })}>{n}</button>
+              ))}
+            </div>
           </div>
         </section>
       </div>

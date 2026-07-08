@@ -1,339 +1,249 @@
 /**
  * Calculation engine.
- * Pure functions only: everything here takes machine config (from
- * src/data/machinesConfig.js) and customer inputs, and returns numbers.
+ * Pure functions only: everything here takes config (from
+ * src/data/machinesConfig.js) plus customer inputs, and returns numbers.
  * No component or React state should duplicate this math.
  *
- * Financial model: running costs (energy + maintenance) escalate annually
- * (compounding, sampled monthly for a smooth curve). Lifecycle events
- * (battery replacement / engine overhaul) are lump sums escalated or
- * de-escalated to the cost level of the exact fractional year they land in,
- * landing as a genuine sharp vertical step at that precise point in time.
+ * Model (spec sections 4-10):
+ *  - The x-axis is OPERATING HOURS, 0 → 20,000 h.
+ *  - Consumption is interpolated continuously from the operation slider.
+ *  - Cumulative cost is built by stepping in Δt = 0.25-year time slices; each
+ *    slice spans H·Δt hours and is escalated at its midpoint year.
+ *  - Diesel: fuel (× (1+θ) theft, only if fuel is included) + R29/h routine
+ *    service. Electric: electricity only (always counted); no service line.
+ *  - Battery replacement lands at 30,000 h — BEYOND the chart, so it is never
+ *    plotted; it is surfaced separately with its calendar year 30,000 / H.
  */
 
-import { ONE_TIME_COSTS, DIESEL_OVERHAUL, CALC_DEFAULTS, ESCALATION } from '../data/machinesConfig';
+import {
+  ELECTRIC_MACHINE,
+  CONSUMPTION_BREAKPOINTS,
+  OPERATION_BANDS,
+  FUEL_THEFT_LEVELS,
+  DIESEL_SERVICE,
+  ESCALATION,
+  CALC_DEFAULTS,
+  getDieselMachineForOption,
+} from '../data/machinesConfig';
 
-const MONTHS_PER_YEAR = 12;
-
+/** annual_hours H = daily_hours × days_per_week × weeks_per_year */
 export function annualHours({ dailyHours, daysPerWeek, weeksPerYear }) {
   return dailyHours * daysPerWeek * weeksPerYear;
 }
 
-/** rate = heavy% x heavy_rate + light% x light_rate */
-export function blendedConsumptionRate(machine, heavyPct) {
-  const heavyFrac = heavyPct / 100;
-  const lightFrac = 1 - heavyFrac;
-  return machine.consumption.heavy * heavyFrac + machine.consumption.light * lightFrac;
-}
-
 /**
- * Maintenance cost/year is given at two anchor points (2,000 h/yr and
- * 3,000 h/yr) and scales linearly between/beyond them. Returns null when
- * the machine has no maintenance data yet (pending dealer quote).
+ * Linear interpolation of consumption between the breakpoints for a machine
+ * type ('electric' | 'diesel') at slider value s (clamped to 50–100).
+ * C = Ca + ((s − a) / (b − a)) × (Cb − Ca)
  */
-export function annualMaintenanceCost(machine, hours) {
-  const { at2000, at3000 } = machine.maintenance;
-  if (at2000 == null || at3000 == null) return null;
-  const slopePerHour = (at3000 - at2000) / 1000;
-  return at2000 + slopePerHour * (hours - 2000);
+export function interpolateConsumption(type, slider) {
+  const pts = CONSUMPTION_BREAKPOINTS[type];
+  const s = Math.max(pts[0][0], Math.min(pts[pts.length - 1][0], slider));
+  for (let i = 1; i < pts.length; i++) {
+    const [a, Ca] = pts[i - 1];
+    const [b, Cb] = pts[i];
+    if (s <= b) return Ca + ((s - a) / (b - a)) * (Cb - Ca);
+  }
+  return pts[pts.length - 1][1];
 }
 
-export function annualEnergyCost(machine, heavyPct, hours, pricePerUnit) {
-  return blendedConsumptionRate(machine, heavyPct) * hours * pricePerUnit;
+/** The operation band (Light / Normal / Heavy) for the slider label. Upper
+ *  boundary wins: 65 → Normal, 85 → Heavy. */
+export function operationBand(slider) {
+  const s = Math.max(50, Math.min(100, slider));
+  if (s < OPERATION_BANDS[1].min) return OPERATION_BANDS[0];
+  if (s < OPERATION_BANDS[2].min) return OPERATION_BANDS[1];
+  return OPERATION_BANDS[2];
 }
 
-/**
- * Determines whether energy (fuel/electricity) cost should count toward the
- * comparison at all: if it's a tender job and fuel is excluded from the
- * customer's cost calc, energy cost is irrelevant to them.
- */
-export function shouldIncludeFuelCost({ isTenderJob, fuelIncludedInTender }) {
-  if (!isTenderJob) return true;
-  return fuelIncludedInTender;
-}
-
-export function chargersNeeded(fleetSize) {
-  return Math.ceil(fleetSize / CALC_DEFAULTS.chargingPortsPerCharger);
+/** Diesel fuel-theft multiplier θ for the selected control level. */
+export function theftTheta(inputs) {
+  const level = FUEL_THEFT_LEVELS.find((l) => l.id === inputs.fuelTheftLevel);
+  return (level ?? FUEL_THEFT_LEVELS[1]).theta;
 }
 
 export function applyVat(value, inputs) {
   return inputs?.vatInclusive ? value * (1 + CALC_DEFAULTS.vatRate) : value;
 }
 
-/** Fractional-year times (within horizon) at which a lifecycle event
- *  (battery replacement / engine overhaul) lands, based on the machine's
- *  real hours/year — not a fixed year. */
-export function eventTimes(hoursPerYear, intervalHours, horizonYears) {
-  if (!hoursPerYear || !intervalHours) return [];
-  const times = [];
-  let k = 1;
-  while (true) {
-    const t = (k * intervalHours) / hoursPerYear;
-    if (t > horizonYears) break;
-    times.push(t);
-    k += 1;
-  }
-  return times;
-}
-
-/** Escalates (or de-escalates, for negative rates) a lump-sum cost to the
- *  price level of the year it lands in. */
-export function escalatedEventCost(baseCost, rate, eventYear) {
-  return baseCost * (1 + rate) ** eventYear;
-}
-
 /**
- * Precomputes cumulative running-cost (energy + maintenance, per single
- * machine, pre-fleet-scaling) at each month boundary, with the escalation
- * rate stepping up once per full year elapsed. Cost accrues linearly within
- * a month (rate is constant inside a month), so any fractional-year point
- * can be read off exactly via linear interpolation between month boundaries.
+ * Year-0 (today's-price) per-hour cost lines for both machines from the live
+ * inputs. Electricity is ALWAYS counted for the electric machine; diesel fuel
+ * (and its theft uplift) is dropped when fuel is not included in the rate;
+ * diesel routine service (R29/h) is ALWAYS counted.
  */
-function buildMonthlyRunningCost({ monthlyEnergyBase, energyRate, monthlyMaintenanceBase, maintenanceRate, horizonYears }) {
-  const totalMonths = Math.round(horizonYears * MONTHS_PER_YEAR);
-  const cumulative = new Array(totalMonths + 1);
-  cumulative[0] = 0;
-  for (let m = 1; m <= totalMonths; m++) {
-    const yearIndex = Math.floor((m - 1) / MONTHS_PER_YEAR);
-    const energy = monthlyEnergyBase * (1 + energyRate) ** yearIndex;
-    const maintenance = monthlyMaintenanceBase * (1 + maintenanceRate) ** yearIndex;
-    cumulative[m] = cumulative[m - 1] + energy + maintenance;
-  }
-  return cumulative;
-}
+export function perHourCosts(inputs) {
+  const cElec = interpolateConsumption('electric', inputs.operationSlider);
+  const cDiesel = interpolateConsumption('diesel', inputs.operationSlider);
+  const theta = theftTheta(inputs);
+  const includeFuel = inputs.fuelIncludedInRate;
 
-function runningCostAt(t, cumulativeMonthly) {
-  const totalMonths = cumulativeMonthly.length - 1;
-  const mFloat = t * MONTHS_PER_YEAR;
-  const mLow = Math.min(Math.floor(mFloat), totalMonths);
-  const mHigh = Math.min(mLow + 1, totalMonths);
-  const frac = mLow >= totalMonths ? 0 : mFloat - mLow;
-  return cumulativeMonthly[mLow] + frac * (cumulativeMonthly[mHigh] - cumulativeMonthly[mLow]);
-}
-
-/**
- * Builds the cumulative-cost-per-year series for one machine, for a fleet of
- * `fleetSize` identical units. Capital, energy, maintenance and lifecycle
- * event costs all scale with fleet size. Charging infrastructure does not
- * scale 1:1 — one charger (2 guns) serves 2 machines (2 ports each), so
- * chargersNeeded = ceil(N / 2).
- */
-export function buildCostSeries({ machine, inputs, horizonYears, fleetSize = 1 }) {
-  const hours = annualHours(inputs);
-  const isElectric = machine.type === 'electric';
-  const includeFuelCost = shouldIncludeFuelCost(inputs);
-
-  const pricePerUnit = isElectric
-    ? (inputs.energySource === 'solar' ? ONE_TIME_COSTS.solarEffectivePricePerKWh : inputs.electricityPrice)
-    : inputs.dieselPrice;
-
-  const maintenance = annualMaintenanceCost(machine, hours);
-  const maintenanceUnknown = maintenance == null;
-  const maintenanceAnnual = maintenance ?? 0;
-
-  const energyAnnual = includeFuelCost
-    ? annualEnergyCost(machine, inputs.operationMixHeavyPct, hours, pricePerUnit)
-    : 0;
-
-  const annualTotalCost = energyAnnual + maintenanceAnnual; // per single machine, year-1 base rate
-  const capitalTotal = machine.machineCost * fleetSize;
-
-  const needed = chargersNeeded(fleetSize);
-  let oneTimeInfra = 0;
-  let intervalHours;
-  let eventBaseCost;
-  let eventRate;
-
-  if (isElectric) {
-    if (!inputs.chargingInfraInstalled) {
-      oneTimeInfra = inputs.energySource === 'solar'
-        ? ONE_TIME_COSTS.solarSystemInstallCost * fleetSize
-        : ONE_TIME_COSTS.chargerInstallCost * needed;
-    }
-    intervalHours = machine.battery.lifeHours;
-    eventBaseCost = machine.battery.replacementCost;
-    eventRate = ESCALATION.batteryReplacement;
-  } else {
-    intervalHours = DIESEL_OVERHAUL.intervalHours;
-    eventBaseCost = DIESEL_OVERHAUL.cost;
-    eventRate = ESCALATION.dieselOverhaul;
-  }
-
-  const energyRate = isElectric ? ESCALATION.electricityPrice : ESCALATION.dieselPrice;
-  const maintenanceRate = ESCALATION.maintenance;
-
-  const cumulativeMonthly = buildMonthlyRunningCost({
-    monthlyEnergyBase: energyAnnual / MONTHS_PER_YEAR,
-    energyRate,
-    monthlyMaintenanceBase: maintenanceAnnual / MONTHS_PER_YEAR,
-    maintenanceRate,
-    horizonYears,
-  });
-
-  const rawEvents = eventTimes(hours, intervalHours, horizonYears);
-  const events = rawEvents.map((year) => {
-    const escalated = escalatedEventCost(eventBaseCost, eventRate, year);
-    return { year, baseCost: eventBaseCost, escalatedCost: escalated, rate: eventRate, fleetCost: escalated * fleetSize };
-  });
-
-  // Grid: one point per month (smooth escalation curve) plus exact
-  // before/after straddle points at each event's true fractional year, so
-  // the jump renders as a genuine sharp vertical step, not a fixed year.
-  const EPS = Math.min(0.0005, horizonYears / 10000 || 0.0005);
-  const totalMonths = Math.round(horizonYears * MONTHS_PER_YEAR);
-  const xsSet = new Set();
-  for (let m = 0; m <= totalMonths; m++) xsSet.add(m / MONTHS_PER_YEAR);
-  events.forEach((e) => {
-    xsSet.add(Math.max(0, e.year - EPS));
-    xsSet.add(Math.min(horizonYears, e.year + EPS));
-  });
-  const xs = [...xsSet].sort((a, b) => a - b);
-
-  const series = xs.map((t) => {
-    const running = runningCostAt(t, cumulativeMonthly) * fleetSize;
-    const eventsCost = events.reduce((sum, e) => (e.year <= t + 1e-9 ? sum + e.fleetCost : sum), 0);
-    const raw = capitalTotal + oneTimeInfra + running + eventsCost;
-    return { year: t, cumulativeCost: applyVat(raw, inputs) };
-  });
+  const elecEnergyPerH = cElec * inputs.electricityPrice;
+  const dieselFuelPerH = includeFuel ? cDiesel * inputs.dieselPrice * (1 + theta) : 0;
+  const dieselServicePerH = DIESEL_SERVICE.ratePerHour;
 
   return {
-    series,
-    events,
-    eventBaseCost,
-    eventRate,
-    eventLabel: isElectric ? 'Battery replacement' : 'Engine overhaul',
-    annualEnergyCost: applyVat(energyAnnual, inputs), // per-machine, year-1 base rate
-    annualMaintenanceCost: applyVat(maintenanceAnnual, inputs), // per-machine, year-1 base rate
-    annualTotalCost: applyVat(annualTotalCost, inputs), // per-machine, year-1 base rate
-    annualRunningTotal: applyVat(annualTotalCost * fleetSize, inputs), // fleet-wide, year-1 base rate
-    capitalTotal: applyVat(capitalTotal, inputs), // fleet-wide
-    maintenanceUnknown,
-    oneTimeYear0: applyVat(oneTimeInfra, inputs),
-    hours,
-    includeFuelCost,
-    fleetSize,
-    chargersNeeded: needed,
+    cElec,
+    cDiesel,
+    theta,
+    includeFuel,
+    elecEnergyPerH,
+    elecMaintPerH: 0, // electric has no mechanical service line
+    elecPerH: elecEnergyPerH,
+    dieselFuelPerH,
+    dieselServicePerH,
+    dieselPerH: dieselFuelPerH + dieselServicePerH,
   };
 }
 
 /**
- * Cumulative cost at an arbitrary (possibly fractional) year, linearly
- * interpolated between the series' breakpoints. Returns null if the
- * requested year is beyond the series' range.
+ * Builds the cumulative-TCO series for one machine over 0 → chartMaxHours,
+ * for a fleet of `fleetSize` identical units (all costs scale with N).
+ * Steps in Δt-year slices; escalates each slice at its midpoint year. Returns
+ * points keyed by operating hours. Returns `{ series, ... }`.
  */
-export function cumulativeCostAtYear(series, year) {
+export function buildCostSeries({ machine, inputs, fleetSize = 1 }) {
+  const H = annualHours(inputs);
+  const dt = CALC_DEFAULTS.sliceYears;
+  const maxHours = CALC_DEFAULTS.chartMaxHours;
+  const isElectric = machine.type === 'electric';
+  const per = perHourCosts(inputs);
+  const purchaseFleet = machine.price * fleetSize;
+
+  // Per-hour cost at fractional year t, escalated per spec section 8.
+  const perHourAt = (t) =>
+    isElectric
+      ? per.elecPerH * (1 + ESCALATION.electricity) ** t
+      : per.dieselFuelPerH * (1 + ESCALATION.dieselFuel) ** t +
+        per.dieselServicePerH * (1 + ESCALATION.maintenance) ** t;
+
+  const series = [{ hours: 0, year: 0, cumulativeCost: applyVat(purchaseFleet, inputs) }];
+
+  let cumRunning = 0; // per single machine
+  let hours = 0;
+  let k = 0;
+  const guard = 200000;
+  while (H > 0 && hours < maxHours - 1e-9 && k < guard) {
+    const nextHours = Math.min((k + 1) * H * dt, maxHours);
+    const sliceHours = nextHours - hours;
+    const tMid = ((hours + nextHours) / 2) / H; // midpoint year of this slice
+    cumRunning += perHourAt(tMid) * sliceHours;
+    hours = nextHours;
+    k += 1;
+    const raw = purchaseFleet + cumRunning * fleetSize;
+    series.push({ hours, year: hours / H, cumulativeCost: applyVat(raw, inputs) });
+  }
+
+  const runningTotalAtMax = cumRunning; // per single machine, 0 → maxHours
+  return {
+    machine,
+    series,
+    hoursPerYear: H,
+    perHour: per,
+    runningTotalAtMax: applyVat(runningTotalAtMax, inputs),
+    tcoAtMax: series[series.length - 1]?.cumulativeCost ?? applyVat(purchaseFleet, inputs),
+    purchaseFleet: applyVat(purchaseFleet, inputs),
+    fleetSize,
+  };
+}
+
+/** Cumulative cost at an arbitrary operating-hours point, linearly
+ *  interpolated between the series' breakpoints. */
+export function cumulativeCostAtHours(series, hours) {
+  if (!series.length) return null;
+  if (hours <= series[0].hours) return series[0].cumulativeCost;
   for (let i = 1; i < series.length; i++) {
-    if (series[i - 1].year <= year && series[i].year >= year) {
-      const span = series[i].year - series[i - 1].year;
-      const frac = span === 0 ? 0 : (year - series[i - 1].year) / span;
+    if (series[i].hours >= hours) {
+      const span = series[i].hours - series[i - 1].hours;
+      const frac = span === 0 ? 0 : (hours - series[i - 1].hours) / span;
       return series[i - 1].cumulativeCost + frac * (series[i].cumulativeCost - series[i - 1].cumulativeCost);
     }
   }
-  return null;
+  return series[series.length - 1].cumulativeCost;
+}
+
+/** Savings(x) = TCO_diesel(x) − TCO_electric(x). */
+export function savingsAtHours(electricSeries, dieselSeries, hours) {
+  const e = cumulativeCostAtHours(electricSeries, hours);
+  const d = cumulativeCostAtHours(dieselSeries, hours);
+  if (e == null || d == null) return null;
+  return d - e;
 }
 
 /**
- * Finds the fractional-year point where the electric series first drops
- * below (and stays at/below) the diesel series. Merges both series'
- * breakpoints so every sub-interval checked is genuinely linear on both
- * sides, making the crossing point exact rather than approximated.
- * Returns null if it never happens within the horizon.
+ * Smallest operating-hours point where Savings(x) ≥ 0 (electric TCO first
+ * meets/undercuts diesel TCO). Both series share the same hour breakpoints,
+ * so we scan them in step. Returns null if it never happens within the chart.
  */
-export function findBreakeven(electricSeries, dieselSeries) {
-  const xs = [...new Set([...electricSeries.map((p) => p.year), ...dieselSeries.map((p) => p.year)])].sort((a, b) => a - b);
-
+export function findBreakevenHours(electricSeries, dieselSeries) {
+  const xs = [...new Set([...electricSeries.map((p) => p.hours), ...dieselSeries.map((p) => p.hours)])].sort((a, b) => a - b);
   let prevDiff = null;
   let prevX = null;
   for (const x of xs) {
-    const e = cumulativeCostAtYear(electricSeries, x);
-    const d = cumulativeCostAtYear(dieselSeries, x);
-    if (e == null || d == null) continue;
-    const diff = e - d;
-    if (prevDiff != null && prevDiff > 0 && diff <= 0) {
+    const savings = savingsAtHours(electricSeries, dieselSeries, x);
+    if (savings == null) continue;
+    if (savings >= 0 && prevDiff == null) return x; // already non-negative at the first point
+    if (prevDiff != null && prevDiff < 0 && savings >= 0) {
       const span = x - prevX;
-      const frac = span === 0 ? 0 : prevDiff / (prevDiff - diff);
+      const frac = savings - prevDiff === 0 ? 0 : -prevDiff / (savings - prevDiff);
       return prevX + frac * span;
     }
-    prevDiff = diff;
+    prevDiff = savings;
     prevX = x;
   }
   return null;
 }
 
-/** Whichever machine has the lowest cumulative cost at a given point in time. */
-export function cheapestAtYear(results, year) {
-  let best = null;
-  results.forEach((r) => {
-    const cost = cumulativeCostAtYear(r.series, year);
-    if (cost == null) return;
-    if (!best || cost < best.cost) best = { cost, machine: r.machine, result: r };
-  });
-  return best;
+/**
+ * The intuitive year-0 breakeven: capital price gap ÷ year-0 hourly saving.
+ * A sanity-check companion to the fuller escalated breakeven.
+ */
+export function simpleBreakevenHours({ electricPrice, dieselPrice, per }) {
+  const priceGap = electricPrice - dieselPrice;
+  const hourlyGap = per.dieselPerH - per.elecPerH;
+  if (hourlyGap <= 0) return null;
+  return priceGap / hourlyGap;
+}
+
+/** Escalated (declining) battery-replacement lump sum at its landing year. */
+export function batteryReplacementProjection(inputs) {
+  const H = annualHours(inputs);
+  const { atHours, baseCost } = ELECTRIC_MACHINE.batteryReplacement;
+  const year = H > 0 ? atHours / H : null;
+  const escalatedCost = year == null ? baseCost : baseCost * (1 + ESCALATION.batteryReplacement) ** year;
+  return { atHours, baseCost, year, escalatedCost, rate: ESCALATION.batteryReplacement };
 }
 
 /**
- * Every machine's lifecycle events out to `horizonYears` (independent of the
- * chart's display horizon — used for long-range lifecycle planning), for the
- * "Lifecycle Events" table: one row per chronological occurrence, grouping
- * machines that land on the same event in the same year.
+ * Runs the electric machine against the selected diesel variant. Returns both
+ * cost series, the escalated breakeven (hours), the simple year-0 breakeven
+ * and the battery-replacement projection.
  */
-export function buildLifecycleTable({ electricMachine, dieselMachines, inputs, horizonYears }) {
-  const hours = annualHours(inputs);
-  const allMachines = [electricMachine, ...dieselMachines];
+export function runComparison({ inputs, fleetSize = 1 }) {
+  const electricMachine = ELECTRIC_MACHINE;
+  const dieselMachine = getDieselMachineForOption(inputs.machineOption);
 
-  const perMachineEvents = allMachines.map((machine) => {
-    const isElectric = machine.type === 'electric';
-    const intervalHours = isElectric ? machine.battery.lifeHours : DIESEL_OVERHAUL.intervalHours;
-    const label = isElectric ? 'Battery replacement' : 'Engine overhaul';
-    const years = eventTimes(hours, intervalHours, horizonYears);
-    return { machine, label, years };
+  const electric = buildCostSeries({ machine: electricMachine, inputs, fleetSize });
+  const diesel = buildCostSeries({ machine: dieselMachine, inputs, fleetSize });
+
+  const breakevenHours = findBreakevenHours(electric.series, diesel.series);
+  const per = electric.perHour;
+  const simpleBreakeven = simpleBreakevenHours({
+    electricPrice: electricMachine.price,
+    dieselPrice: dieselMachine.price,
+    per,
   });
+  const battery = batteryReplacementProjection(inputs);
 
-  // Flatten to individual (machine, label, year) rows, then merge rows that
-  // share the same event label and land within a rounding tolerance of the
-  // same year (all diesel machines share the same hours/interval, so they
-  // land exactly together).
-  const flat = [];
-  perMachineEvents.forEach(({ machine, label, years }) => {
-    years.forEach((year) => flat.push({ machine, label, year }));
-  });
-  flat.sort((a, b) => a.year - b.year || a.label.localeCompare(b.label));
-
-  const rows = [];
-  flat.forEach((item) => {
-    const existing = rows.find(
-      (r) => r.label === item.label && Math.abs(r.year - item.year) < 0.05 && !r.byMachine[item.machine.id]
-    );
-    if (existing) {
-      existing.byMachine[item.machine.id] = item.year;
-    } else {
-      rows.push({ label: item.label, year: item.year, byMachine: { [item.machine.id]: item.year } });
-    }
-  });
-
-  return { machines: allMachines, rows };
-}
-
-/**
- * Runs the electric machine against every selected diesel comparator.
- * Automatically extends the horizon (up to CALC_DEFAULTS.horizonYearsMax)
- * if no breakeven is found within the default window.
- */
-export function runComparison({ electricMachine, dieselMachines, inputs, fleetSize = 1 }) {
-  const tryHorizon = (horizonYears) => {
-    const electric = buildCostSeries({ machine: electricMachine, inputs, horizonYears, fleetSize });
-    const comparators = dieselMachines.map((machine) => {
-      const result = buildCostSeries({ machine, inputs, horizonYears, fleetSize });
-      const breakeven = findBreakeven(electric.series, result.series);
-      return { machine, ...result, breakeven };
-    });
-    return { electric, comparators, horizonYears };
+  return {
+    electricMachine,
+    dieselMachine,
+    electric,
+    diesel,
+    breakevenHours,
+    simpleBreakevenHours: simpleBreakeven,
+    battery,
+    hoursPerYear: electric.hoursPerYear,
+    fleetSize,
   };
-
-  let result = tryHorizon(CALC_DEFAULTS.horizonYears);
-  const anyBreakevenFound = result.comparators.some((c) => c.breakeven != null);
-  if (!anyBreakevenFound && CALC_DEFAULTS.horizonYearsMax > CALC_DEFAULTS.horizonYears) {
-    result = tryHorizon(CALC_DEFAULTS.horizonYearsMax);
-  }
-  return { ...result, fleetSize };
 }

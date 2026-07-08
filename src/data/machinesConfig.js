@@ -1,42 +1,41 @@
 /**
- * Fixed-variable data — spec sections 1-3.
- * This is the ONLY place manufacturer specs, prices, consumption and
- * maintenance figures should live. As real dealer quotes come back
- * (see spec section 7), update the values here — nothing in the
+ * Fixed-variable data — the ONLY place manufacturer specs, prices,
+ * consumption breakpoints and escalation figures should live. As real
+ * dealer quotes come back, update the values here — nothing in the
  * calculation engine or components should need to change.
+ *
+ * Scope: this tool compares exactly two SANY machine families —
+ * the SW956E electric loader vs the SYL956H5 diesel loader (dry or wet
+ * brake, which changes only the diesel selling price). There are no
+ * competitor machines, no solar, no tender logic and no charging-
+ * infrastructure line — the charger is included in the electric price.
  *
  * confidence: 'confirmed' | 'estimate' | 'unconfirmed'
  *   confirmed   — from factory docs / manufacturer's own published data
- *   estimate    — a reasoned figure (e.g. scaled from real telematics data
- *                 of a comparable machine), flagged to the user, pending a
- *                 real quote or manufacturer-published number
- *   unconfirmed — no usable number yet (renders as "Pending quote" in the UI)
+ *   estimate    — a reasoned placeholder, pending a real quote / feed
+ *   unconfirmed — no usable number yet (renders as "Pending quote")
  */
 
 import thinkquipLogo from '../thinkquip-assets/logos/thinkquip-logo.png';
 import sanyLogo from '../thinkquip-assets-v3/logos-transparent/sany-logo.png';
-import catLogo from '../thinkquip-assets-v3/logos-transparent/cat-logo.png';
-import komatsuLogo from '../thinkquip-assets-v3/logos-transparent/komatsu-logo.png';
-import volvoLogo from '../thinkquip-assets-v3/logos-transparent/volvo-logo.png';
 
 import sanyElectricPhoto from '../thinkquip-assets-v3/machines-cutout/sany-sw956e-electric.png';
 import sanyDieselPhoto from '../thinkquip-assets-v3/machines-cutout/sany-syl956h5-diesel.png';
-import catPhoto from '../thinkquip-assets-v3/machines-cutout/cat-950m.png';
-import komatsuPhoto from '../thinkquip-assets-v3/machines-cutout/komatsu-wa380-8.png';
-import volvoPhoto from '../thinkquip-assets-v3/machines-cutout/volvo-l120h.png';
 
-/** Brand & UI color system — spec section 2. Use these exact hex values. */
+/** Brand & UI color system. Turquoise chrome, yellow CTA; electric line
+ *  blue, diesel line amber/yellow. Use these exact hex values. */
 export const COLORS = {
-  thinkquipTurquoise: '#0AA6A0', // app chrome, header, nav, primary CTA only
-  sanyRed: '#E2231A', // SANY logo native red — always, regardless of variant
-  sanyElectricAccent: '#6BB8E0', // sky blue — SW956E card / chart line / highlights
-  sanyDieselAccent: '#F2A93E', // amber-yellow — SYL956H5 card / chart line
-  competitorYellow: '#FFC72C', // shared competitor accent (CAT / Komatsu / Volvo)
-  competitorBlack: '#1A1A1A',
+  thinkquipTurquoise: '#0AA6A0', // app chrome, header, nav
+  sanyRed: '#E2231A', // SANY logo native red
+  electricAccent: '#6BB8E0', // sky blue — SW956E card / chart line
+  dieselAccent: '#F2A93E', // amber-yellow — SYL956H5 card / chart line
 };
 
 export const THINKQUIP_LOGO = thinkquipLogo;
 
+/** SANY SW956E electric loader. Selling price is fixed (the 320 kW charger
+ *  is included). Battery reaches replacement at 30,000 h — beyond the first
+ *  owner's typical lifecycle and beyond the 20,000 h chart window. */
 export const ELECTRIC_MACHINE = {
   id: 'sw956e',
   type: 'electric',
@@ -46,275 +45,167 @@ export const ELECTRIC_MACHINE = {
   logo: sanyLogo,
   logoColor: COLORS.sanyRed,
   photo: sanyElectricPhoto,
-  accentColor: COLORS.sanyElectricAccent,
-  chartColor: COLORS.sanyElectricAccent,
-  chartDash: undefined, // solid
+  accentColor: COLORS.electricAccent,
+  chartColor: COLORS.electricAccent,
 
-  operatingWeightKg: 19000,
-  ratedLoadKg: 5800,
-  bucketCapacityM3: [2.7, 5.0],
+  price: 3150000, // ex VAT, charger included
+  priceConfidence: 'confirmed',
 
-  machineCost: 3450000,
-  costConfidence: 'confirmed',
-
-  // Only one flat rate is published (SANY's own worked example) — not yet
-  // broken out by light/heavy duty cycle, so both ends of the operation-mix
-  // slider use the same number until real duty-cycle data exists.
-  consumption: {
-    light: 38,
-    heavy: 38,
-    unit: 'kWh/h',
-    confidence: 'confirmed',
-    note: 'Flat rate from SANY’s own worked example; not yet broken out by duty cycle.',
-  },
-
-  maintenance: {
-    at2000: 53877,
-    at3000: 75377,
-    confidence: 'confirmed',
-  },
-
-  warranty: {
-    machine: '24 mo / 5,000 h',
-    battery: '60 mo / 10,000 h (battery, drive motor, electric control)',
-    driveline: '24 mo / 5,000 h (axle, hydraulic pump, gearbox)',
-    confidence: 'confirmed',
-  },
+  operatingWeightKg: 20000,
+  ratedPayloadKg: 5800,
+  bucketCapacityM3: 3.5,
+  tyres: 'L5',
+  warranty: '5,000 h / 2 years',
+  warrantyConfidence: 'confirmed',
 
   battery: {
     capacityKWh: 422,
-    chargerRatingKW: 320,
-    chargingPortsPerMachine: 2,
-    workingHoursPerCharge: [7, 9],
-    chargeTimeHours: { to80: 0.8, to100: 1.5 },
-    chargeCycles: 4000,
-    totalOperatingLifeHours: [30000, 35000],
-    lifeHours: 32500, // midpoint of confirmed 30,000-35,000h range
-    replacementCost: 1120000,
+    chargerRatingKW: 320, // included in the purchase price
+    confidence: 'confirmed',
+  },
+
+  // Battery replacement lands at 30,000 h — beyond the 20,000 h chart, so it
+  // is NOT plotted on the curve; it is surfaced in the lifecycle table and a
+  // callout as a "beyond the first owner's lifecycle" event.
+  batteryReplacement: {
+    atHours: 30000,
+    baseCost: 1120000,
     confidence: 'confirmed',
   },
 };
 
-export const DIESEL_MACHINES = [
-  {
-    id: 'syl956h5',
-    type: 'diesel',
-    brand: 'SANY',
-    name: 'SYL956H5',
-    displayName: 'SANY SYL956H5 (Diesel)',
-    isDefault: true, // auto-included per spec section 4.9 — not user-removable
-    logo: sanyLogo,
-    logoColor: COLORS.sanyRed,
-    photo: sanyDieselPhoto,
-    accentColor: COLORS.sanyDieselAccent,
-    chartColor: COLORS.sanyDieselAccent,
-    chartDash: undefined, // solid
+/** SANY SYL956H5 diesel loader. Specs are identical across brake variants;
+ *  only the selling price differs (see MACHINE_OPTIONS). Its running cost is
+ *  a continuous routine-service line (R29/h) plus fuel — there is no separate
+ *  engine-overhaul event. */
+export const DIESEL_MACHINE = {
+  id: 'syl956h5',
+  type: 'diesel',
+  brand: 'SANY',
+  name: 'SYL956H5',
+  displayName: 'SANY SYL956H5 (Diesel)',
+  logo: sanyLogo,
+  logoColor: COLORS.sanyRed,
+  photo: sanyDieselPhoto,
+  accentColor: COLORS.dieselAccent,
+  chartColor: COLORS.dieselAccent,
 
-    operatingWeightKg: 17100,
-    ratedLoadKg: 5000,
-    fuelTankL: 300,
+  priceConfidence: 'confirmed', // price supplied per brake variant below
 
-    machineCost: 2050000,
-    costConfidence: 'confirmed',
-
-    consumption: {
-      light: 14,
-      heavy: 14,
-      medium: 14,
-      unit: 'L/h',
-      confidence: 'confirmed',
-      note: 'Flat rate (medium duty) from SANY’s own worked example.',
-    },
-
-    maintenance: {
-      at2000: 74873,
-      at3000: 91373,
-      confidence: 'confirmed',
-    },
-
-    warranty: {
-      machine: '12 mo / 2,000 h (SANY standard diesel line warranty)',
-      confidence: 'confirmed',
-    },
-  },
-  {
-    id: 'cat950m',
-    type: 'diesel',
-    brand: 'CAT',
-    name: '950M/GC',
-    displayName: 'CAT 950M/GC',
-    isDefault: false,
-    logo: catLogo,
-    logoColor: COLORS.competitorBlack,
-    photo: catPhoto,
-    accentColor: COLORS.competitorYellow,
-    chartColor: COLORS.competitorBlack,
-    chartDash: undefined, // solid — distinguishes it from the other two competitors
-
-    operatingWeightKg: 19069,
-    bucketCapacityM3: [2.7, 4.4],
-
-    machineCost: 2900000,
-    costConfidence: 'unconfirmed', // Pending Quote
-
-    consumption: {
-      light: 8.8, // midpoint of published 7.3-10.3 range
-      heavy: 13.65, // midpoint of published 12.4-14.9 range
-      medium: 11.35, // midpoint of published 10.3-12.4 range
-      unit: 'L/h',
-      confidence: 'confirmed',
-      note: 'From CAT’s official Owning & Operating Cost Guide (Ed. 46), real Product Link telematics data. Light/heavy values are midpoints of the published ranges.',
-    },
-
-    maintenance: {
-      at2000: null,
-      at3000: null,
-      confidence: 'unconfirmed', // Pending Quote
-    },
-
-    warranty: {
-      confidence: 'unconfirmed', // Pending Quote
-    },
-  },
-  {
-    id: 'komatsu_wa380',
-    type: 'diesel',
-    brand: 'Komatsu',
-    name: 'WA380-8',
-    displayName: 'Komatsu WA380-8',
-    isDefault: false,
-    logo: komatsuLogo,
-    logoColor: COLORS.competitorBlack,
-    photo: komatsuPhoto,
-    accentColor: COLORS.competitorYellow,
-    chartColor: '#3A3A3A',
-    chartDash: '7 5', // dashed
-
-    operatingWeightKg: 18900,
-    bucketCapacityM3: [2.7, 3.3],
-
-    machineCost: 2800000,
-    costConfidence: 'unconfirmed', // Pending Quote
-
-    consumption: {
-      light: 6.5,
-      heavy: 12.5,
-      medium: 9.5,
-      unit: 'L/h',
-      confidence: 'estimate',
-      note: 'Scaled from CAT’s real telematics data by engine power ratio — a reasoned estimate, not a manufacturer-published figure. Genuine older-gen Komatsu (WA380-3) figures run much higher but reflect an outdated engine.',
-    },
-
-    maintenance: {
-      at2000: null,
-      at3000: null,
-      confidence: 'unconfirmed', // Pending Quote
-    },
-
-    warranty: {
-      confidence: 'unconfirmed', // Pending Quote
-    },
-  },
-  {
-    id: 'volvo_l120h',
-    type: 'diesel',
-    brand: 'Volvo',
-    name: 'L120H',
-    displayName: 'Volvo L120H',
-    isDefault: false,
-    logo: volvoLogo,
-    logoColor: COLORS.competitorBlack,
-    photo: volvoPhoto,
-    accentColor: COLORS.competitorYellow,
-    chartColor: '#5C5C5C',
-    chartDash: '1 4', // dotted
-
-    operatingWeightKg: 20000,
-    bucketCapacityM3: [3.0, 3.6],
-
-    machineCost: 2800000,
-    costConfidence: 'unconfirmed', // Pending Quote
-
-    consumption: {
-      light: 6.5,
-      heavy: 11,
-      medium: 9,
-      unit: 'L/h',
-      confidence: 'estimate',
-      note: 'Same CAT telematics baseline, adjusted for Volvo’s documented efficiency claims — a reasoned estimate, not a manufacturer-published figure. Volvo does not publish absolute L/h figures.',
-    },
-
-    maintenance: {
-      at2000: null,
-      at3000: null,
-      confidence: 'unconfirmed', // Pending Quote
-    },
-
-    warranty: {
-      confidence: 'unconfirmed', // Pending Quote
-    },
-  },
-];
-
-export const ALL_MACHINES = [ELECTRIC_MACHINE, ...DIESEL_MACHINES];
+  engine: 'Cummins QSL8.9-C220 III, ~164 kW @ 2200 rpm',
+  operatingWeightKg: 17100,
+  ratedPayloadKg: 5000,
+  bucketCapacityM3: 3,
+  tyres: 'L5',
+  warranty: '4,000 h / 2 years',
+  warrantyConfidence: 'confirmed',
+};
 
 /**
- * Prices, one-time costs and calc defaults that aren't manufacturer specs —
- * placeholders until the live-ish feeds mentioned in spec section 7 exist.
+ * The three selectable machine options. Wet vs dry brake changes ONLY the
+ * diesel selling price — same images, same specs, same consumption. The two
+ * compared lines are always the electric machine and one diesel variant.
+ */
+export const MACHINE_OPTIONS = [
+  { id: 'electric', type: 'electric', label: 'SANY SW956E (Electric)', price: 3150000 },
+  { id: 'diesel-dry', type: 'diesel', brake: 'dry', label: 'SANY SYL956H5 (Diesel, dry brake)', price: 1850000 },
+  { id: 'diesel-wet', type: 'diesel', brake: 'wet', label: 'SANY SYL956H5 (Diesel, wet brake)', price: 2200000 },
+];
+
+/** The diesel selling price implied by the selected machine option. Selecting
+ *  the electric option leaves the diesel comparator at its dry-brake price. */
+export function dieselPriceForOption(optionId) {
+  return optionId === 'diesel-wet' ? 2200000 : 1850000;
+}
+
+export function dieselBrakeForOption(optionId) {
+  return optionId === 'diesel-wet' ? 'wet' : 'dry';
+}
+
+/** A fully-priced diesel machine object for the selected option. */
+export function getDieselMachineForOption(optionId) {
+  return {
+    ...DIESEL_MACHINE,
+    price: dieselPriceForOption(optionId),
+    brake: dieselBrakeForOption(optionId),
+  };
+}
+
+/**
+ * Consumption breakpoints (spec section 5). Consumption is interpolated
+ * LINEARLY between these as the operation slider (50–100) moves — the bands
+ * are only where the slope changes, so the slider stays responsive within a
+ * band. Each entry is [sliderValue, consumptionRate].
+ */
+export const CONSUMPTION_BREAKPOINTS = {
+  electric: [[50, 20], [65, 30], [85, 35], [100, 40]], // kWh/h
+  diesel: [[50, 10], [65, 12], [85, 14], [100, 16]], // L/h
+};
+
+/** Operation-mix bands — used for the slider's label only (the raw % is never
+ *  shown). Ranges: Light 50–65, Normal 65–85, Heavy 85–100. */
+export const OPERATION_BANDS = [
+  { id: 'light', label: 'Light', min: 50, max: 65 },
+  { id: 'normal', label: 'Normal', min: 65, max: 85 },
+  { id: 'heavy', label: 'Heavy', min: 85, max: 100 },
+];
+
+/** Fuel-theft control levels (spec section 6). Applies to diesel fuel only —
+ *  electricity is never affected. Diesel fuel cost is multiplied by (1 + θ). */
+export const FUEL_THEFT_LEVELS = [
+  { id: 'low', label: 'Low control environment', range: '5–15%', theta: 0.10 },
+  { id: 'moderate', label: 'Moderately controlled site', range: '2–5%', theta: 0.035 },
+  { id: 'well', label: 'Well-monitored site', range: '<2%', theta: 0.01 },
+];
+
+/**
+ * Diesel routine engine service (spec section 7). A continuous linear line at
+ * R29/h — R29,000 @ 1,000 h rising to R377,000 @ 13,000 h — continued at the
+ * same rate to the 20,000 h chart limit. There is no separate overhaul event.
+ * The electric machine carries NO mechanical-service line (R0/h) across the
+ * whole chart — a genuine long-term advantage, not a missing value.
+ */
+export const DIESEL_SERVICE = {
+  ratePerHour: 29, // R29,000 per 1,000 h
+  confidence: 'confirmed',
+  note: 'Routine engine service — R29,000 per 1,000 h (R29/h), linear from R29,000 @1,000h to R377,000 @13,000h and continued at the same rate to 20,000 h.',
+};
+
+/**
+ * Placeholder energy prices — no live feed is wired up yet. Auto-filled into
+ * the editable price inputs; always confirm against the customer's real rates.
  */
 export const DEFAULT_PRICES = {
   electricityPricePerKWh: 2.80,
   electricityPriceConfidence: 'estimate',
-  electricityPriceNote: 'Placeholder default — no single "current" commercial tariff exists. Confirm with the customer’s actual rate before presenting.',
+  electricityPriceNote: 'Placeholder default — no single "current" commercial tariff exists. Confirm the customer’s actual rate before presenting.',
 
   dieselPricePerLiter: 23.50,
   dieselPriceConfidence: 'estimate',
-  dieselPriceNote: 'Placeholder default — wire up to the SA official fuel price feed (updates monthly) per spec section 7.',
-};
-
-export const ONE_TIME_COSTS = {
-  chargerInstallCost: 180000,
-  chargerInstallConfidence: 'estimate',
-  chargerInstallNote: 'Placeholder — real cost depends on site transformer capacity, DB upgrades and civils. One charger (2 guns) serves 2 machines (2 ports each).',
-
-  solarSystemInstallCost: 650000,
-  solarSystemInstallConfidence: 'estimate',
-  solarSystemInstallNote: 'Placeholder — solar sizing depends on daily kWh demand; not yet costed.',
-
-  solarEffectivePricePerKWh: 0.50,
-  solarEffectivePriceConfidence: 'estimate',
-  solarEffectivePriceNote: 'Placeholder blended cost per kWh once a solar system is installed (install capex is costed separately above).',
-};
-
-/** Engine overhaul cost model — spec section 4. Applies to every diesel machine. */
-export const DIESEL_OVERHAUL = {
-  intervalHours: 13500, // midpoint of industry-standard 12,000-15,000h range
-  cost: 450000, // midpoint of $15,000-$40,000 USD industry range, converted at ~R16.20/USD
-  confidence: 'estimate',
-  note: 'Industry-backed estimate (midpoint of published 12,000-15,000h overhaul interval and $15,000-$40,000 cost range), reasoned from industry data rather than a specific manufacturer quote — applies across all diesel machines shown.',
+  dieselPriceNote: 'Placeholder default — wire up to the SA official fuel price feed (updates monthly) when available.',
 };
 
 export const CALC_DEFAULTS = {
   daysPerWeek: 6,
   weeksPerYear: 50,
-  horizonYears: 10,
-  horizonYearsMax: 20,
-  lifecycleTableHorizonYears: 30, // lifecycle planning table looks further out than the chart
+  chartMaxHours: 20000, // x-axis limit
+  sliceYears: 0.25, // Δt for cumulative-cost stepping
   fleetSizeDefault: 1,
   fleetSizeMax: 4,
-  chargingPortsPerCharger: 2, // 2 guns per charger, 2 ports per SW956E
+  operationSliderDefault: 75,
+  operationSliderMin: 50,
+  operationSliderMax: 100,
   vatRate: 0.15, // SA VAT
 };
 
 /**
- * Annual escalation assumptions — researched industry trends, not flat
- * projections. Running costs compound year-on-year; lifecycle event lump
- * sums are escalated/de-escalated to the cost level of the year they land in.
+ * Annual escalation assumptions (spec section 8) — running costs compound
+ * per year; the battery-replacement lump sum DECLINES (batteryReplacement is
+ * negative — battery cost is projected to fall).
  */
 export const ESCALATION = {
-  dieselPrice: 0.06,
-  electricityPrice: 0.08,
-  maintenance: 0.06,
-  dieselOverhaul: 0.06,
+  dieselFuel: 0.06,
+  electricity: 0.08,
+  maintenance: 0.06, // diesel routine service
   batteryReplacement: -0.05,
 };
