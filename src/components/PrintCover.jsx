@@ -52,14 +52,14 @@ export default function PrintCover({ inputs, electricMachine, electricResult, co
           <p className="print-cover__stat-sub">{best?.machine.type === 'electric' ? 'Electric' : 'Diesel'}</p>
         </div>
         <div>
-          <span className="eyebrow print-cover__stat-label">Estimated payback</span>
+          <span className="eyebrow print-cover__stat-label">Savings starts</span>
           <p className="print-cover__stat-value print-cover__stat-value--accent">
             {payback ? `Yr ${payback.breakeven.toFixed(1)}` : `>${horizonYears}yr`}
           </p>
           <p className="print-cover__stat-sub">{payback ? `vs ${payback.machine.displayName}` : 'beyond horizon'}</p>
         </div>
         <div>
-          <span className="eyebrow print-cover__stat-label">{snapshotYear}-year fleet savings ({inputs.fleetSize} machine{inputs.fleetSize > 1 ? 's' : ''})</span>
+          <span className="eyebrow print-cover__stat-label">{snapshotYear}-year saving by going electric ({inputs.fleetSize} machine{inputs.fleetSize > 1 ? 's' : ''})</span>
           <p className="print-cover__stat-value print-cover__stat-value--accent">
             {savings != null && savings > 0 ? formatCurrency(savings) : '—'}
           </p>

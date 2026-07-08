@@ -1,0 +1,121 @@
+.machine-type-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (min-width: 560px) {
+  .machine-type-grid {
+    grid-template-columns: repeat(var(--type-cols, 4), minmax(0, 1fr));
+  }
+}
+
+.machine-type-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 12px 12px;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  font-family: inherit;
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.18s var(--ease), box-shadow 0.18s var(--ease), transform 0.18s var(--ease);
+}
+
+.machine-type-card:not(.machine-type-card--soon):hover {
+  border-color: var(--tq-turquoise);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+
+.machine-type-card:focus-visible {
+  outline: 2px solid var(--tq-turquoise);
+  outline-offset: 2px;
+}
+
+.machine-type-card__thumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  max-height: 88px;
+  background: var(--surface-alt);
+  border-radius: var(--radius-sm);
+  color: var(--competitor-black);
+}
+
+.machine-type-card__icon {
+  width: 78%;
+  height: auto;
+  max-height: 62px;
+  object-fit: contain;
+}
+
+.machine-type-card__thumb-empty {
+  width: 46px;
+  height: 30px;
+  border: 1.5px dashed var(--border-strong);
+  border-radius: 3px;
+  opacity: 0.25;
+}
+
+.machine-type-card__label {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 16px;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  color: var(--text-heading);
+}
+
+.machine-type-card__sub {
+  margin-top: -4px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Active (selected) type */
+.machine-type-card--active {
+  border-color: var(--tq-turquoise);
+  background: var(--tq-turquoise-light);
+  box-shadow: 0 0 0 1px var(--tq-turquoise);
+}
+
+.machine-type-card--active .machine-type-card__thumb {
+  background: var(--surface);
+}
+
+/* Coming-soon placeholder types */
+.machine-type-card--soon {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.machine-type-card--soon .machine-type-card__sub {
+  text-transform: uppercase;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.machine-type-card__check {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--tq-turquoise);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+}

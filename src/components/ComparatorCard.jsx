@@ -78,7 +78,7 @@ export default function ComparatorCard({ machine, result, breakeven, isElectric,
         </div>
         {!isElectric ? (
           <div>
-            <dt>Break-even vs electric</dt>
+            <dt>Savings starts (vs electric)</dt>
             <dd className="mono">{breakeven != null ? `Yr ${breakeven.toFixed(1)}` : 'Beyond horizon'}</dd>
           </div>
         ) : (

@@ -15,7 +15,7 @@ import PrintCover from './components/PrintCover';
 import PrintSummary from './components/PrintSummary';
 import './App.css';
 
-const DRAFT_STORAGE_KEY = 'thinkquip-loader-calc-draft';
+const DRAFT_STORAGE_KEY = 'thinkquip-loader-calc-draft-v2';
 
 const defaultInputs = {
   preparedFor: '',
@@ -29,7 +29,8 @@ const defaultInputs = {
   chargingInfraInstalled: true,
   electricityPrice: DEFAULT_PRICES.electricityPricePerKWh,
   dieselPrice: DEFAULT_PRICES.dieselPricePerLiter,
-  selectedComparatorIds: ['cat950m'],
+  includeElectric: true,
+  selectedComparatorIds: ['syl956h5'],
   fleetSize: CALC_DEFAULTS.fleetSizeDefault,
   vatInclusive: false,
 };
@@ -55,6 +56,7 @@ function App() {
   const [inputs, setInputs] = useState(loadDraftInputs);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showLifecycleEvents, setShowLifecycleEvents] = useState(true);
+  const [machineType, setMachineType] = useState('loader');
 
   useEffect(() => {
     localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(inputs));
@@ -64,9 +66,9 @@ function App() {
   const setFleetSize = (fleetSize) => updateInputs({ fleetSize });
 
   const selectedDieselMachines = DIESEL_MACHINES.filter(
-    (m) => m.isDefault || inputs.selectedComparatorIds.includes(m.id)
+    (m) => !m.hidden && inputs.selectedComparatorIds.includes(m.id)
   );
-  const optionalDieselMachines = DIESEL_MACHINES.filter((m) => !m.isDefault);
+  const optionalDieselMachines = DIESEL_MACHINES.filter((m) => !m.isDefault && !m.hidden);
 
   const comparison = runComparison({
     electricMachine: ELECTRIC_MACHINE,
@@ -135,6 +137,8 @@ function App() {
             inputs={inputs}
             onUpdate={updateInputs}
             dieselComparators={optionalDieselMachines}
+            machineType={machineType}
+            onMachineTypeChange={setMachineType}
             onNext={() => setActiveTab('comparison')}
           />
         </section>
@@ -143,16 +147,20 @@ function App() {
           {hasComparators ? (
             <>
               <FleetSizeToggle fleetSize={inputs.fleetSize} onChange={setFleetSize} />
-              <HeroStat electricResult={electric} comparators={comparators} horizonYears={horizonYears} fleetSize={inputs.fleetSize} />
+              {inputs.includeElectric && (
+                <HeroStat electricMachine={ELECTRIC_MACHINE} electricResult={electric} comparators={comparators} horizonYears={horizonYears} fleetSize={inputs.fleetSize} />
+              )}
               <h3 className="section-heading">Machines compared</h3>
               <div className="comparator-grid">
-                <ComparatorCard
-                  machine={ELECTRIC_MACHINE}
-                  result={electric}
-                  allResults={allResults}
-                  horizonYears={horizonYears}
-                  isElectric
-                />
+                {inputs.includeElectric && (
+                  <ComparatorCard
+                    machine={ELECTRIC_MACHINE}
+                    result={electric}
+                    allResults={allResults}
+                    horizonYears={horizonYears}
+                    isElectric
+                  />
+                )}
                 {comparators.map((c) => (
                   <ComparatorCard
                     key={c.machine.id}

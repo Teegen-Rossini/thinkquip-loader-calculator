@@ -1,9 +1,12 @@
-import { DEFAULT_PRICES } from '../data/machinesConfig';
+import { DEFAULT_PRICES, ELECTRIC_MACHINE, DIESEL_MACHINES } from '../data/machinesConfig';
 import { annualHours } from '../lib/calculationEngine';
 import ConfidenceBadge from './ConfidenceBadge';
 import ConfidenceLegend from './ConfidenceLegend';
+import MachineTypeSelector from './MachineTypeSelector';
 import { ArrowRightIcon } from './icons';
 import './InputForm.css';
+
+const BASELINE_DIESEL = DIESEL_MACHINES.find((m) => m.isDefault);
 
 function InfoTip({ text }) {
   return (
@@ -23,7 +26,7 @@ function rangeWarning(value, min, max, unit) {
   return null;
 }
 
-export default function InputForm({ inputs, onUpdate, dieselComparators, onNext }) {
+export default function InputForm({ inputs, onUpdate, dieselComparators, machineType, onMachineTypeChange, onNext }) {
   const hours = annualHours(inputs);
 
   const toggleComparator = (id) => {
@@ -186,32 +189,50 @@ export default function InputForm({ inputs, onUpdate, dieselComparators, onNext 
           </div>
           <p className="field__help">Auto-filled placeholder defaults — always confirm against the customer’s actual rates before presenting.</p>
         </section>
-
-        <section className="input-card">
-          <h3>Comparison Machines</h3>
-          <div className="comparator-list">
-            <label className="comparator-item comparator-item--locked">
-              <input type="checkbox" checked disabled />
-              <span>SANY SYL956H5 (Diesel)</span>
-              <span className="comparator-item__status">Included</span>
-            </label>
-            {dieselComparators.map((machine) => {
-              const included = inputs.selectedComparatorIds.includes(machine.id);
-              return (
-                <label className="comparator-item" key={machine.id}>
-                  <input type="checkbox"
-                    checked={included}
-                    onChange={() => toggleComparator(machine.id)} />
-                  <span>{machine.displayName}</span>
-                  <span className={included ? 'comparator-item__status comparator-item__status--included' : 'comparator-item__status'}>
-                    {included ? 'Included' : 'Pending quote'}
-                  </span>
-                </label>
-              );
-            })}
-          </div>
-        </section>
       </div>
+
+      <section className="input-card input-card--wide">
+        <h3>Machine Type</h3>
+        <MachineTypeSelector selectedType={machineType} onSelect={onMachineTypeChange} />
+      </section>
+
+      <section className="input-card input-card--wide">
+        <h3>Comparison Machines</h3>
+        <div className="comparator-list">
+          <label className="comparator-item">
+            <input type="checkbox"
+              checked={inputs.includeElectric}
+              onChange={(e) => onUpdate({ includeElectric: e.target.checked })} />
+            <span>{ELECTRIC_MACHINE.displayName}</span>
+            <span className={inputs.includeElectric ? 'comparator-item__status comparator-item__status--included' : 'comparator-item__status'}>
+              {inputs.includeElectric ? 'Included' : 'Hidden'}
+            </span>
+          </label>
+          <label className="comparator-item">
+            <input type="checkbox"
+              checked={inputs.selectedComparatorIds.includes(BASELINE_DIESEL.id)}
+              onChange={() => toggleComparator(BASELINE_DIESEL.id)} />
+            <span>{BASELINE_DIESEL.displayName}</span>
+            <span className={inputs.selectedComparatorIds.includes(BASELINE_DIESEL.id) ? 'comparator-item__status comparator-item__status--included' : 'comparator-item__status'}>
+              {inputs.selectedComparatorIds.includes(BASELINE_DIESEL.id) ? 'Included' : 'Hidden'}
+            </span>
+          </label>
+          {dieselComparators.map((machine) => {
+            const included = inputs.selectedComparatorIds.includes(machine.id);
+            return (
+              <label className="comparator-item" key={machine.id}>
+                <input type="checkbox"
+                  checked={included}
+                  onChange={() => toggleComparator(machine.id)} />
+                <span>{machine.displayName}</span>
+                <span className={included ? 'comparator-item__status comparator-item__status--included' : 'comparator-item__status'}>
+                  {included ? 'Included' : (machine.costConfidence === 'unconfirmed' ? 'Pending quote' : 'Hidden')}
+                </span>
+              </label>
+            );
+          })}
+        </div>
+      </section>
 
       <div className="input-card input-card--wide input-card--vat">
         <label className="vat-toggle">

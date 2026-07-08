@@ -262,7 +262,7 @@ export default function CostChart({ electricResult, electricMachine, comparators
 
       {withoutBreakeven.length > 0 && (
         <p className="cost-chart__note">
-          No breakeven within the {horizonYears}-year horizon shown for:{' '}
+          Savings don&rsquo;t start within the {horizonYears}-year horizon shown for:{' '}
           {withoutBreakeven.map((c) => c.machine.name).join(', ')}.
         </p>
       )}

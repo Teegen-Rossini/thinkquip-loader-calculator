@@ -100,9 +100,9 @@ export const DIESEL_MACHINES = [
     id: 'syl956h5',
     type: 'diesel',
     brand: 'SANY',
-    name: 'SYL956H5',
-    displayName: 'SANY SYL956H5 (Diesel)',
-    isDefault: true, // auto-included per spec section 4.9 — not user-removable
+    name: 'SYL956H5 (Dry Brake)',
+    displayName: 'SANY SYL956H5 (Diesel — Dry Brake)',
+    isDefault: true, // baseline diesel — shown as its own top-level option, selected by default (user-removable)
     logo: sanyLogo,
     logoColor: COLORS.sanyRed,
     photo: sanyDieselPhoto,
@@ -114,7 +114,50 @@ export const DIESEL_MACHINES = [
     ratedLoadKg: 5000,
     fuelTankL: 300,
 
-    machineCost: 2050000,
+    machineCost: 1850000,
+    costConfidence: 'confirmed',
+
+    consumption: {
+      light: 14,
+      heavy: 14,
+      medium: 14,
+      unit: 'L/h',
+      confidence: 'confirmed',
+      note: 'Flat rate (medium duty) from SANY’s own worked example.',
+    },
+
+    maintenance: {
+      at2000: 74873,
+      at3000: 91373,
+      confidence: 'confirmed',
+    },
+
+    warranty: {
+      machine: '12 mo / 2,000 h (SANY standard diesel line warranty)',
+      confidence: 'confirmed',
+    },
+  },
+  {
+    // Same machine as the SYL956H5 above — the only difference is the wet-brake
+    // (wet disc / oil-immersed) axle option, which carries a higher purchase price.
+    id: 'syl956h5_wet',
+    type: 'diesel',
+    brand: 'SANY',
+    name: 'SYL956H5 (Wet Brake)',
+    displayName: 'SANY SYL956H5 (Diesel — Wet Brake)',
+    isDefault: false, // optional variant — offered alongside the dry-brake baseline
+    logo: sanyLogo,
+    logoColor: COLORS.sanyRed,
+    photo: sanyDieselPhoto,
+    accentColor: COLORS.sanyDieselAccent,
+    chartColor: COLORS.sanyDieselAccent,
+    chartDash: '7 5', // dashed — same amber as the dry-brake line, but distinguishable on the chart
+
+    operatingWeightKg: 17100,
+    ratedLoadKg: 5000,
+    fuelTankL: 300,
+
+    machineCost: 2200000,
     costConfidence: 'confirmed',
 
     consumption: {
@@ -144,6 +187,7 @@ export const DIESEL_MACHINES = [
     name: '950M/GC',
     displayName: 'CAT 950M/GC',
     isDefault: false,
+    hidden: true, // temporarily removed from the comparison options — data kept for easy re-enable
     logo: catLogo,
     logoColor: COLORS.competitorBlack,
     photo: catPhoto,
@@ -183,6 +227,7 @@ export const DIESEL_MACHINES = [
     name: 'WA380-8',
     displayName: 'Komatsu WA380-8',
     isDefault: false,
+    hidden: true, // temporarily removed from the comparison options — data kept for easy re-enable
     logo: komatsuLogo,
     logoColor: COLORS.competitorBlack,
     photo: komatsuPhoto,
@@ -222,6 +267,7 @@ export const DIESEL_MACHINES = [
     name: 'L120H',
     displayName: 'Volvo L120H',
     isDefault: false,
+    hidden: true, // temporarily removed from the comparison options — data kept for easy re-enable
     logo: volvoLogo,
     logoColor: COLORS.competitorBlack,
     photo: volvoPhoto,

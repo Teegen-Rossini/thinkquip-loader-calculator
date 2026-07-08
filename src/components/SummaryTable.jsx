@@ -75,7 +75,7 @@ export default function SummaryTable({ electricMachine, electricResult, comparat
               <th>Annual maintenance</th>
               <th>Annual total</th>
               <th>Fleet annual total (×{fleetSize})</th>
-              <th>Break-even vs electric</th>
+              <th>Savings starts (vs electric)</th>
             </tr>
           </thead>
           <tbody>
