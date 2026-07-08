@@ -28,16 +28,18 @@ export function PrintPage({ pageNumber, pageCount, isLast, className = '', child
   );
 }
 
-/** Brand page header: logo + machine/section name in large type, with the
- *  model code in a lighter weight beside it. */
-export function PageHeader({ logo, logoAlt = '', title, code, accent }) {
+/** Brand page header: machine/section name in large type with the model code
+ *  in a lighter weight beside it. The ThinkQuip logo sits on the LEFT of the
+ *  title; the SANY logo (spec sheets, logoRight) sits on the RIGHT edge. */
+export function PageHeader({ logo, logoAlt = '', title, code, accent, logoRight = false }) {
   return (
     <div className="print-header" style={accent ? { borderBottomColor: accent } : undefined}>
-      {logo && <img src={logo} alt={logoAlt} className="print-header__logo" />}
+      {logo && !logoRight && <img src={logo} alt={logoAlt} className="print-header__logo" />}
       <h1 className="print-header__title">
         {title}
         {code && <span className="print-header__code"> {code}</span>}
       </h1>
+      {logo && logoRight && <img src={logo} alt={logoAlt} className="print-header__logo print-header__logo--right" />}
     </div>
   );
 }

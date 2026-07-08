@@ -115,6 +115,10 @@
   object-fit: contain;
 }
 
+.print-header__logo--right {
+  margin-left: auto;
+}
+
 .print-header__title {
   font-family: var(--display);
   font-size: 21pt;
