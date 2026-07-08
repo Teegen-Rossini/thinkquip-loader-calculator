@@ -179,30 +179,11 @@
   line-height: 1.5;
 }
 
+/* Nothing from the screen shell prints — the entire print output is the
+   PrintBrochure (see PrintBrochure.css); everything else carries .no-print. */
 @media print {
-  .app-header {
-    background: none;
-    color: var(--tq-ink);
-    padding: 0 0 12px;
-  }
-  .app-header__subtitle {
-    color: var(--text-muted);
-  }
   .app-body {
     max-width: 100%;
     padding: 0;
-  }
-  .tab-panel--result {
-    display: block !important;
-    margin-bottom: 32px;
-  }
-  .comparator-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  }
-  .chart-details-layout {
-    grid-template-columns: minmax(0, 1fr) !important;
-  }
-  .app-footer {
-    padding: 16px 0;
   }
 }

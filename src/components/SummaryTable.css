@@ -103,18 +103,3 @@
   margin-top: 10px;
   max-width: 80ch;
 }
-
-@media print {
-  .summary-table-block {
-    overflow-x: visible;
-    break-inside: avoid;
-  }
-  .summary-table th, .summary-table td {
-    white-space: normal;
-    font-size: 11px;
-    padding: 6px 8px;
-  }
-  .request-quote-btn {
-    display: none;
-  }
-}

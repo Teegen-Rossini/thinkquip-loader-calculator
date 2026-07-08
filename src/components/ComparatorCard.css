@@ -177,24 +177,3 @@
   font-style: italic;
   line-height: 1.4;
 }
-
-@media print {
-  .comparator-card {
-    box-shadow: none;
-    break-inside: avoid;
-  }
-  .comparator-card--best {
-    box-shadow: none;
-    transform: none;
-    border: 2px solid var(--card-accent, var(--border-strong));
-  }
-  .comparator-card:hover {
-    transform: none;
-  }
-  .comparator-card__toggle {
-    display: none;
-  }
-  .comparator-card__details {
-    max-height: none !important;
-  }
-}

@@ -13,8 +13,9 @@ point is the centerpiece.
 
 The tool compares **exactly two machine families** — SW956E electric vs
 SYL956H5 diesel. There are **no competitor machines** (CAT / Komatsu / Volvo
-were removed), **no solar**, **no tender logic**, and **no separate charging-
-infrastructure cost** (the charger is included in the electric price).
+were removed — including from the printed brochure), **no solar**, **no tender
+logic**, and **no separate charging-infrastructure cost** (the charger is
+included in the electric price).
 
 Stack: **React 19 + Vite 8**, charts via **Recharts 3**, linting via **Oxlint**.
 No TypeScript. No test framework is set up yet.
@@ -42,6 +43,10 @@ npm run lint     # oxlint
   (now used mainly for the placeholder energy prices).
 - **`src/components/`** — the tabbed UI (see flow below), each with a colocated
   `.css` file.
+- **`src/components/Print*.jsx`** — the printed brochure (see "The printed
+  brochure" below). Shared primitives (A4 page shell, turquoise band, ruled spec
+  rows, confidence dots) live in `PrintKit.jsx`; ALL print styling lives in the
+  single `PrintBrochure.css`.
 - **`src/App.jsx`** — top-level state, tab routing, wires inputs → engine → views.
 
 ## App flow
@@ -53,14 +58,43 @@ initializes to `'dashboard'`, which is intentionally **not** a member of the
 bar. Keep that in mind before touching navigation.
 
 Customer inputs are persisted to `localStorage` under
-`thinkquip-loader-calc-draft` and restored on load.
+`thinkquip-loader-calc-draft-v2` and restored on load. A `?draft={json}` URL
+param overrides the inputs for that load (used for deep links and print-preview
+generation) — while present, localStorage is neither read nor written.
+
+## The printed brochure
+
+"Print / Save as PDF" (or `?printview=1`, which renders the brochure alone on
+screen exactly as it prints) produces a fixed-page A4 brochure — the ONLY thing
+that prints; every screen element carries `.no-print`. `PrintBrochure.jsx`
+assembles the page list and computes `Page X of Y`, so page numbers stay
+correct whichever pages render:
+
+1. **Cover** (`PrintCover`) — logos, customer/date fields, hero cutout, headline stats.
+2. **Inputs & Assumptions** (`PrintInputsPage`).
+3. **Machine Comparison** (`PrintComparisonPage`) — the two SANY machines side by side.
+4. **Cost Over Operating Hours** (`PrintTimelinePage`) — the chart re-rendered as
+   **pure static SVG** (`PrintChart.jsx`, no Recharts — Recharts can't render in
+   the hidden print DOM) plus a sampled-points table.
+5. **Spec appendix** — one full page per SANY machine (`PrintSpecSheet`).
+   Six pages total.
+
+Conventions: each `.print-page` is a fixed 296.5 mm sheet (footer pinned to the
+bottom, `@page { size: A4; margin: 0 }`); design language follows ThinkQuip's
+physical SANY spec sheets (turquoise bands with white bold-italic titles,
+label-left/value-right ruled rows); every value prints its confidence dot
+(solid turquoise confirmed / amber outline estimate / grey pending) with a
+legend per spec page, and `unconfirmed` values print as *"Pending dealer
+quote"* in grey italic — **never a fake number**. `print-color-adjust: exact`
+is set brochure-wide. Verify layout changes by loading
+`?printview=1&draft={...}` and printing to PDF at fleet sizes 1 and 4.
 
 ## Inputs
 
 - **Machine option** (`machineOption`): one of three — `electric`, `diesel-dry`,
   `diesel-wet`. Both the electric and a diesel line are always compared; wet vs
-  dry brake changes **only the diesel purchase price** (dry R1,850,000, wet
-  R2,200,000; electric fixed R3,150,000, charger included).
+  dry brake changes **only the diesel purchase price** (dry R2,050,000, wet
+  R2,200,000; electric fixed R3,450,000, charger included).
 - **Fuel included in rate** (`fuelIncludedInRate`): `No` drops diesel **fuel**
   cost (and its theft uplift) from the diesel total. Electricity is **always**
   counted for the electric machine; the R29/h diesel service is **always**
@@ -119,8 +153,17 @@ per-machine, ex-VAT for readability.
 
 Every figure carries a confidence level: `'confirmed'` | `'estimate'` |
 `'unconfirmed'`. With the two-machine SANY scope, most specs are `confirmed`; the
-placeholder **energy prices** are `estimate`. Preserve/set these accurately in
-`machinesConfig.js`.
+placeholder **energy prices** are `estimate`; `unconfirmed` values render as
+"Pending dealer quote" — never invent a number for them. Preserve/set these
+accurately in `machinesConfig.js`. In print, confidence renders as dots (see
+"The printed brochure").
+
+Note: some `machinesConfig.js` fields are **printed-spec-sheet data only** and
+deliberately do NOT feed the TCO engine: `specConsumption` (rated 38 kWh/h /
+14 L/h — the engine interpolates `CONSUMPTION_BREAKPOINTS` instead),
+`maintenanceSchedule` (SANY's scheduled-maintenance figures per year — the
+engine uses R0/h electric and R29/h diesel), `warrantyTiers`, `serviceLifeHours`
+and the battery charging details.
 
 ## Known open items
 

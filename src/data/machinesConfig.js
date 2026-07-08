@@ -33,6 +33,13 @@ export const COLORS = {
 
 export const THINKQUIP_LOGO = thinkquipLogo;
 
+/** Company identity printed in the brochure footer. */
+export const COMPANY = {
+  name: 'ThinkQuip',
+  address: '11 Voyager Street, Linbro Park, JHB',
+  website: 'www.thinkquip.co.za',
+};
+
 /** SANY SW956E electric loader. Selling price is fixed (the 320 kW charger
  *  is included). Battery reaches replacement at 30,000 h — beyond the first
  *  owner's typical lifecycle and beyond the 20,000 h chart window. */
@@ -48,7 +55,7 @@ export const ELECTRIC_MACHINE = {
   accentColor: COLORS.electricAccent,
   chartColor: COLORS.electricAccent,
 
-  price: 3150000, // ex VAT, charger included
+  price: 3450000, // ex VAT, charger included
   priceConfidence: 'confirmed',
 
   operatingWeightKg: 20000,
@@ -58,9 +65,34 @@ export const ELECTRIC_MACHINE = {
   warranty: '5,000 h / 2 years',
   warrantyConfidence: 'confirmed',
 
+  /** Printed spec-sheet warranty tiers (from ThinkQuip's SANY sheet). */
+  warrantyTiers: [
+    { item: 'Complete machine', terms: '24 months / 5,000 h', confidence: 'confirmed' },
+    { item: 'Battery, drive motor & electric control', terms: '60 months / 10,000 h', confidence: 'confirmed' },
+    { item: 'Axle, hydraulic pump & gearbox', terms: '24 months / 5,000 h', confidence: 'confirmed' },
+  ],
+
+  /** Rated consumption printed on the spec sheet (typical heavy duty). The
+   *  calculator itself interpolates CONSUMPTION_BREAKPOINTS from the slider. */
+  specConsumption: { value: 38, unit: 'kWh/h', confidence: 'confirmed' },
+
+  serviceLifeHours: { label: '30,000 – 35,000 h', confidence: 'confirmed' },
+
+  /** Scheduled maintenance cost per year at a given annual utilization —
+   *  printed spec-sheet figures, NOT the TCO engine's R0/h service line. */
+  maintenanceSchedule: [
+    { hoursPerYear: 2000, costPerYear: 53877, confidence: 'confirmed' },
+    { hoursPerYear: 3000, costPerYear: 75377, confidence: 'confirmed' },
+  ],
+
   battery: {
     capacityKWh: 422,
     chargerRatingKW: 320, // included in the purchase price
+    gunsPerCharger: 2,
+    charge20to80: '0.8 h (20% → 80%)',
+    charge20to100: '1.5 h (20% → 100%)',
+    workPerCharge: '7 – 9 h',
+    cycleLife: '4,000+ cycles',
     confidence: 'confirmed',
   },
 
@@ -93,12 +125,24 @@ export const DIESEL_MACHINE = {
   priceConfidence: 'confirmed', // price supplied per brake variant below
 
   engine: 'Cummins QSL8.9-C220 III, ~164 kW @ 2200 rpm',
+  fuelTankL: 300,
   operatingWeightKg: 17100,
   ratedPayloadKg: 5000,
   bucketCapacityM3: 3,
   tyres: 'L5',
   warranty: '4,000 h / 2 years',
   warrantyConfidence: 'confirmed',
+
+  warrantyTiers: [
+    { item: 'Complete machine', terms: '24 months / 4,000 h', confidence: 'confirmed' },
+  ],
+
+  specConsumption: { value: 14, unit: 'L/h', confidence: 'confirmed' },
+
+  maintenanceSchedule: [
+    { hoursPerYear: 2000, costPerYear: 74873, confidence: 'confirmed' },
+    { hoursPerYear: 3000, costPerYear: 91373, confidence: 'confirmed' },
+  ],
 };
 
 /**
@@ -107,15 +151,15 @@ export const DIESEL_MACHINE = {
  * compared lines are always the electric machine and one diesel variant.
  */
 export const MACHINE_OPTIONS = [
-  { id: 'electric', type: 'electric', label: 'SANY SW956E (Electric)', price: 3150000 },
-  { id: 'diesel-dry', type: 'diesel', brake: 'dry', label: 'SANY SYL956H5 (Diesel, dry brake)', price: 1850000 },
+  { id: 'electric', type: 'electric', label: 'SANY SW956E (Electric)', price: 3450000 },
+  { id: 'diesel-dry', type: 'diesel', brake: 'dry', label: 'SANY SYL956H5 (Diesel, dry brake)', price: 2050000 },
   { id: 'diesel-wet', type: 'diesel', brake: 'wet', label: 'SANY SYL956H5 (Diesel, wet brake)', price: 2200000 },
 ];
 
 /** The diesel selling price implied by the selected machine option. Selecting
  *  the electric option leaves the diesel comparator at its dry-brake price. */
 export function dieselPriceForOption(optionId) {
-  return optionId === 'diesel-wet' ? 2200000 : 1850000;
+  return optionId === 'diesel-wet' ? 2200000 : 2050000;
 }
 
 export function dieselBrakeForOption(optionId) {

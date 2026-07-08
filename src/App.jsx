@@ -12,8 +12,7 @@ import CostChart from './components/CostChart';
 import LifecycleEventsTable from './components/LifecycleEventsTable';
 import CalculationView from './components/CalculationView';
 import SummaryTable from './components/SummaryTable';
-import PrintCover from './components/PrintCover';
-import PrintSummary from './components/PrintSummary';
+import PrintBrochure from './components/PrintBrochure';
 import './App.css';
 
 const DRAFT_STORAGE_KEY = 'thinkquip-loader-calc-draft-v2';
@@ -33,7 +32,21 @@ const defaultInputs = {
   vatInclusive: false,
 };
 
+/** Optional ?draft={...json...} URL override — used for deep links and for
+ *  generating print previews at known inputs. When present, the draft in
+ *  localStorage is neither read nor overwritten. */
+function draftOverride() {
+  try {
+    const raw = new URLSearchParams(window.location.search).get('draft');
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
 function loadDraftInputs() {
+  const override = draftOverride();
+  if (override) return { ...defaultInputs, ...override };
   try {
     const saved = localStorage.getItem(DRAFT_STORAGE_KEY);
     if (!saved) return defaultInputs;
@@ -57,6 +70,7 @@ function App() {
   const [machineType, setMachineType] = useState('loader');
 
   useEffect(() => {
+    if (draftOverride()) return; // don't clobber the saved draft from a deep link
     localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(inputs));
   }, [inputs]);
 
@@ -66,12 +80,19 @@ function App() {
   const comparison = runComparison({ inputs, fleetSize: inputs.fleetSize });
   const { electricMachine, dieselMachine, electric, diesel } = comparison;
 
+  // ?printview=1 renders ONLY the brochure, on screen, exactly as it prints —
+  // for checking the document before handing a customer the PDF.
+  if (new URLSearchParams(window.location.search).has('printview')) {
+    return <PrintBrochure comparison={comparison} inputs={inputs} preview />;
+  }
+
   const isDashboard = activeTab === 'dashboard';
-  const panelClass = (id) => `tab-panel${id === 'inputs' ? ' tab-panel--inputs no-print' : ' tab-panel--result'}${activeTab === id ? ' is-active' : ''}`;
+  // The screen UI never prints — the print output is PrintBrochure alone.
+  const panelClass = (id) => `tab-panel no-print${id === 'inputs' ? ' tab-panel--inputs' : ' tab-panel--result'}${activeTab === id ? ' is-active' : ''}`;
 
   return (
     <>
-      <header className="app-header">
+      <header className="app-header no-print">
         <div className="app-header__inner">
           <div
             className="app-header__titles"
@@ -97,8 +118,7 @@ function App() {
           <Dashboard onStart={() => setActiveTab('inputs')} />
         </div>
 
-        <PrintCover comparison={comparison} inputs={inputs} />
-        <PrintSummary inputs={inputs} comparison={comparison} />
+        <PrintBrochure comparison={comparison} inputs={inputs} />
 
         <section className={panelClass('inputs')}>
           <InputForm
@@ -147,7 +167,7 @@ function App() {
       </main>
 
       {!isDashboard && (
-        <footer className="app-footer">
+        <footer className="app-footer no-print">
           <p>
             Projections apply researched annual escalation trends (diesel, electricity, routine service and battery
             replacement costs) to the operating inputs and manufacturer figures shown above &mdash; not a forecast of your

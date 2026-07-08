@@ -1,0 +1,567 @@
+/**
+ * The single stylesheet for the printed brochure. Every print page is
+ * composed from PrintKit primitives styled here, so the whole document
+ * shares one design system — modelled on ThinkQuip's physical SANY spec
+ * sheets: solid turquoise section bands with white bold-italic titles,
+ * two-column ruled spec rows, brand page headers, and a ThinkQuip footer.
+ *
+ * The brochure exists in the DOM at all times but only displays in print
+ * (.print-only). Pages are fixed A4 sheets: footers are pinned to the
+ * bottom of each sheet and page numbers are computed in PrintBrochure.jsx.
+ */
+
+@page {
+  size: A4 portrait;
+  margin: 0;
+}
+
+.print-brochure {
+  background: #fff;
+  color: var(--text);
+  font-size: 10.5pt;
+  line-height: 1.45;
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+.print-brochure * {
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+/* On-screen preview (?printview=1): show the sheets exactly as they print. */
+.print-brochure--preview {
+  display: block;
+}
+
+@media screen {
+  .print-brochure--preview .print-page {
+    box-shadow: 0 2px 14px rgba(20, 21, 15, 0.25);
+    margin: 0 auto 16px;
+  }
+}
+
+/* ---- The A4 sheet ---- */
+.print-page {
+  width: 210mm;
+  height: 296.5mm; /* a hair under 297 so rounding never spills a blank page */
+  padding: 13mm 15mm 9mm;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  break-after: page;
+  page-break-after: always;
+  break-inside: avoid;
+  page-break-inside: avoid;
+  position: relative;
+  background: #fff;
+}
+
+.print-page--last {
+  break-after: auto;
+  page-break-after: auto;
+}
+
+.print-page__content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* ---- Footer: logo · address · site — thin rule above, page no. right ---- */
+.print-page__footer {
+  margin-top: auto;
+  padding-top: 3mm;
+  border-top: 0.5pt solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 8pt;
+  color: var(--text-muted);
+}
+
+.print-page__footer-logo {
+  height: 14px;
+  width: auto;
+}
+
+.print-page__footer-dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--border);
+}
+
+.print-page__footer-page {
+  margin-left: auto;
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* ---- Brand page header ---- */
+.print-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-bottom: 4mm;
+  margin-bottom: 6mm;
+  border-bottom: 2.5pt solid var(--tq-turquoise);
+}
+
+.print-header__logo {
+  height: 34px;
+  width: auto;
+  object-fit: contain;
+}
+
+.print-header__title {
+  font-family: var(--display);
+  font-size: 21pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  color: var(--text-heading);
+}
+
+.print-header__code {
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+/* ---- Turquoise section band ---- */
+.print-band {
+  background: var(--tq-turquoise);
+  color: #fff;
+  font-family: var(--display);
+  font-size: 11.5pt;
+  font-weight: 700;
+  font-style: italic;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2mm 4mm;
+  margin: 5mm 0 0;
+  break-after: avoid;
+  page-break-after: avoid;
+}
+
+/* ---- Two-column spec rows with thin rules ---- */
+.print-rows {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.print-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8mm;
+  padding: 2.2mm 4mm;
+  border-bottom: 0.5pt solid var(--border);
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.print-row__label {
+  color: var(--text-muted);
+  font-size: 9.5pt;
+}
+
+.print-value {
+  font-weight: 600;
+  color: var(--text-heading);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.print-value--pending {
+  font-weight: 400;
+  font-style: italic;
+  color: var(--unconfirmed);
+}
+
+/* ---- Confidence dots (must survive printing) ---- */
+.print-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  margin-right: 5px;
+  vertical-align: 1px;
+}
+
+.print-dot--confirmed {
+  background: var(--confirmed);
+}
+
+.print-dot--estimate {
+  background: #fff;
+  border: 1.5px solid var(--estimate);
+}
+
+.print-dot--unconfirmed {
+  background: var(--unconfirmed);
+}
+
+.print-legend {
+  margin-top: 4mm;
+  font-size: 8pt;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  column-gap: 4px;
+}
+
+.print-legend .print-dot {
+  margin-left: 12px;
+}
+
+.print-legend .print-dot:first-child {
+  margin-left: 0;
+}
+
+/* =========================================================
+   Section 1 — Cover
+   ========================================================= */
+.print-cover .print-page__content {
+  justify-content: flex-start;
+}
+
+.print-cover__brands {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12mm;
+}
+
+.print-cover__brands-thinkquip {
+  height: 42px;
+  width: auto;
+}
+
+.print-cover__brands-sany {
+  height: 30px;
+  width: auto;
+}
+
+.print-cover__band {
+  background: var(--tq-turquoise);
+  color: #fff;
+  margin: 10mm -15mm 0;
+  padding: 9mm 15mm 8mm;
+}
+
+.print-cover__eyebrow {
+  font-size: 9pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: rgba(255, 255, 255, 0.85);
+  margin-bottom: 2mm;
+}
+
+.print-cover__headline {
+  font-family: var(--display);
+  font-size: 30pt;
+  line-height: 1.08;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #fff;
+}
+
+.print-cover__hero {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8mm 0 4mm;
+}
+
+.print-cover__hero img {
+  max-width: 130mm;
+  max-height: 78mm;
+  object-fit: contain;
+}
+
+.print-cover__fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6mm;
+  border-top: 0.5pt solid var(--border);
+  border-bottom: 0.5pt solid var(--border);
+  padding: 5mm 0;
+}
+
+.print-cover__field-label {
+  font-size: 8pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  margin-bottom: 1.5mm;
+}
+
+.print-cover__field-value {
+  font-size: 12pt;
+  font-weight: 600;
+  color: var(--text-heading);
+}
+
+.print-cover__stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5mm;
+  margin-top: 7mm;
+}
+
+.print-cover__stat {
+  border: 0.75pt solid var(--border);
+  border-top: 2.5pt solid var(--tq-turquoise);
+  padding: 4mm;
+}
+
+.print-cover__stat-label {
+  font-size: 8pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+.print-cover__stat-value {
+  font-family: var(--display);
+  font-size: 17pt;
+  font-weight: 700;
+  color: var(--tq-turquoise-dark);
+  margin: 1.5mm 0 0.5mm;
+  font-variant-numeric: tabular-nums;
+}
+
+.print-cover__stat-sub {
+  font-size: 8.5pt;
+  color: var(--text-muted);
+}
+
+/* =========================================================
+   Sections 2–4 — shared content helpers
+   ========================================================= */
+.print-intro {
+  font-size: 9.5pt;
+  color: var(--text-muted);
+  margin: 0 0 2mm;
+}
+
+.print-note {
+  font-size: 8.5pt;
+  color: var(--text-muted);
+  margin-top: 3mm;
+}
+
+/* Two side-by-side machine columns on the comparison page */
+.print-compare {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6mm;
+  margin-top: 5mm;
+}
+
+.print-compare__col {
+  border: 0.75pt solid var(--border);
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.print-compare__head {
+  display: flex;
+  align-items: center;
+  gap: 3mm;
+  padding: 3mm 4mm;
+  border-bottom: 0.75pt solid var(--border);
+  border-top: 3pt solid;
+}
+
+.print-compare__head img {
+  height: 30px;
+  width: auto;
+  object-fit: contain;
+}
+
+.print-compare__name {
+  font-family: var(--display);
+  font-size: 12.5pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-heading);
+}
+
+.print-compare__type {
+  display: block;
+  font-family: var(--sans);
+  font-size: 8pt;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+/* Savings callout strip */
+.print-callout {
+  margin-top: 6mm;
+  background: var(--tq-turquoise-light);
+  border-left: 3pt solid var(--tq-turquoise);
+  padding: 4mm 5mm;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.print-callout__value {
+  font-family: var(--display);
+  font-size: 16pt;
+  font-weight: 700;
+  color: var(--tq-turquoise-darker);
+  font-variant-numeric: tabular-nums;
+}
+
+.print-callout__text {
+  font-size: 9.5pt;
+  color: var(--text);
+}
+
+/* Simple data tables (timeline samples, competitor spread) */
+.print-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 9pt;
+  margin-top: 3mm;
+}
+
+.print-table th {
+  font-family: var(--sans);
+  font-size: 8pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  text-align: left;
+  padding: 1.8mm 3mm;
+  border-bottom: 1pt solid var(--border-strong);
+}
+
+.print-table td {
+  padding: 1.8mm 3mm;
+  border-bottom: 0.5pt solid var(--border);
+  font-variant-numeric: tabular-nums;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.print-table tr {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.print-table .num,
+.print-table td.num {
+  text-align: right;
+}
+
+.print-table__pending {
+  font-style: italic;
+  color: var(--unconfirmed);
+  font-weight: 400;
+}
+
+/* =========================================================
+   Section 4 — Cost timeline chart
+   ========================================================= */
+.print-chart {
+  margin-top: 5mm;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.print-chart svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.print-chart__legend {
+  display: flex;
+  gap: 8mm;
+  font-size: 9pt;
+  color: var(--text);
+  margin: 2mm 0 1mm;
+}
+
+.print-chart__legend-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.print-chart__legend-swatch {
+  width: 14px;
+  height: 3px;
+  border-radius: 1.5px;
+}
+
+/* =========================================================
+   Section 5 — Spec appendix
+   ========================================================= */
+.print-spec__hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8mm;
+  border-radius: 2mm;
+  padding: 5mm 7mm;
+  margin-bottom: 1mm;
+}
+
+.print-spec__hero img {
+  max-height: 44mm;
+  max-width: 92mm;
+  object-fit: contain;
+}
+
+.print-spec__hero-price {
+  text-align: right;
+}
+
+.print-spec__hero-price-label {
+  font-size: 8pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+}
+
+.print-spec__hero-price-value {
+  font-family: var(--display);
+  font-size: 19pt;
+  font-weight: 700;
+  color: var(--text-heading);
+  font-variant-numeric: tabular-nums;
+}
+
+.print-spec__hero-price-sub {
+  font-size: 8.5pt;
+  color: var(--text-muted);
+}
+
+/* Spec sections flow in two columns to fit one page */
+.print-spec__columns {
+  column-count: 2;
+  column-gap: 7mm;
+  margin-top: 2mm;
+}
+
+.print-spec__block {
+  break-inside: avoid;
+  page-break-inside: avoid;
+  margin-bottom: 1mm;
+}
+
+.print-spec__block .print-band {
+  margin-top: 3mm;
+}

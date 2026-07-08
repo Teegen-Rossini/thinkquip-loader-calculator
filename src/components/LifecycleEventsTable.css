@@ -62,9 +62,3 @@
 .lifecycle-table__link:hover {
   text-decoration: underline;
 }
-
-@media print {
-  .lifecycle-table {
-    break-inside: avoid;
-  }
-}
