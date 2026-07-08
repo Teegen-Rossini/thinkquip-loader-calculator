@@ -1,0 +1,45 @@
+import PrintCover from './PrintCover';
+import PrintInputsPage from './PrintInputsPage';
+import PrintComparisonPage from './PrintComparisonPage';
+import PrintTimelinePage from './PrintTimelinePage';
+import PrintSpecSheet from './PrintSpecSheet';
+import './PrintBrochure.css';
+
+/**
+ * The printed brochure: Cover → Inputs & Assumptions → Machine Comparison →
+ * Cost Timeline → Spec Appendix (one page per selected SANY machine family).
+ *
+ * Hidden on screen (.print-only), it is the ONLY thing that prints. It renders
+ * exactly the machines the user selected (multi-select), driven by the same
+ * `selection` the screen uses. The page list is assembled first so "Page X of
+ * Y" stays correct whichever pages render for the current selection.
+ */
+export default function PrintBrochure({ selection, inputs, preview = false }) {
+  // One spec page per unique machine model among the selected set — the two
+  // SYL956H5 brake variants collapse to a single sheet (it lists both prices).
+  const specResults = [];
+  const seen = new Set();
+  for (const result of selection.machines) {
+    if (!seen.has(result.machine.id)) { seen.add(result.machine.id); specResults.push(result); }
+  }
+
+  const pages = [
+    (p) => <PrintCover key="cover" selection={selection} inputs={inputs} {...p} />,
+    (p) => <PrintInputsPage key="inputs" selection={selection} inputs={inputs} {...p} />,
+    (p) => <PrintComparisonPage key="comparison" selection={selection} inputs={inputs} {...p} />,
+    (p) => <PrintTimelinePage key="timeline" selection={selection} inputs={inputs} {...p} />,
+    ...specResults.map((result) => (p) => (
+      <PrintSpecSheet key={`spec-${result.machine.id}`} result={result} selection={selection} inputs={inputs} {...p} />
+    )),
+  ];
+
+  const pageCount = pages.length;
+
+  return (
+    <div className={`print-only print-brochure${preview ? ' print-brochure--preview' : ''}`}>
+      {pages.map((render, i) =>
+        render({ pageNumber: i + 1, pageCount, isLast: i === pageCount - 1 }),
+      )}
+    </div>
+  );
+}

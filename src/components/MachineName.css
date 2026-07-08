@@ -15,10 +15,10 @@
 }
 
 .machine-name__logo {
-  /* The SANY wordmark PNG carries transparent padding, so it must be set well
-     above the model text's cap height to read as the brand mark at the same
-     visual weight. Width auto preserves its native aspect ratio (never stretched). */
-  height: 1.9em;
+  /* The SANY wordmark PNG is tightly cropped, so a height near the model text's
+     own height reads as the brand mark. Width auto preserves its native aspect
+     ratio (never stretched). */
+  height: 1.15em;
   width: auto;
   object-fit: contain;
   display: block;

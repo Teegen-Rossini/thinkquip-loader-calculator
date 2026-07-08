@@ -167,24 +167,3 @@
     display: none;
   }
 }
-
-@media print {
-  .hero-stat {
-    box-shadow: none;
-    break-inside: avoid;
-  }
-  .hero-stat__grid {
-    break-inside: avoid;
-  }
-  .hero-compare {
-    break-inside: avoid;
-  }
-  .hero-compare__value--save {
-    color: var(--text-heading) !important;
-  }
-  .hero-compare__tag {
-    background: none !important;
-    color: var(--text-heading) !important;
-    border: 1px solid var(--border);
-  }
-}

@@ -33,6 +33,13 @@ export const COLORS = {
 
 export const THINKQUIP_LOGO = thinkquipLogo;
 
+/** Company identity printed in the brochure footer. */
+export const COMPANY = {
+  name: 'ThinkQuip',
+  address: '11 Voyager Street, Linbro Park, JHB',
+  website: 'www.thinkquip.co.za',
+};
+
 /** SANY SW956E electric loader. Selling price is fixed (the 320 kW charger
  *  is included). Battery reaches replacement at 30,000 h — beyond the first
  *  owner's typical lifecycle and beyond the 20,000 h chart window. */
@@ -49,16 +56,44 @@ export const ELECTRIC_MACHINE = {
   chartColor: COLORS.electricAccent,
 
   price: 3150000, // ex VAT, charger included
+  priceConfidence: 'confirmed',
 
   operatingWeightKg: 20000,
   ratedPayloadKg: 5800,
   bucketCapacityM3: 3.5,
   tyres: 'L5',
   warranty: '5,000 h / 2 years',
+  warrantyConfidence: 'confirmed',
+
+  /** Printed spec-sheet warranty tiers (from ThinkQuip's SANY sheet). */
+  warrantyTiers: [
+    { item: 'Complete machine', terms: '24 months / 5,000 h', confidence: 'confirmed' },
+    { item: 'Battery, drive motor & electric control', terms: '60 months / 10,000 h', confidence: 'confirmed' },
+    { item: 'Axle, hydraulic pump & gearbox', terms: '24 months / 5,000 h', confidence: 'confirmed' },
+  ],
+
+  /** Rated consumption printed on the spec sheet (typical heavy duty). The
+   *  calculator itself interpolates CONSUMPTION_BREAKPOINTS from the slider. */
+  specConsumption: { value: 38, unit: 'kWh/h', confidence: 'confirmed' },
+
+  serviceLifeHours: { label: '30,000 – 35,000 h', confidence: 'confirmed' },
+
+  /** Scheduled maintenance cost per year at a given annual utilization —
+   *  printed spec-sheet figures, NOT the TCO engine's R0/h service line. */
+  maintenanceSchedule: [
+    { hoursPerYear: 2000, costPerYear: 53877, confidence: 'confirmed' },
+    { hoursPerYear: 3000, costPerYear: 75377, confidence: 'confirmed' },
+  ],
 
   battery: {
     capacityKWh: 422,
     chargerRatingKW: 320, // included in the purchase price
+    gunsPerCharger: 2,
+    charge20to80: '0.8 h (20% → 80%)',
+    charge20to100: '1.5 h (20% → 100%)',
+    workPerCharge: '7 – 9 h',
+    cycleLife: '4,000+ cycles',
+    confidence: 'confirmed',
   },
 
   // Battery replacement lands at 30,000 h — beyond the 20,000 h chart, so it
@@ -67,6 +102,7 @@ export const ELECTRIC_MACHINE = {
   batteryReplacement: {
     atHours: 30000,
     baseCost: 1120000,
+    confidence: 'confirmed',
   },
 };
 
@@ -86,12 +122,27 @@ export const DIESEL_MACHINE = {
   accentColor: COLORS.dieselAccent,
   chartColor: COLORS.dieselAccent,
 
+  priceConfidence: 'confirmed', // price supplied per brake variant below
+
   engine: 'Cummins QSL8.9-C220 III, ~164 kW @ 2200 rpm',
+  fuelTankL: 300,
   operatingWeightKg: 17100,
   ratedPayloadKg: 5000,
   bucketCapacityM3: 3,
   tyres: 'L5',
   warranty: '4,000 h / 2 years',
+  warrantyConfidence: 'confirmed',
+
+  warrantyTiers: [
+    { item: 'Complete machine', terms: '24 months / 4,000 h', confidence: 'confirmed' },
+  ],
+
+  specConsumption: { value: 14, unit: 'L/h', confidence: 'confirmed' },
+
+  maintenanceSchedule: [
+    { hoursPerYear: 2000, costPerYear: 74873, confidence: 'confirmed' },
+    { hoursPerYear: 3000, costPerYear: 91373, confidence: 'confirmed' },
+  ],
 };
 
 /**
@@ -105,9 +156,8 @@ export const MACHINE_OPTIONS = [
   { id: 'diesel-wet', type: 'diesel', brake: 'wet', label: 'SANY SYL956H5 (Diesel, wet brake)', price: 2200000, photo: sanyDieselPhoto },
 ];
 
-/** Canonical left-to-right display order for the selectable options — used to
- *  keep cards, chart lines and tables in a stable order regardless of the
- *  order in which the user ticked them. */
+/** Canonical left-to-right display order for the selectable options — keeps
+ *  cards, chart lines and tables stable regardless of tick order. */
 export const MACHINE_OPTION_ORDER = ['electric', 'diesel-dry', 'diesel-wet'];
 
 /** The diesel selling price implied by the selected machine option. Selecting
@@ -131,29 +181,16 @@ export function getDieselMachineForOption(optionId) {
 
 /**
  * A fully-resolved machine object for ANY selectable option id. Each carries a
- * unique `uid` (the option id) so that two SYL956H5 variants (dry + wet) — the
- * same underlying machine at two prices — remain distinct series/cards/lines.
- * `displayName` is the option's label so wet/dry read differently.
+ * unique `uid` (the option id) so two SYL956H5 variants (dry + wet) — the same
+ * machine at two prices — remain distinct series/cards/lines. `displayName` is
+ * the option's label so wet/dry read differently.
  */
 export function getMachineForOption(optionId) {
   const opt = MACHINE_OPTIONS.find((o) => o.id === optionId) ?? MACHINE_OPTIONS[0];
   if (opt.type === 'electric') {
-    return {
-      ...ELECTRIC_MACHINE,
-      uid: opt.id,
-      optionId: opt.id,
-      price: opt.price,
-      displayName: opt.label,
-    };
+    return { ...ELECTRIC_MACHINE, uid: opt.id, optionId: opt.id, price: opt.price, displayName: opt.label };
   }
-  return {
-    ...DIESEL_MACHINE,
-    uid: opt.id,
-    optionId: opt.id,
-    price: opt.price,
-    brake: opt.brake,
-    displayName: opt.label,
-  };
+  return { ...DIESEL_MACHINE, uid: opt.id, optionId: opt.id, price: opt.price, brake: opt.brake, displayName: opt.label };
 }
 
 /**
@@ -192,6 +229,7 @@ export const FUEL_THEFT_LEVELS = [
  */
 export const DIESEL_SERVICE = {
   ratePerHour: 29, // R29,000 per 1,000 h
+  confidence: 'confirmed',
   note: 'Routine engine service — R29,000 per 1,000 h (R29/h), linear from R29,000 @1,000h to R377,000 @13,000h and continued at the same rate to 20,000 h.',
 };
 
@@ -201,7 +239,12 @@ export const DIESEL_SERVICE = {
  */
 export const DEFAULT_PRICES = {
   electricityPricePerKWh: 2.80,
+  electricityPriceConfidence: 'estimate',
+  electricityPriceNote: 'Placeholder default — no single "current" commercial tariff exists. Confirm the customer’s actual rate before presenting.',
+
   dieselPricePerLiter: 23.50,
+  dieselPriceConfidence: 'estimate',
+  dieselPriceNote: 'Placeholder default — wire up to the SA official fuel price feed (updates monthly) when available.',
 };
 
 export const CALC_DEFAULTS = {

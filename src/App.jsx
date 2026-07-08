@@ -12,8 +12,7 @@ import LifecycleEventsTable from './components/LifecycleEventsTable';
 import CalculationView from './components/CalculationView';
 import PageNav from './components/PageNav';
 import SummaryTable from './components/SummaryTable';
-import PrintCover from './components/PrintCover';
-import PrintSummary from './components/PrintSummary';
+import PrintBrochure from './components/PrintBrochure';
 import './App.css';
 
 const DRAFT_STORAGE_KEY = 'thinkquip-loader-calc-draft-v2';
@@ -33,22 +32,39 @@ const defaultInputs = {
   vatInclusive: false,
 };
 
+/** Optional ?draft={...json...} URL override — used for deep links and for
+ *  generating print previews at known inputs. When present, the draft in
+ *  localStorage is neither read nor overwritten. */
+function draftOverride() {
+  try {
+    const raw = new URLSearchParams(window.location.search).get('draft');
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Merge onto defaults and migrate the legacy single-select `machineOption`
+ *  to the multi-select `machineOptions` array. */
+function normalizeInputs(parsed) {
+  const merged = { ...defaultInputs, ...parsed };
+  if (!Array.isArray(merged.machineOptions)) {
+    const legacy = parsed.machineOption;
+    const dieselVariant = legacy && legacy !== 'electric' ? legacy : 'diesel-dry';
+    merged.machineOptions = ['electric', dieselVariant];
+  }
+  if (!merged.machineOptions.length) merged.machineOptions = ['electric'];
+  delete merged.machineOption;
+  return merged;
+}
+
 function loadDraftInputs() {
+  const override = draftOverride();
+  if (override) return normalizeInputs(override);
   try {
     const saved = localStorage.getItem(DRAFT_STORAGE_KEY);
     if (!saved) return defaultInputs;
-    const parsed = JSON.parse(saved);
-    const merged = { ...defaultInputs, ...parsed };
-    // Migrate the old single-select `machineOption` → multi-select `machineOptions`.
-    // The legacy model always showed electric plus one diesel variant.
-    if (!Array.isArray(merged.machineOptions)) {
-      const legacy = parsed.machineOption;
-      const dieselVariant = legacy && legacy !== 'electric' ? legacy : 'diesel-dry';
-      merged.machineOptions = ['electric', dieselVariant];
-    }
-    if (!merged.machineOptions.length) merged.machineOptions = ['electric'];
-    delete merged.machineOption;
-    return merged;
+    return normalizeInputs(JSON.parse(saved));
   } catch {
     return defaultInputs;
   }
@@ -68,6 +84,7 @@ function App() {
   const [machineType, setMachineType] = useState('loader');
 
   useEffect(() => {
+    if (draftOverride()) return; // don't clobber the saved draft from a deep link
     localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(inputs));
   }, [inputs]);
 
@@ -85,12 +102,19 @@ function App() {
 
   const selection = runSelection({ inputs, fleetSize: inputs.fleetSize });
 
+  // ?printview=1 renders ONLY the brochure, on screen, exactly as it prints —
+  // for checking the document before handing a customer the PDF.
+  if (new URLSearchParams(window.location.search).has('printview')) {
+    return <PrintBrochure selection={selection} inputs={inputs} preview />;
+  }
+
   const isDashboard = activeTab === 'dashboard';
-  const panelClass = (id) => `tab-panel${id === 'inputs' ? ' tab-panel--inputs no-print' : ' tab-panel--result'}${activeTab === id ? ' is-active' : ''}`;
+  // The screen UI never prints — the print output is PrintBrochure alone.
+  const panelClass = (id) => `tab-panel no-print${id === 'inputs' ? ' tab-panel--inputs' : ' tab-panel--result'}${activeTab === id ? ' is-active' : ''}`;
 
   return (
     <>
-      <div className="app-topbar">
+      <div className="app-topbar no-print">
         <header className="app-header">
           <div className="app-header__inner">
             <div
@@ -107,7 +131,7 @@ function App() {
               <span className="app-header__divider" aria-hidden="true" />
               <span className="app-header__subtitle">SANY Electric Loader Savings Calculator</span>
             </div>
-            <button type="button" className="print-btn no-print" onClick={() => window.print()}>
+            <button type="button" className="print-btn" onClick={() => window.print()}>
               Print / Save as PDF
             </button>
           </div>
@@ -121,8 +145,7 @@ function App() {
           <Dashboard onStart={() => setActiveTab('inputs')} />
         </div>
 
-        <PrintCover selection={selection} inputs={inputs} />
-        <PrintSummary inputs={inputs} />
+        <PrintBrochure selection={selection} inputs={inputs} />
 
         <section className={panelClass('inputs')}>
           <InputForm
@@ -199,13 +222,12 @@ function App() {
       </main>
 
       {!isDashboard && (
-        <footer className="app-footer">
+        <footer className="app-footer no-print">
           <p>
             Projections apply researched annual escalation trends (diesel, electricity, routine service and battery
             replacement costs) to the operating inputs and manufacturer figures shown above &mdash; not a forecast of your
-            business income. Figures marked &ldquo;Estimate&rdquo; should be confirmed before being used in a final
-            proposal. Planning estimate only &mdash; final pricing, maintenance, finance and availability must be confirmed
-            before purchase.
+            business income. Planning estimate only &mdash; final pricing, maintenance, finance and availability must be
+            confirmed before purchase.
           </p>
         </footer>
       )}
