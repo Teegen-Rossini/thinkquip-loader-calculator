@@ -115,6 +115,11 @@
   object-fit: contain;
 }
 
+/* SANY wordmark on the spec-sheet headers — larger than the default logo. */
+.print-header__logo--large {
+  height: 52px;
+}
+
 .print-header__title {
   font-family: var(--display);
   font-size: 21pt;
@@ -241,7 +246,7 @@
 }
 
 .print-cover__brands-sany {
-  height: 30px;
+  height: 56px;
   width: auto;
 }
 
