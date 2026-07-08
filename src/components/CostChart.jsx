@@ -4,29 +4,24 @@ import {
   Tooltip, ReferenceLine, ReferenceDot,
 } from 'recharts';
 import { formatCurrency, formatCurrencyCompact, formatHours, formatHoursCompact, formatYearsFromHours } from '../lib/format';
-import { ESCALATION, CALC_DEFAULTS } from '../data/machinesConfig';
+import { CALC_DEFAULTS } from '../data/machinesConfig';
 import { cumulativeCostAtHours } from '../lib/calculationEngine';
 import './CostChart.css';
 
-function buildChartData(electric, diesel) {
-  const xs = [...new Set([...electric.series.map((p) => p.hours), ...diesel.series.map((p) => p.hours)])].sort((a, b) => a - b);
-  return xs.map((hours) => ({
-    hours,
-    sw956e: cumulativeCostAtHours(electric.series, hours),
-    syl956h5: cumulativeCostAtHours(diesel.series, hours),
-  }));
+function buildChartData(machines) {
+  const xs = [...new Set(machines.flatMap((m) => m.series.map((p) => p.hours)))].sort((a, b) => a - b);
+  return xs.map((hours) => {
+    const row = { hours };
+    machines.forEach((m) => { row[m.machine.uid] = cumulativeCostAtHours(m.series, hours); });
+    return row;
+  });
 }
 
-function formatRate(rate) {
-  const pct = Math.round(rate * 1000) / 10;
-  return `${pct > 0 ? '+' : ''}${pct}%`;
-}
-
-function LegendRow({ machines, winnerId }) {
+function LegendRow({ machines, winnerUid }) {
   return (
     <div className="cost-chart__legend">
       {machines.map((m) => (
-        <div key={m.id} className={`cost-chart__legend-item${winnerId === m.id ? ' is-winner' : ''}`}>
+        <div key={m.uid} className={`cost-chart__legend-item${winnerUid === m.uid ? ' is-winner' : ''}`}>
           <span className="cost-chart__legend-swatch" style={{ background: m.chartColor }} />
           <img src={m.logo} alt="" className="cost-chart__legend-logo" />
           <span className="cost-chart__legend-name">{m.displayName}</span>
@@ -36,19 +31,18 @@ function LegendRow({ machines, winnerId }) {
   );
 }
 
-function ChartTooltip({ active, payload, label, machines, winnerId, hoursPerYear }) {
+function ChartTooltip({ active, payload, label, machinesByUid, winnerUid, hoursPerYear }) {
   if (!active || !payload?.length) return null;
   const hours = Number(label);
-  const byId = new Map(machines.map((m) => [m.id, m]));
   const rows = payload.filter((p) => p.value != null).sort((a, b) => a.value - b.value);
 
   return (
     <div className="cost-chart__tooltip">
       <div className="cost-chart__tooltip-year mono">{formatHours(hours)} · ~{formatYearsFromHours(hours, hoursPerYear)}</div>
       {rows.map((p) => {
-        const machine = byId.get(p.dataKey);
+        const machine = machinesByUid.get(p.dataKey);
         if (!machine) return null;
-        const isWinner = machine.id === winnerId;
+        const isWinner = machine.uid === winnerUid;
         return (
           <div key={p.dataKey} className={`cost-chart__tooltip-row${isWinner ? ' is-winner' : ''}`}>
             <img src={machine.logo} alt="" className="cost-chart__tooltip-logo" />
@@ -61,38 +55,50 @@ function ChartTooltip({ active, payload, label, machines, winnerId, hoursPerYear
   );
 }
 
-export default function CostChart({ comparison }) {
-  const { electric, diesel, electricMachine, dieselMachine, breakevenHours, battery, hoursPerYear } = comparison;
+export default function CostChart({ selection }) {
+  const { machines: results, hero, comparisons, battery, hasComparison, hoursPerYear } = selection;
   const [hoverHours, setHoverHours] = useState(null);
   const maxHours = CALC_DEFAULTS.chartMaxHours;
-  const machines = useMemo(() => [electricMachine, dieselMachine], [electricMachine, dieselMachine]);
 
-  const chartData = useMemo(() => buildChartData(electric, diesel), [electric, diesel]);
-  const hasBreakeven = breakevenHours != null && breakevenHours <= maxHours;
+  const machines = useMemo(() => results.map((r) => r.machine), [results]);
+  const machinesByUid = useMemo(() => new Map(machines.map((m) => [m.uid, m])), [machines]);
+  const chartData = useMemo(() => buildChartData(results), [results]);
 
-  const winnerId = useMemo(() => {
-    if (hoverHours == null) return null;
-    const e = cumulativeCostAtHours(electric.series, hoverHours);
-    const d = cumulativeCostAtHours(diesel.series, hoverHours);
-    if (e == null || d == null) return null;
-    return e <= d ? electricMachine.id : dieselMachine.id;
-  }, [hoverHours, electric, diesel, electricMachine, dieselMachine]);
+  // Break-even markers: one per opponent (hero-vs-opponent), within the chart.
+  const breakevens = useMemo(() => comparisons
+    .filter((c) => c.breakevenHours != null && c.breakevenHours > 0 && c.breakevenHours <= maxHours)
+    .map((c) => ({
+      uid: c.machine.uid,
+      name: c.machine.name,
+      hours: c.breakevenHours,
+      y: cumulativeCostAtHours(hero.series, c.breakevenHours),
+    })), [comparisons, hero, maxHours]);
 
-  const winnerCost = winnerId
-    ? cumulativeCostAtHours(winnerId === electricMachine.id ? electric.series : diesel.series, hoverHours)
+  const winnerUid = useMemo(() => {
+    if (!hasComparison || hoverHours == null) return null;
+    let best = null;
+    let bestCost = Infinity;
+    for (const r of results) {
+      const c = cumulativeCostAtHours(r.series, hoverHours);
+      if (c != null && c < bestCost) { bestCost = c; best = r.machine.uid; }
+    }
+    return best;
+  }, [hasComparison, hoverHours, results]);
+
+  const winnerCost = winnerUid
+    ? cumulativeCostAtHours(results.find((r) => r.machine.uid === winnerUid).series, hoverHours)
     : null;
+  const winnerMachine = winnerUid ? machinesByUid.get(winnerUid) : null;
 
   const handleMove = (state) => {
     if (state?.activeLabel != null) setHoverHours(Number(state.activeLabel));
   };
   const handleLeave = () => setHoverHours(null);
 
-  const breakevenY = hasBreakeven ? cumulativeCostAtHours(electric.series, breakevenHours) : null;
-
   return (
     <div className="cost-chart">
       <div className="cost-chart__toolbar">
-        <LegendRow machines={machines} winnerId={winnerId} />
+        <LegendRow machines={machines} winnerUid={winnerUid} />
       </div>
 
       <ResponsiveContainer width="100%" height={420}>
@@ -109,36 +115,40 @@ export default function CostChart({ comparison }) {
             tickFormatter={formatHoursCompact} stroke="var(--text-muted)"
             label={{ value: 'Operating hours', position: 'insideBottom', offset: -4, fill: 'var(--text-muted)' }} />
           <YAxis tickFormatter={formatCurrencyCompact} stroke="var(--text-muted)" width={70} />
-          <Tooltip content={<ChartTooltip machines={machines} winnerId={winnerId} hoursPerYear={hoursPerYear} />} />
+          <Tooltip content={<ChartTooltip machinesByUid={machinesByUid} winnerUid={winnerUid} hoursPerYear={hoursPerYear} />} />
 
-          {hasBreakeven && (
+          {breakevens.map((b) => (
             <ReferenceLine
-              x={breakevenHours}
-              stroke={electricMachine.chartColor}
+              key={`be-${b.uid}`}
+              x={b.hours}
+              stroke={hero.machine.chartColor}
               strokeDasharray="4 4"
               label={(props) => (
-                <text x={props.viewBox.x} y={14} textAnchor="middle" fill={electricMachine.chartColor} fontSize={11}>
-                  {`Savings start ${formatHoursCompact(breakevenHours)}`}
+                <text x={props.viewBox.x} y={14} textAnchor="middle" fill={hero.machine.chartColor} fontSize={11}>
+                  {breakevens.length > 1
+                    ? `vs ${b.name} ${formatHoursCompact(b.hours)}`
+                    : `Savings start ${formatHoursCompact(b.hours)}`}
                 </text>
               )}
             />
-          )}
-          {hasBreakeven && breakevenY != null && (
-            <ReferenceDot x={breakevenHours} y={breakevenY} r={5} fill={electricMachine.chartColor} stroke="#fff" />
-          )}
+          ))}
+          {breakevens.map((b) => (
+            b.y != null && <ReferenceDot key={`bed-${b.uid}`} x={b.hours} y={b.y} r={5} fill={hero.machine.chartColor} stroke="#fff" />
+          ))}
 
           {hoverHours != null && (
             <ReferenceLine x={hoverHours} stroke="var(--text-muted)" strokeDasharray="2 3" />
           )}
 
-          {machines.map((m) => {
-            const isWinner = winnerId === m.id;
-            const dimmed = winnerId != null && !isWinner;
+          {results.map((r) => {
+            const m = r.machine;
+            const isWinner = winnerUid === m.uid;
+            const dimmed = winnerUid != null && !isWinner;
             return (
               <Line
-                key={m.id}
+                key={m.uid}
                 type="linear"
-                dataKey={m.id}
+                dataKey={m.uid}
                 name={m.displayName}
                 stroke={m.chartColor}
                 strokeWidth={isWinner ? 4 : 3}
@@ -149,35 +159,28 @@ export default function CostChart({ comparison }) {
             );
           })}
 
-          {winnerId && winnerCost != null && (
-            <ReferenceDot
-              x={hoverHours}
-              y={winnerCost}
-              r={7}
-              fill={winnerId === electricMachine.id ? electricMachine.chartColor : dieselMachine.chartColor}
-              stroke="#fff"
-              strokeWidth={2}
-            />
+          {winnerUid && winnerCost != null && (
+            <ReferenceDot x={hoverHours} y={winnerCost} r={7} fill={winnerMachine.chartColor} stroke="#fff" strokeWidth={2} />
           )}
         </LineChart>
       </ResponsiveContainer>
 
-      {winnerId && winnerCost != null && (
+      {winnerUid && winnerCost != null && (
         <p className="cost-chart__winner">
-          Cheaper at {formatHours(hoverHours)}: <strong>{(winnerId === electricMachine.id ? electricMachine : dieselMachine).displayName}</strong> ({formatCurrency(winnerCost)})
+          Cheaper at {formatHours(hoverHours)}: <strong>{winnerMachine.displayName}</strong> ({formatCurrency(winnerCost)})
         </p>
       )}
 
-      <p className="cost-chart__note">
-        Battery replacement lands at {formatHours(battery.atHours)} (~{formatYearsFromHours(battery.atHours, hoursPerYear)}) — beyond this
-        20,000 h chart and the first owner’s lifecycle, so it is not plotted here. Escalated cost when it lands:{' '}
-        <strong className="mono">{formatCurrency(battery.escalatedCost)}</strong>.
-      </p>
+      {battery && (
+        <p className="cost-chart__note">
+          Battery replacement lands at {formatHours(battery.atHours)} (~{formatYearsFromHours(battery.atHours, hoursPerYear)}) — beyond this
+          20,000 h chart and the first owner’s lifecycle, so it is not plotted here. Escalated cost when it lands:{' '}
+          <strong className="mono">{formatCurrency(battery.escalatedCost)}</strong>.
+        </p>
+      )}
 
       <p className="cost-chart__footnote">
-        Projection applies annual escalation for diesel fuel ({formatRate(ESCALATION.dieselFuel)}), electricity ({formatRate(ESCALATION.electricity)}),
-        routine service ({formatRate(ESCALATION.maintenance)}) and battery replacement ({formatRate(ESCALATION.batteryReplacement)}).
-        The electric machine carries no mechanical-service line. See the Calculation and Spec Sheet tabs for full workings.
+        Costs include researched annual escalation. See the Calculations and Spec Sheet tabs for full workings.
       </p>
     </div>
   );

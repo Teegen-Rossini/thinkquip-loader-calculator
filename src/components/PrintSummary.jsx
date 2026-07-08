@@ -8,7 +8,7 @@ export default function PrintSummary({ inputs }) {
   const cElec = interpolateConsumption('electric', inputs.operationSlider);
   const cDiesel = interpolateConsumption('diesel', inputs.operationSlider);
   const theta = theftTheta(inputs);
-  const option = MACHINE_OPTIONS.find((o) => o.id === inputs.machineOption);
+  const selectedOptions = MACHINE_OPTIONS.filter((o) => (inputs.machineOptions ?? []).includes(o.id));
   const theftLabel = (FUEL_THEFT_LEVELS.find((l) => l.id === inputs.fuelTheftLevel) ?? FUEL_THEFT_LEVELS[1]).label;
   const today = new Date().toLocaleDateString('en-ZA', { year: 'numeric', month: 'long', day: 'numeric' });
 
@@ -17,7 +17,7 @@ export default function PrintSummary({ inputs }) {
       <p className="print-summary__date">Generated {today}</p>
       <h3>Inputs used for this projection</h3>
       <ul>
-        <li>Machine option: {option ? option.label : inputs.machineOption}</li>
+        <li>Machines compared: {selectedOptions.length ? selectedOptions.map((o) => o.label).join('; ') : '—'}</li>
         <li>Fleet size: {inputs.fleetSize} machine{inputs.fleetSize > 1 ? 's' : ''} (all costs scale ×{inputs.fleetSize})</li>
         <li>{inputs.dailyHours} h/day × {inputs.daysPerWeek} days/week × {inputs.weeksPerYear} weeks/year = {hours.toLocaleString()} h/year (per machine)</li>
         <li>Duty: {band.label} — {cElec} kWh/h electric, {cDiesel} L/h diesel</li>

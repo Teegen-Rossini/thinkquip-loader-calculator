@@ -17,6 +17,14 @@ export function ArrowRightIcon(props) {
   );
 }
 
+export function ArrowLeftIcon(props) {
+  return (
+    <svg {...base} width={16} height={16} {...props}>
+      <path d="M19 12H5M11 6l-6 6 6 6" />
+    </svg>
+  );
+}
+
 export function InputsIcon(props) {
   return (
     <svg {...base} {...props}>
@@ -84,6 +92,16 @@ export function ConfidenceIcon(props) {
       <circle cx="12" cy="12" r="8.5" />
       <circle cx="12" cy="12" r="4.5" />
       <circle cx="12" cy="12" r="0.6" fill="currentColor" />
+    </svg>
+  );
+}
+
+export function BrochureIcon(props) {
+  return (
+    <svg {...base} {...props}>
+      <rect x="6" y="4" width="12" height="16" rx="1.5" />
+      <path d="M9 8h6M9 11h6M9 14h4" />
+      <path d="M6 4a2 2 0 0 0-2 2v11" opacity="0.55" />
     </svg>
   );
 }

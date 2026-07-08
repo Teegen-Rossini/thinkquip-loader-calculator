@@ -11,10 +11,19 @@ cost comparison arguing for the **SANY SW956E electric wheel loader** vs. the
 cumulative **cost-over-operating-hours** chart with the crossover (breakeven)
 point is the centerpiece.
 
-The tool compares **exactly two machine families** — SW956E electric vs
-SYL956H5 diesel. There are **no competitor machines** (CAT / Komatsu / Volvo
-were removed), **no solar**, **no tender logic**, and **no separate charging-
-infrastructure cost** (the charger is included in the electric price).
+The tool models **one SANY family in two forms** — the SW956E electric loader
+and the SYL956H5 diesel loader (dry or wet brake, which changes only the diesel
+price). The user **multi-selects** any combination of the three options
+(`electric`, `diesel-dry`, `diesel-wet`) to compare; the electric machine is the
+"hero" that savings/breakeven are measured against. There are **no competitor
+machines** (CAT / Komatsu / Volvo were removed), **no solar**, **no tender
+logic**, and **no separate charging-infrastructure cost** (the charger is
+included in the electric price).
+
+ThinkQuip owns the tool and is an **authorized SANY distributor**; this is
+surfaced as co-branding in the sticky header and the print cover. Brand roles
+are kept distinct: **SANY red** for SANY machine identity/marks, **ThinkQuip
+turquoise** for the tool's own chrome (header, nav) with **yellow** primary CTAs.
 
 Stack: **React 19 + Vite 8**, charts via **Recharts 3**, linting via **Oxlint**.
 No TypeScript. No test framework is set up yet.
@@ -38,29 +47,47 @@ npm run lint     # oxlint
   customer inputs, returns numbers. No React state duplicates this math. If a
   calculation exists, it belongs here.
 - **`src/lib/format.js`** — display formatting (currency, hours, years).
-- **`src/data/confidenceMeta.js`** — metadata for the confidence-badge system
-  (now used mainly for the placeholder energy prices).
+- **`src/components/MachineName.jsx`** — renders a machine's name in a condensed
+  industrial face (Saira Condensed, a free stand-in — **not** SANY's real font),
+  with the leading brand word "SANY" swapped for the transparent SANY logo mark.
+  Use this everywhere a machine name is shown.
+- **`src/components/PageNav.jsx`** — the per-page previous/next (and final print)
+  navigation footer; identical sizing/positions on every tab.
 - **`src/components/`** — the tabbed UI (see flow below), each with a colocated
-  `.css` file.
+  `.css` file. Machine imagery uses the background-removed cutouts in
+  `src/thinkquip-assets-v3/machines-cutout/`; the SANY logo is in
+  `src/thinkquip-assets-v3/logos-transparent/`.
 - **`src/App.jsx`** — top-level state, tab routing, wires inputs → engine → views.
+  The turquoise header + white tab strip are wrapped in a **sticky** `.app-topbar`
+  so they persist across scroll and tab switches.
 
 ## App flow
 
 Landing `Dashboard` → then a tab bar: **01 Inputs** → **02 Comparison** →
-**03 Cost Over Time** → **04 Calculation** → **05 Spec Sheet**. Note: `activeTab`
+**03 Cost Over Time** → **04 Calculations** → **05 Spec Sheet**. Note: `activeTab`
 initializes to `'dashboard'`, which is intentionally **not** a member of the
 `TABS` array — the dashboard is a separate landing view rendered outside the tab
 bar. Keep that in mind before touching navigation.
 
+Every tab carries a `PageNav` footer: a yellow **NEXT** button bottom-right and
+(except Inputs) a yellow **PREVIOUS** button bottom-left, all identical size. The
+Spec Sheet's next slot is replaced by a turquoise **PRINT / SAVE AS PDF** button
+(same action as the header button). The Dashboard's five "how it works" tiles
+mirror the five tabs.
+
 Customer inputs are persisted to `localStorage` under
-`thinkquip-loader-calc-draft` and restored on load.
+`thinkquip-loader-calc-draft-v2` and restored on load (a legacy single-select
+`machineOption` draft is migrated to the `machineOptions` array on read).
 
 ## Inputs
 
-- **Machine option** (`machineOption`): one of three — `electric`, `diesel-dry`,
-  `diesel-wet`. Both the electric and a diesel line are always compared; wet vs
-  dry brake changes **only the diesel purchase price** (dry R1,850,000, wet
-  R2,200,000; electric fixed R3,150,000, charger included).
+- **Machine options** (`machineOptions`, an **array**): any combination of
+  `electric`, `diesel-dry`, `diesel-wet` (one, two or all three; at least one is
+  enforced). Each selected option becomes its own priced machine instance with a
+  unique `uid` — so selecting **both** diesel variants yields two distinct
+  lines/cards. Wet vs dry brake changes **only the diesel purchase price** (dry
+  R1,850,000, wet R2,200,000; electric fixed R3,150,000, charger included). The
+  selectable options and every downstream view show the machine's cutout image.
 - **Fuel included in rate** (`fuelIncludedInRate`): `No` drops diesel **fuel**
   cost (and its theft uplift) from the diesel total. Electricity is **always**
   counted for the electric machine; the R29/h diesel service is **always**
@@ -99,28 +126,36 @@ Customer inputs are persisted to `localStorage` under
   mechanical-service line (R0/h)** — a deliberate long-term advantage to surface.
 - **Fleet scaling:** every cost (capital, energy, service) scales ×N. The charger
   is included in the electric price, so there is no separate infra line.
-- **Outputs:** `Savings(x) = TCO_diesel − TCO_electric`; breakeven = smallest
-  hour where Savings ≥ 0 (`findBreakevenHours`); a simple year-0 breakeven
-  (`simpleBreakevenHours` = price gap ÷ hourly saving) is shown alongside the
-  escalated one as a sanity check.
+- **Selection & hero (`runSelection`):** the engine builds one cost series per
+  selected option (fleet size applies **per machine**). A single **hero** anchors
+  comparisons — the electric machine when selected, else the cheapest selected
+  machine. For every other selected machine it returns `Savings(x) =
+  TCO_other − TCO_hero`, breakeven = smallest hour where Savings ≥ 0
+  (`findBreakevenHours`), and a simple year-0 breakeven (price gap ÷ hourly saving)
+  as a sanity check.
+- **Single-selection hides comparison:** when only one machine is selected there
+  is nothing to compare, so **all** savings / breakeven / "vs" outputs are
+  **hidden entirely** (not blanked or zeroed) across every tab; the machine's own
+  standalone results still show. `selection.hasComparison` gates this.
 - **VAT** is a display toggle (`vatInclusive`), applied at the engine's output
   boundary via `applyVat`, at the SA rate in `CALC_DEFAULTS.vatRate` (15%).
 
-## The Calculation tab
+## The Calculations tab
 
 `CalculationView` transparently shows, with the live input numbers plugged in:
-H, the slider→consumption interpolation arithmetic, the year-0 per-hour cost
-lines, the four escalation formulas, sampled (hour, year, cumulative) points, the
-battery-replacement injection, and the final TCO / savings / breakeven (both the
-simple year-0 and the fuller escalated figure). It normalizes figures to
-per-machine, ex-VAT for readability.
+global H and the four escalation formulas once, then **for each selected machine**
+the slider→consumption interpolation arithmetic, its year-0 per-hour cost lines,
+sampled (hour, year, cumulative) points, and (electric only) the
+battery-replacement injection, ending in that machine's TCO. A final savings /
+breakeven section (simple year-0 + escalated) appears **only when 2+ machines are
+selected**. Figures are normalized to per-machine, ex-VAT for readability.
 
-## Data confidence system
+## Data confidence system — REMOVED
 
-Every figure carries a confidence level: `'confirmed'` | `'estimate'` |
-`'unconfirmed'`. With the two-machine SANY scope, most specs are `confirmed`; the
-placeholder **energy prices** are `estimate`. Preserve/set these accurately in
-`machinesConfig.js`.
+The old `'confirmed' | 'estimate' | 'unconfirmed'` confidence badges, dots and
+legend (and `confidenceMeta.js`, `ConfidenceBadge`, `ConfidenceLegend`, the
+`.badge` styles and the `*Confidence` config fields) have been **removed** — with
+only SANY machines modelled they added no value. Do not reintroduce them.
 
 ## Known open items
 

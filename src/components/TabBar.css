@@ -24,7 +24,7 @@
   color: var(--text-muted);
   cursor: pointer;
   white-space: nowrap;
-  transition: color 0.12s var(--ease), border-color 0.12s var(--ease);
+  transition: color 0.12s var(--ease), border-color 0.12s var(--ease), background 0.12s var(--ease), transform 0.1s var(--ease);
 }
 
 .tab-bar__index {
@@ -36,6 +36,11 @@
 
 .tab-bar__btn:hover {
   color: var(--text);
+  background: var(--tq-turquoise-light);
+}
+
+.tab-bar__btn:active {
+  transform: scale(0.98);
 }
 
 .tab-bar__btn.is-active {

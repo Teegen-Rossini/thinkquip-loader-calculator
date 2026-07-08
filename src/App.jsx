@@ -1,16 +1,16 @@
 import { useEffect, useState } from 'react';
 import { DEFAULT_PRICES, CALC_DEFAULTS, THINKQUIP_LOGO } from './data/machinesConfig';
-import { runComparison } from './lib/calculationEngine';
+import { runSelection } from './lib/calculationEngine';
 import Dashboard from './components/Dashboard';
 import InputForm from './components/InputForm';
 import TabBar from './components/TabBar';
 import FleetSizeToggle from './components/FleetSizeToggle';
 import HeroStat from './components/HeroStat';
-import ConfidenceLegend from './components/ConfidenceLegend';
 import ComparatorCard from './components/ComparatorCard';
 import CostChart from './components/CostChart';
 import LifecycleEventsTable from './components/LifecycleEventsTable';
 import CalculationView from './components/CalculationView';
+import PageNav from './components/PageNav';
 import SummaryTable from './components/SummaryTable';
 import PrintCover from './components/PrintCover';
 import PrintSummary from './components/PrintSummary';
@@ -20,7 +20,7 @@ const DRAFT_STORAGE_KEY = 'thinkquip-loader-calc-draft-v2';
 
 const defaultInputs = {
   preparedFor: '',
-  machineOption: 'diesel-dry',
+  machineOptions: ['electric', 'diesel-dry'],
   fuelIncludedInRate: true,
   dailyHours: 8,
   daysPerWeek: CALC_DEFAULTS.daysPerWeek,
@@ -37,7 +37,18 @@ function loadDraftInputs() {
   try {
     const saved = localStorage.getItem(DRAFT_STORAGE_KEY);
     if (!saved) return defaultInputs;
-    return { ...defaultInputs, ...JSON.parse(saved) };
+    const parsed = JSON.parse(saved);
+    const merged = { ...defaultInputs, ...parsed };
+    // Migrate the old single-select `machineOption` → multi-select `machineOptions`.
+    // The legacy model always showed electric plus one diesel variant.
+    if (!Array.isArray(merged.machineOptions)) {
+      const legacy = parsed.machineOption;
+      const dieselVariant = legacy && legacy !== 'electric' ? legacy : 'diesel-dry';
+      merged.machineOptions = ['electric', dieselVariant];
+    }
+    if (!merged.machineOptions.length) merged.machineOptions = ['electric'];
+    delete merged.machineOption;
+    return merged;
   } catch {
     return defaultInputs;
   }
@@ -47,7 +58,7 @@ const TABS = [
   { id: 'inputs', index: '01', label: 'Inputs' },
   { id: 'comparison', index: '02', label: 'Comparison' },
   { id: 'chart', index: '03', label: 'Cost Over Time' },
-  { id: 'calculation', index: '04', label: 'Calculation' },
+  { id: 'calculation', index: '04', label: 'Calculations' },
   { id: 'details', index: '05', label: 'Spec Sheet' },
 ];
 
@@ -63,42 +74,55 @@ function App() {
   const updateInputs = (patch) => setInputs((prev) => ({ ...prev, ...patch }));
   const setFleetSize = (fleetSize) => updateInputs({ fleetSize });
 
-  const comparison = runComparison({ inputs, fleetSize: inputs.fleetSize });
-  const { electricMachine, dieselMachine, electric, diesel } = comparison;
+  // Toggle a machine option in/out of the selected set, always keeping ≥1.
+  const toggleMachineOption = (id) => setInputs((prev) => {
+    const current = Array.isArray(prev.machineOptions) ? prev.machineOptions : [];
+    const has = current.includes(id);
+    if (has && current.length === 1) return prev; // can't deselect the last one
+    const next = has ? current.filter((x) => x !== id) : [...current, id];
+    return { ...prev, machineOptions: next };
+  });
+
+  const selection = runSelection({ inputs, fleetSize: inputs.fleetSize });
 
   const isDashboard = activeTab === 'dashboard';
   const panelClass = (id) => `tab-panel${id === 'inputs' ? ' tab-panel--inputs no-print' : ' tab-panel--result'}${activeTab === id ? ' is-active' : ''}`;
 
   return (
     <>
-      <header className="app-header">
-        <div className="app-header__inner">
-          <div
-            className="app-header__titles"
-            role="button"
-            tabIndex={0}
-            onClick={() => setActiveTab('dashboard')}
-            onKeyDown={(e) => e.key === 'Enter' && setActiveTab('dashboard')}
-          >
-            <img src={THINKQUIP_LOGO} alt="ThinkQuip" className="app-header__logo" />
-            <span className="app-header__divider" aria-hidden="true" />
-            <span className="app-header__subtitle">SANY Electric Loader Savings Calculator</span>
+      <div className="app-topbar">
+        <header className="app-header">
+          <div className="app-header__inner">
+            <div
+              className="app-header__titles"
+              role="button"
+              tabIndex={0}
+              onClick={() => setActiveTab('dashboard')}
+              onKeyDown={(e) => e.key === 'Enter' && setActiveTab('dashboard')}
+            >
+              <span className="app-header__lockup">
+                <img src={THINKQUIP_LOGO} alt="ThinkQuip" className="app-header__logo" />
+                <span className="app-header__tagline">Authorized SANY Distributor</span>
+              </span>
+              <span className="app-header__divider" aria-hidden="true" />
+              <span className="app-header__subtitle">SANY Electric Loader Savings Calculator</span>
+            </div>
+            <button type="button" className="print-btn no-print" onClick={() => window.print()}>
+              Print / Save as PDF
+            </button>
           </div>
-          <button type="button" className="print-btn no-print" onClick={() => window.print()}>
-            Print / Save as PDF
-          </button>
-        </div>
-      </header>
+        </header>
 
-      {!isDashboard && <TabBar tabs={TABS} activeTab={activeTab} onChange={setActiveTab} />}
+        {!isDashboard && <TabBar tabs={TABS} activeTab={activeTab} onChange={setActiveTab} />}
+      </div>
 
       <main className="app-body">
         <div className={`tab-panel no-print${isDashboard ? ' is-active' : ''}`}>
           <Dashboard onStart={() => setActiveTab('inputs')} />
         </div>
 
-        <PrintCover comparison={comparison} inputs={inputs} />
-        <PrintSummary inputs={inputs} comparison={comparison} />
+        <PrintCover selection={selection} inputs={inputs} />
+        <PrintSummary inputs={inputs} />
 
         <section className={panelClass('inputs')}>
           <InputForm
@@ -106,19 +130,31 @@ function App() {
             onUpdate={updateInputs}
             machineType={machineType}
             onMachineTypeChange={setMachineType}
+            onToggleMachineOption={toggleMachineOption}
+          />
+          <PageNav
+            nextLabel="Comparison"
             onNext={() => setActiveTab('comparison')}
           />
         </section>
 
         <section className={panelClass('comparison')}>
           <FleetSizeToggle fleetSize={inputs.fleetSize} onChange={setFleetSize} />
-          <HeroStat comparison={comparison} fleetSize={inputs.fleetSize} />
-          <h3 className="section-heading">Machines compared</h3>
+          <HeroStat selection={selection} fleetSize={inputs.fleetSize} inputs={inputs} />
+          <h3 className="section-heading">
+            {selection.hasComparison ? 'Machines compared' : 'Selected machine'}
+          </h3>
           <div className="comparator-grid">
-            <ComparatorCard machine={electricMachine} result={electric} comparison={comparison} inputs={inputs} isElectric />
-            <ComparatorCard machine={dieselMachine} result={diesel} comparison={comparison} inputs={inputs} isElectric={false} />
+            {selection.machines.map((result) => (
+              <ComparatorCard key={result.machine.uid} result={result} selection={selection} inputs={inputs} />
+            ))}
           </div>
-          <ConfidenceLegend />
+          <PageNav
+            prevLabel="Inputs"
+            onPrev={() => setActiveTab('inputs')}
+            nextLabel="Cost Over Time"
+            onNext={() => setActiveTab('chart')}
+          />
         </section>
 
         <section className={panelClass('chart')}>
@@ -128,21 +164,37 @@ function App() {
               <h3 className="section-heading section-heading--flush">
                 Cumulative cost over operating hours ({inputs.fleetSize} machine{inputs.fleetSize > 1 ? 's' : ''})
               </h3>
-              <CostChart comparison={comparison} />
+              <CostChart selection={selection} />
             </div>
             <div className="chart-details-layout__side">
-              <LifecycleEventsTable comparison={comparison} onViewAssumptions={() => setActiveTab('details')} />
+              <LifecycleEventsTable selection={selection} onViewAssumptions={() => setActiveTab('details')} />
             </div>
           </div>
+          <PageNav
+            prevLabel="Comparison"
+            onPrev={() => setActiveTab('comparison')}
+            nextLabel="Calculations"
+            onNext={() => setActiveTab('calculation')}
+          />
         </section>
 
         <section className={panelClass('calculation')}>
-          <CalculationView comparison={comparison} inputs={inputs} />
+          <CalculationView selection={selection} inputs={inputs} />
+          <PageNav
+            prevLabel="Cost Over Time"
+            onPrev={() => setActiveTab('chart')}
+            nextLabel="Spec Sheet"
+            onNext={() => setActiveTab('details')}
+          />
         </section>
 
         <section className={panelClass('details')}>
-          <ConfidenceLegend />
-          <SummaryTable comparison={comparison} inputs={inputs} />
+          <SummaryTable selection={selection} inputs={inputs} />
+          <PageNav
+            prevLabel="Calculations"
+            onPrev={() => setActiveTab('calculation')}
+            onPrint={() => window.print()}
+          />
         </section>
       </main>
 

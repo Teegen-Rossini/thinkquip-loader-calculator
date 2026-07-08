@@ -24,6 +24,8 @@ import {
   ESCALATION,
   CALC_DEFAULTS,
   getDieselMachineForOption,
+  getMachineForOption,
+  MACHINE_OPTION_ORDER,
 } from '../data/machinesConfig';
 
 /** annual_hours H = daily_hours × days_per_week × weeks_per_year */
@@ -244,6 +246,94 @@ export function runComparison({ inputs, fleetSize = 1 }) {
     simpleBreakevenHours: simpleBreakeven,
     battery,
     hoursPerYear: electric.hoursPerYear,
+    fleetSize,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Multi-select model
+// ---------------------------------------------------------------------------
+
+/** A machine's own year-0 total cost per hour, picking the right side of the
+ *  shared per-hour object by machine type. */
+export function totalPerHourFor(result) {
+  return result.machine.type === 'electric' ? result.perHour.elecPerH : result.perHour.dieselPerH;
+}
+
+/** Canonicalise a selection to the fixed display order and drop anything
+ *  unknown. Never returns an empty list — falls back to the electric machine. */
+export function orderedSelection(optionIds) {
+  const set = new Set(Array.isArray(optionIds) ? optionIds : []);
+  const ordered = MACHINE_OPTION_ORDER.filter((id) => set.has(id));
+  return ordered.length ? ordered : ['electric'];
+}
+
+/**
+ * Year-0 "simple" break-even between a hero machine (higher capital, lower
+ * running) and one opponent: hero's capital premium ÷ hero's hourly saving.
+ * Returns null when the hero has no hourly advantage (nothing to repay).
+ */
+export function simpleBreakevenBetween(hero, opponent) {
+  const priceGap = hero.machine.price - opponent.machine.price;
+  const hourlyGap = totalPerHourFor(opponent) - totalPerHourFor(hero);
+  if (hourlyGap <= 0) return null;
+  return priceGap / hourlyGap;
+}
+
+/**
+ * Runs the full selected SET of machines. Each selected option becomes its own
+ * cost series (fleet size applies per machine). One "hero" anchors the
+ * comparisons — the electric machine when selected, otherwise the cheapest
+ * selected machine. Savings / break-even are produced ONLY when 2+ machines
+ * are selected; with a single machine the comparison arrays are empty and its
+ * standalone results still stand on their own.
+ */
+export function runSelection({ inputs, fleetSize = 1 }) {
+  const selected = orderedSelection(inputs.machineOptions);
+  const machines = selected.map((optionId) =>
+    buildCostSeries({ machine: getMachineForOption(optionId), inputs, fleetSize }));
+
+  const electricSelected = machines.some((m) => m.machine.type === 'electric');
+
+  // Hero: electric if present, else the lowest-capital machine.
+  let heroIndex = 0;
+  if (electricSelected) {
+    heroIndex = machines.findIndex((m) => m.machine.type === 'electric');
+  } else {
+    heroIndex = machines.reduce((best, m, i, arr) => (m.machine.price < arr[best].machine.price ? i : best), 0);
+  }
+  const hero = machines[heroIndex];
+
+  const hasComparison = machines.length >= 2;
+
+  const comparisons = hasComparison
+    ? machines
+        .map((result, index) => ({ result, index }))
+        .filter(({ index }) => index !== heroIndex)
+        .map(({ result }) => ({
+          machine: result.machine,
+          result,
+          breakevenHours: findBreakevenHours(hero.series, result.series),
+          simpleBreakevenHours: simpleBreakevenBetween(hero, result),
+          savingsAtMax: savingsAtHours(hero.series, result.series, CALC_DEFAULTS.chartMaxHours),
+        }))
+    : [];
+
+  // Best overall value = lowest TCO at the chart limit (drives the ribbon).
+  const bestValueIndex = machines.reduce(
+    (best, m, i, arr) => (m.tcoAtMax < arr[best].tcoAtMax ? i : best), 0);
+
+  return {
+    machines,
+    hero,
+    heroMachine: hero.machine,
+    heroUid: hero.machine.uid,
+    comparisons,
+    hasComparison,
+    electricSelected,
+    bestValueUid: machines[bestValueIndex].machine.uid,
+    battery: electricSelected ? batteryReplacementProjection(inputs) : null,
+    hoursPerYear: hero.hoursPerYear,
     fleetSize,
   };
 }

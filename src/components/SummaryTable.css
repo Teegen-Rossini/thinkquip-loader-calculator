@@ -6,7 +6,7 @@
 }
 
 .summary-table-block h3 {
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -20,6 +20,22 @@
   border-collapse: collapse;
   font-size: 13px;
   table-layout: auto;
+}
+
+.summary-machine {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.summary-machine__thumb {
+  width: 46px;
+  height: 32px;
+  object-fit: contain;
+  flex-shrink: 0;
+  background: var(--surface-alt);
+  border-radius: var(--radius-sm);
+  padding: 2px;
 }
 
 .summary-table th, .summary-table td {

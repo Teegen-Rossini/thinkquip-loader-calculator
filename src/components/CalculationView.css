@@ -22,10 +22,50 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
   color: var(--text);
   margin-bottom: 12px;
+}
+
+.calc-step h5 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text);
+  margin-bottom: 10px;
+}
+
+/* Per-machine grouping of steps b–g in the multi-select workings. */
+.calc-machine {
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--tq-turquoise);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.calc-machine__name {
+  font-size: 16px;
+  margin: 0;
+}
+
+.calc-machine .calc-step {
+  border-top: none;
+  padding-top: 0;
+}
+
+.calc-machine .calc-step:not(:first-of-type) {
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
 }
 
 .calc-step__tag {

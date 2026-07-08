@@ -1,3 +1,12 @@
+/* Sticky chrome — the turquoise header bar and the white tab strip stay
+   pinned to the top of the viewport while scrolling any page and persist
+   across every tab. */
+.app-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
 .app-header {
   background: linear-gradient(135deg, var(--tq-turquoise) 0%, var(--tq-turquoise-dark) 100%);
   color: #fff;
@@ -25,6 +34,13 @@
   cursor: pointer;
 }
 
+.app-header__lockup {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
 .app-header__logo {
   height: 34px;
   width: auto;
@@ -32,6 +48,15 @@
   object-fit: contain;
   display: block;
   border-radius: 3px;
+}
+
+.app-header__tagline {
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: rgba(255, 255, 255, 0.85);
+  white-space: nowrap;
 }
 
 .app-header__divider {
@@ -68,10 +93,13 @@
 
 .print-btn:hover {
   background: var(--tq-turquoise-light);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
 }
 
 .print-btn:active {
-  transform: scale(0.97);
+  transform: translateY(0) scale(0.97);
+  box-shadow: none;
 }
 
 .app-body {
@@ -180,6 +208,9 @@
 }
 
 @media print {
+  .app-topbar {
+    position: static;
+  }
   .app-header {
     background: none;
     color: var(--tq-ink);

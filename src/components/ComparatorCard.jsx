@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { formatCurrency, formatHours, formatYearsFromHours } from '../lib/format';
 import { applyVat } from '../lib/calculationEngine';
 import { CALC_DEFAULTS } from '../data/machinesConfig';
-import ConfidenceBadge from './ConfidenceBadge';
+import MachineName from './MachineName';
 import { ArrowRightIcon } from './icons';
 import './ComparatorCard.css';
 
@@ -11,21 +11,25 @@ function formatRate(rate) {
   return `${pct > 0 ? '+' : ''}${pct}%/yr`;
 }
 
-export default function ComparatorCard({ machine, result, comparison, inputs, isElectric }) {
+export default function ComparatorCard({ result, selection, inputs }) {
   const [expanded, setExpanded] = useState(false);
 
-  const { breakevenHours, battery, hoursPerYear } = comparison;
+  const machine = result.machine;
+  const isElectric = machine.type === 'electric';
+  const { battery, hoursPerYear, hasComparison, heroMachine } = selection;
   const per = result.perHour;
   const unitPrice = result.purchaseFleet / result.fleetSize;
   const maxHours = CALC_DEFAULTS.chartMaxHours;
+
+  // Comparison metrics for this machine vs the hero (only present for opponents
+  // when 2+ machines are selected). The hero card carries no "vs" row.
+  const cmp = selection.comparisons.find((c) => c.machine.uid === machine.uid);
+  const isBestValue = hasComparison && machine.uid === selection.bestValueUid;
 
   const energyPerH = applyVat(isElectric ? per.elecEnergyPerH : per.dieselFuelPerH, inputs);
   const servicePerH = applyVat(isElectric ? per.elecMaintPerH : per.dieselServicePerH, inputs);
   const totalPerH = applyVat(isElectric ? per.elecPerH : per.dieselPerH, inputs);
   const consumption = isElectric ? `${per.cElec} kWh/h` : `${per.cDiesel} L/h`;
-
-  const winnerId = breakevenHours != null && breakevenHours <= maxHours ? 'sw956e' : null;
-  const isBestValue = isElectric && winnerId === 'sw956e';
 
   const statusLabel = isElectric ? 'Electric' : `Diesel · ${machine.brake === 'wet' ? 'wet' : 'dry'} brake`;
   const statusStyle = { background: machine.accentColor, color: isElectric ? '#0A2E40' : '#1A1A1A' };
@@ -40,7 +44,7 @@ export default function ComparatorCard({ machine, result, comparison, inputs, is
         <img src={machine.logo} alt={`${machine.brand} logo`} className="comparator-card__logo" />
       </div>
 
-      <h4 className="comparator-card__name">{machine.displayName}</h4>
+      <MachineName machine={machine} as="h4" className="comparator-card__name" />
 
       <div className="comparator-card__cost">
         <span className="comparator-card__cost-value mono">{formatCurrency(unitPrice)}</span>
@@ -64,12 +68,12 @@ export default function ComparatorCard({ machine, result, comparison, inputs, is
           <dt>Cost at {formatHours(maxHours)}</dt>
           <dd className="mono">{formatCurrency(result.tcoAtMax)}</dd>
         </div>
-        {!isElectric && (
+        {cmp && (
           <div>
-            <dt>Savings starts (vs electric)</dt>
+            <dt>Savings start (vs {heroMachine.name})</dt>
             <dd className="mono">
-              {breakevenHours != null && breakevenHours <= maxHours
-                ? `${formatHours(breakevenHours)} (~${formatYearsFromHours(breakevenHours, hoursPerYear)})`
+              {cmp.breakevenHours != null && cmp.breakevenHours <= maxHours
+                ? `${formatHours(cmp.breakevenHours)} (~${formatYearsFromHours(cmp.breakevenHours, hoursPerYear)})`
                 : `Beyond ${formatHours(maxHours)}`}
             </dd>
           </div>
@@ -125,17 +129,20 @@ export default function ComparatorCard({ machine, result, comparison, inputs, is
                 <span className="detail-row__label">Battery / charger</span>
                 <span className="mono">{machine.battery.capacityKWh} kWh · {machine.battery.chargerRatingKW} kW charger (incl.)</span>
               </div>
-              <div className="detail-row">
-                <span className="detail-row__label">Battery replacement</span>
-                <span className="mono">
-                  {formatCurrency(battery.baseCost)} base @ {formatHours(battery.atHours)}, {formatRate(battery.rate)}{' '}
-                  <ConfidenceBadge confidence="confirmed" />
-                </span>
-              </div>
-              <p className="detail-note">
-                Battery reaches replacement at {formatHours(battery.atHours)} (~{formatYearsFromHours(battery.atHours, hoursPerYear)}) —
-                beyond the 20,000 h chart and the first owner’s lifecycle. It carries no mechanical-maintenance line before then.
-              </p>
+              {battery && (
+                <div className="detail-row">
+                  <span className="detail-row__label">Battery replacement</span>
+                  <span className="mono">
+                    {formatCurrency(battery.baseCost)} base @ {formatHours(battery.atHours)}, {formatRate(battery.rate)}
+                  </span>
+                </div>
+              )}
+              {battery && (
+                <p className="detail-note">
+                  Battery reaches replacement at {formatHours(battery.atHours)} (~{formatYearsFromHours(battery.atHours, hoursPerYear)}) —
+                  beyond the 20,000 h chart and the first owner’s lifecycle. It carries no mechanical-maintenance line before then.
+                </p>
+              )}
             </>
           ) : (
             <>

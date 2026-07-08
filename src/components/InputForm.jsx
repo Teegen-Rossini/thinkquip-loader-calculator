@@ -1,9 +1,7 @@
-import { DEFAULT_PRICES, MACHINE_OPTIONS, FUEL_THEFT_LEVELS } from '../data/machinesConfig';
+import { MACHINE_OPTIONS, FUEL_THEFT_LEVELS, getMachineForOption } from '../data/machinesConfig';
 import { annualHours, interpolateConsumption, operationBand } from '../lib/calculationEngine';
-import ConfidenceBadge from './ConfidenceBadge';
-import ConfidenceLegend from './ConfidenceLegend';
 import MachineTypeSelector from './MachineTypeSelector';
-import { ArrowRightIcon } from './icons';
+import MachineName from './MachineName';
 import './InputForm.css';
 
 function InfoTip({ text }) {
@@ -24,7 +22,8 @@ function rangeWarning(value, min, max, unit) {
   return null;
 }
 
-export default function InputForm({ inputs, onUpdate, machineType, onMachineTypeChange, onNext }) {
+export default function InputForm({ inputs, onUpdate, machineType, onMachineTypeChange, onToggleMachineOption }) {
+  const machineOptions = Array.isArray(inputs.machineOptions) ? inputs.machineOptions : [];
   const hours = annualHours(inputs);
   const band = operationBand(inputs.operationSlider);
   const cElec = interpolateConsumption('electric', inputs.operationSlider);
@@ -54,26 +53,50 @@ export default function InputForm({ inputs, onUpdate, machineType, onMachineType
         </section>
 
         <section className="input-card input-card--wide">
-          <h3>Machine Option</h3>
-          <p className="field__help">Both the SW956E electric and the SYL956H5 diesel are always compared. Wet vs dry brake changes only the diesel purchase price.</p>
-          <div className="machine-option-group" role="radiogroup" aria-label="Machine option">
+          <h3>Machine Options</h3>
+          <p className="field__help">Select any combination to compare. Wet vs dry is the same SYL956H5 at a different price.</p>
+          <div className="machine-option-group" role="group" aria-label="Machines to compare">
             {MACHINE_OPTIONS.map((opt) => {
-              const selected = inputs.machineOption === opt.id;
+              const machine = getMachineForOption(opt.id);
+              const selected = machineOptions.includes(opt.id);
+              const isLastSelected = selected && machineOptions.length === 1;
               return (
                 <button
                   key={opt.id}
                   type="button"
-                  role="radio"
+                  role="checkbox"
                   aria-checked={selected}
-                  className={selected ? 'machine-option is-active' : 'machine-option'}
-                  onClick={() => onUpdate({ machineOption: opt.id })}
+                  className={`machine-option${selected ? ' is-active' : ''}`}
+                  onClick={() => onToggleMachineOption(opt.id)}
+                  title={isLastSelected ? 'At least one machine must stay selected' : undefined}
                 >
-                  <span className={`machine-option__type machine-option__type--${opt.type}`}>{opt.type === 'electric' ? 'Electric' : 'Diesel'}</span>
-                  <span className="machine-option__label">{opt.label}</span>
-                  <span className="machine-option__price mono">R{opt.price.toLocaleString('en-US')} <span className="machine-option__exvat">ex VAT</span></span>
+                  <span className="machine-option__photo">
+                    <img src={opt.photo} alt="" loading="lazy" />
+                  </span>
+                  <span className="machine-option__body">
+                    <MachineName machine={machine} className="machine-option__name" />
+                    <span className="machine-option__meta">
+                      <span className={`machine-option__type machine-option__type--${opt.type}`}>{opt.type === 'electric' ? 'Electric' : 'Diesel'}</span>
+                      <span className="machine-option__price mono">R{opt.price.toLocaleString('en-US')} <span className="machine-option__exvat">ex VAT</span></span>
+                    </span>
+                  </span>
+                  <span className="machine-option__check" aria-hidden="true">{selected ? '✓' : ''}</span>
                 </button>
               );
             })}
+          </div>
+        </section>
+
+        <section className="input-card input-card--wide">
+          <h3>Fleet Size</h3>
+          <div className="field">
+            <span className="field__label">Number of machines <InfoTip text="Multiplies all costs (capital, energy and service) by the fleet size." /></span>
+            <div className="toggle-group">
+              {[1, 2, 3, 4].map((n) => (
+                <button key={n} type="button" className={inputs.fleetSize === n ? 'toggle-btn is-active' : 'toggle-btn'}
+                  onClick={() => onUpdate({ fleetSize: n })}>{n}</button>
+              ))}
+            </div>
           </div>
         </section>
 
@@ -101,7 +124,7 @@ export default function InputForm({ inputs, onUpdate, machineType, onMachineType
             <span className="field__label">
               Site control level <InfoTip text="Diesel fuel cost is multiplied by (1 + θ) to reflect on-site fuel losses. Electricity is never affected." />
             </span>
-            <div className="toggle-group toggle-group--wrap">
+            <div className="toggle-group toggle-group--vertical">
               {FUEL_THEFT_LEVELS.map((lvl) => (
                 <button key={lvl.id} type="button"
                   className={inputs.fuelTheftLevel === lvl.id ? 'toggle-btn is-active' : 'toggle-btn'}
@@ -175,38 +198,21 @@ export default function InputForm({ inputs, onUpdate, machineType, onMachineType
           <h3>Energy Prices</h3>
           <div className="field-row">
             <div className="field">
-              <label className="field__label" htmlFor="electricityPrice">
-                Electricity price (R/kWh) <ConfidenceBadge confidence={DEFAULT_PRICES.electricityPriceConfidence} tooltip={DEFAULT_PRICES.electricityPriceNote} />
-              </label>
+              <label className="field__label" htmlFor="electricityPrice">Electricity price (R/kWh)</label>
               <input id="electricityPrice" type="number" min="0" step="0.01"
                 value={inputs.electricityPrice}
                 onChange={(e) => onUpdate({ electricityPrice: Number(e.target.value) })} />
               <Warning>{electricityPriceWarning}</Warning>
             </div>
             <div className="field">
-              <label className="field__label" htmlFor="dieselPrice">
-                Diesel price (R/L) <ConfidenceBadge confidence={DEFAULT_PRICES.dieselPriceConfidence} tooltip={DEFAULT_PRICES.dieselPriceNote} />
-              </label>
+              <label className="field__label" htmlFor="dieselPrice">Diesel price (R/L)</label>
               <input id="dieselPrice" type="number" min="0" step="0.01"
                 value={inputs.dieselPrice}
                 onChange={(e) => onUpdate({ dieselPrice: Number(e.target.value) })} />
               <Warning>{dieselPriceWarning}</Warning>
             </div>
           </div>
-          <p className="field__help">Auto-filled placeholder defaults — always confirm against the customer’s actual rates before presenting.</p>
-        </section>
-
-        <section className="input-card">
-          <h3>Fleet Size</h3>
-          <div className="field">
-            <span className="field__label">Number of machines <InfoTip text="Multiplies all costs (capital, energy and service) by the fleet size." /></span>
-            <div className="toggle-group">
-              {[1, 2, 3, 4].map((n) => (
-                <button key={n} type="button" className={inputs.fleetSize === n ? 'toggle-btn is-active' : 'toggle-btn'}
-                  onClick={() => onUpdate({ fleetSize: n })}>{n}</button>
-              ))}
-            </div>
-          </div>
+          <p className="field__help">Placeholder defaults — confirm the customer’s actual rates before presenting.</p>
         </section>
       </div>
 
@@ -215,13 +221,6 @@ export default function InputForm({ inputs, onUpdate, machineType, onMachineType
           <input type="checkbox" checked={inputs.vatInclusive} onChange={(e) => onUpdate({ vatInclusive: e.target.checked })} />
           <span>Show prices including VAT (15%)</span>
         </label>
-      </div>
-
-      <div className="input-form__footer">
-        <ConfidenceLegend />
-        <button type="button" className="btn-cta" onClick={onNext}>
-          Next: Comparison <ArrowRightIcon />
-        </button>
       </div>
     </form>
   );

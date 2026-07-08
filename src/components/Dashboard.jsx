@@ -2,6 +2,7 @@ import { ELECTRIC_MACHINE } from '../data/machinesConfig';
 import {
   InputsIcon, ComparisonIcon, CostOverTimeIcon, SpecSheetIcon,
   ShieldIcon, LifecycleIcon, ConfidenceIcon, ResearchIcon, ArrowRightIcon,
+  BrochureIcon,
 } from './icons';
 import './Dashboard.css';
 
@@ -9,13 +10,15 @@ const HOW_IT_WORKS = [
   { Icon: InputsIcon, title: 'Inputs', body: 'Enter your operating assumptions and energy prices.' },
   { Icon: ComparisonIcon, title: 'Comparison', body: 'See side-by-side machine comparison and key highlights.' },
   { Icon: CostOverTimeIcon, title: 'Cost Over Time', body: 'View total cost over time with escalation and lifecycle events.' },
+  { Icon: ConfidenceIcon, title: 'Calculations', body: 'Follow every step of the maths behind the figures.' },
   { Icon: SpecSheetIcon, title: 'Spec Sheet', body: 'Download a detailed spec sheet and full cost breakdown.' },
+  { Icon: BrochureIcon, title: 'Personalised Brochure', body: 'Print or save your personalised results to PDF.' },
 ];
 
 const FEATURES = [
   { Icon: ShieldIcon, title: 'Accurate Cost Model', body: 'Real-world escalation over operating hours' },
   { Icon: LifecycleIcon, title: 'Lifecycle Planning', body: 'Battery replacement and routine service' },
-  { Icon: ConfidenceIcon, title: 'Transparent Maths', body: 'Every step shown on the Calculation tab' },
+  { Icon: ConfidenceIcon, title: 'Transparent Maths', body: 'Every step shown on the Calculations tab' },
   { Icon: ResearchIcon, title: 'Research Based', body: 'SANY data and transparent assumptions' },
 ];
 

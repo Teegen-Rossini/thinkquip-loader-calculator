@@ -1,0 +1,32 @@
+/* Machine names use a condensed industrial face (a free stand-in for SANY's
+   proprietary brand type — deliberately NOT presented as the real SANY font). */
+.machine-name {
+  display: inline-flex;
+  align-items: center;
+  /* A normal word-space gap: enough that the logo isn't clamped against the
+     model text, not so much that they read as unrelated. */
+  gap: 0.38em;
+  font-family: 'Saira Condensed', 'Oswald', var(--display);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  color: inherit;
+  margin: 0;
+}
+
+.machine-name__logo {
+  /* The SANY wordmark PNG carries transparent padding, so it must be set well
+     above the model text's cap height to read as the brand mark at the same
+     visual weight. Width auto preserves its native aspect ratio (never stretched). */
+  height: 1.9em;
+  width: auto;
+  object-fit: contain;
+  display: block;
+  flex-shrink: 0;
+}
+
+.machine-name__model {
+  font-family: inherit;
+  font-weight: inherit;
+  white-space: nowrap;
+}

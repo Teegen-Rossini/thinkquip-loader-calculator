@@ -35,7 +35,7 @@
 }
 
 .input-card h3 {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -64,13 +64,17 @@
 .field__label {
   display: block;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
   color: var(--text);
   margin-bottom: 6px;
 }
 
 .field__optional {
   font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
   color: var(--text-muted);
   font-size: 12px;
 }
@@ -155,6 +159,17 @@
   flex: 1 1 auto;
 }
 
+/* Fuel-theft control: three full-width options stacked one below the other. */
+.toggle-group--vertical {
+  flex-direction: column;
+  flex-wrap: nowrap;
+}
+
+.toggle-group--vertical .toggle-btn {
+  width: 100%;
+  text-align: left;
+}
+
 .toggle-btn {
   padding: 8px 14px;
   border-radius: var(--radius-sm);
@@ -212,40 +227,116 @@
   margin-top: 4px;
 }
 
+/* Full-width horizontal cards, stacked — image on the far left, text filling
+   the remaining width so long model names never spill outside the card. */
 .machine-option-group {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 10px;
 }
 
-@media (min-width: 720px) {
-  .machine-option-group {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
 .machine-option {
+  position: relative;
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 6px;
-  padding: 14px 16px;
+  flex-direction: row;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 46px 12px 12px;
   border: 1.5px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--surface);
   cursor: pointer;
   text-align: left;
-  transition: border-color 0.12s var(--ease), background 0.12s var(--ease), box-shadow 0.12s var(--ease);
+  transition: border-color 0.12s var(--ease), background 0.12s var(--ease), box-shadow 0.12s var(--ease), transform 0.12s var(--ease);
+}
+
+.machine-option__photo {
+  width: 132px;
+  height: 78px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-alt);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+/* contain = the whole machine always shows (never cut off); the box crops only
+   the transparent margins around the cutout so it fills the thumbnail. */
+.machine-option__photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.machine-option__body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
+}
+
+.machine-option__meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.machine-option__name {
+  font-size: 15px;
+}
+
+.machine-option__name .machine-name__model {
+  white-space: normal;
+}
+
+.machine-option__check {
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+  transition: background 0.12s var(--ease), border-color 0.12s var(--ease);
+}
+
+.machine-option.is-active .machine-option__check {
+  background: var(--tq-turquoise);
+  border-color: var(--tq-turquoise);
 }
 
 .machine-option:hover {
   border-color: var(--tq-turquoise-mid);
+  background: var(--surface-alt);
+  transform: translateY(-1px);
+}
+
+.machine-option:active {
+  transform: scale(0.995);
 }
 
 .machine-option.is-active {
   border-color: var(--tq-turquoise);
   background: var(--tq-turquoise-light);
-  box-shadow: 0 0 0 3px var(--tq-turquoise-light);
+  box-shadow: 0 0 0 3px var(--tq-turquoise-light), var(--shadow-md);
+  transform: scale(1.015);
+}
+
+.machine-option.is-active:hover {
+  transform: scale(1.015) translateY(-1px);
 }
 
 .machine-option__type {

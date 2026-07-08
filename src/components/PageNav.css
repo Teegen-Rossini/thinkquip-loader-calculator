@@ -1,0 +1,71 @@
+.page-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 32px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.page-nav__slot {
+  display: flex;
+  align-items: center;
+}
+
+/* Keep the next / print button pinned bottom-right even when there is no
+   previous button on the left. */
+.page-nav__slot--right {
+  margin-left: auto;
+}
+
+.btn-nav {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-width: 230px;
+  padding: 15px 28px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  background: var(--cta-yellow);
+  color: var(--cta-ink);
+  transition: background 0.15s var(--ease), transform 0.12s var(--ease), box-shadow 0.15s var(--ease);
+}
+
+.btn-nav:hover {
+  background: var(--cta-yellow-dark);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-nav:active {
+  transform: translateY(0) scale(0.98);
+  box-shadow: none;
+}
+
+/* End-of-sequence Print / Save button — inverse of the yellow nav buttons. */
+.btn-nav--print {
+  background: var(--tq-turquoise);
+  color: #fff;
+}
+
+.btn-nav--print:hover {
+  background: var(--tq-turquoise-dark);
+}
+
+@media (max-width: 560px) {
+  .btn-nav {
+    min-width: 0;
+    flex: 1 1 auto;
+    padding: 14px 16px;
+  }
+  .page-nav__slot {
+    flex: 1 1 auto;
+  }
+}

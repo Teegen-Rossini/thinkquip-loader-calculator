@@ -49,19 +49,16 @@ export const ELECTRIC_MACHINE = {
   chartColor: COLORS.electricAccent,
 
   price: 3150000, // ex VAT, charger included
-  priceConfidence: 'confirmed',
 
   operatingWeightKg: 20000,
   ratedPayloadKg: 5800,
   bucketCapacityM3: 3.5,
   tyres: 'L5',
   warranty: '5,000 h / 2 years',
-  warrantyConfidence: 'confirmed',
 
   battery: {
     capacityKWh: 422,
     chargerRatingKW: 320, // included in the purchase price
-    confidence: 'confirmed',
   },
 
   // Battery replacement lands at 30,000 h — beyond the 20,000 h chart, so it
@@ -70,7 +67,6 @@ export const ELECTRIC_MACHINE = {
   batteryReplacement: {
     atHours: 30000,
     baseCost: 1120000,
-    confidence: 'confirmed',
   },
 };
 
@@ -90,15 +86,12 @@ export const DIESEL_MACHINE = {
   accentColor: COLORS.dieselAccent,
   chartColor: COLORS.dieselAccent,
 
-  priceConfidence: 'confirmed', // price supplied per brake variant below
-
   engine: 'Cummins QSL8.9-C220 III, ~164 kW @ 2200 rpm',
   operatingWeightKg: 17100,
   ratedPayloadKg: 5000,
   bucketCapacityM3: 3,
   tyres: 'L5',
   warranty: '4,000 h / 2 years',
-  warrantyConfidence: 'confirmed',
 };
 
 /**
@@ -107,10 +100,15 @@ export const DIESEL_MACHINE = {
  * compared lines are always the electric machine and one diesel variant.
  */
 export const MACHINE_OPTIONS = [
-  { id: 'electric', type: 'electric', label: 'SANY SW956E (Electric)', price: 3150000 },
-  { id: 'diesel-dry', type: 'diesel', brake: 'dry', label: 'SANY SYL956H5 (Diesel, dry brake)', price: 1850000 },
-  { id: 'diesel-wet', type: 'diesel', brake: 'wet', label: 'SANY SYL956H5 (Diesel, wet brake)', price: 2200000 },
+  { id: 'electric', type: 'electric', label: 'SANY SW956E (Electric)', price: 3150000, photo: sanyElectricPhoto },
+  { id: 'diesel-dry', type: 'diesel', brake: 'dry', label: 'SANY SYL956H5 (Diesel, dry brake)', price: 1850000, photo: sanyDieselPhoto },
+  { id: 'diesel-wet', type: 'diesel', brake: 'wet', label: 'SANY SYL956H5 (Diesel, wet brake)', price: 2200000, photo: sanyDieselPhoto },
 ];
+
+/** Canonical left-to-right display order for the selectable options — used to
+ *  keep cards, chart lines and tables in a stable order regardless of the
+ *  order in which the user ticked them. */
+export const MACHINE_OPTION_ORDER = ['electric', 'diesel-dry', 'diesel-wet'];
 
 /** The diesel selling price implied by the selected machine option. Selecting
  *  the electric option leaves the diesel comparator at its dry-brake price. */
@@ -128,6 +126,33 @@ export function getDieselMachineForOption(optionId) {
     ...DIESEL_MACHINE,
     price: dieselPriceForOption(optionId),
     brake: dieselBrakeForOption(optionId),
+  };
+}
+
+/**
+ * A fully-resolved machine object for ANY selectable option id. Each carries a
+ * unique `uid` (the option id) so that two SYL956H5 variants (dry + wet) — the
+ * same underlying machine at two prices — remain distinct series/cards/lines.
+ * `displayName` is the option's label so wet/dry read differently.
+ */
+export function getMachineForOption(optionId) {
+  const opt = MACHINE_OPTIONS.find((o) => o.id === optionId) ?? MACHINE_OPTIONS[0];
+  if (opt.type === 'electric') {
+    return {
+      ...ELECTRIC_MACHINE,
+      uid: opt.id,
+      optionId: opt.id,
+      price: opt.price,
+      displayName: opt.label,
+    };
+  }
+  return {
+    ...DIESEL_MACHINE,
+    uid: opt.id,
+    optionId: opt.id,
+    price: opt.price,
+    brake: opt.brake,
+    displayName: opt.label,
   };
 }
 
@@ -167,7 +192,6 @@ export const FUEL_THEFT_LEVELS = [
  */
 export const DIESEL_SERVICE = {
   ratePerHour: 29, // R29,000 per 1,000 h
-  confidence: 'confirmed',
   note: 'Routine engine service — R29,000 per 1,000 h (R29/h), linear from R29,000 @1,000h to R377,000 @13,000h and continued at the same rate to 20,000 h.',
 };
 
@@ -177,12 +201,7 @@ export const DIESEL_SERVICE = {
  */
 export const DEFAULT_PRICES = {
   electricityPricePerKWh: 2.80,
-  electricityPriceConfidence: 'estimate',
-  electricityPriceNote: 'Placeholder default — no single "current" commercial tariff exists. Confirm the customer’s actual rate before presenting.',
-
   dieselPricePerLiter: 23.50,
-  dieselPriceConfidence: 'estimate',
-  dieselPriceNote: 'Placeholder default — wire up to the SA official fuel price feed (updates monthly) when available.',
 };
 
 export const CALC_DEFAULTS = {

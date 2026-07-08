@@ -1,6 +1,7 @@
 import { formatCurrency, formatHours, formatYearsFromHours } from '../lib/format';
-import { ESCALATION, DIESEL_SERVICE } from '../data/machinesConfig';
+import { ESCALATION, DIESEL_SERVICE, CALC_DEFAULTS } from '../data/machinesConfig';
 import { applyVat } from '../lib/calculationEngine';
+import MachineName from './MachineName';
 import './SummaryTable.css';
 
 function formatRate(rate) {
@@ -8,41 +9,38 @@ function formatRate(rate) {
   return `${pct > 0 ? '+' : ''}${pct}%/yr`;
 }
 
-export default function SummaryTable({ comparison, inputs }) {
-  const { electric, diesel, electricMachine, dieselMachine, breakevenHours, battery, hoursPerYear, fleetSize } = comparison;
-  const maxHours = 20000;
+export default function SummaryTable({ selection, inputs }) {
+  const { machines, comparisons, hasComparison, battery, heroMachine, electricSelected, hoursPerYear } = selection;
+  const maxHours = CALC_DEFAULTS.chartMaxHours;
   const vatInclusive = inputs.vatInclusive;
   const priceLabel = vatInclusive ? 'Unit price (incl. VAT)' : 'Unit price (excl. VAT)';
 
-  const rows = [
-    { machine: electricMachine, result: electric, isElectric: true },
-    { machine: dieselMachine, result: diesel, isElectric: false },
-  ];
-
-  const perHourEnergy = (r) => applyVat(r.isElectric ? r.result.perHour.elecEnergyPerH : r.result.perHour.dieselFuelPerH, inputs);
-  const perHourService = (r) => applyVat(r.isElectric ? r.result.perHour.elecMaintPerH : r.result.perHour.dieselServicePerH, inputs);
-  const perHourTotal = (r) => applyVat(r.isElectric ? r.result.perHour.elecPerH : r.result.perHour.dieselPerH, inputs);
+  const isElec = (r) => r.machine.type === 'electric';
+  const perHourEnergy = (r) => applyVat(isElec(r) ? r.perHour.elecEnergyPerH : r.perHour.dieselFuelPerH, inputs);
+  const perHourService = (r) => applyVat(isElec(r) ? r.perHour.elecMaintPerH : r.perHour.dieselServicePerH, inputs);
+  const perHourTotal = (r) => applyVat(isElec(r) ? r.perHour.elecPerH : r.perHour.dieselPerH, inputs);
+  const cmpFor = (r) => comparisons.find((c) => c.machine.uid === r.machine.uid);
 
   return (
     <div className="summary-tables panel-surface" id="spec-sheet-assumptions">
       <div className="summary-table-block">
-        <h3>Capital &amp; Fleet Cost — {fleetSize} machine{fleetSize > 1 ? 's' : ''}</h3>
+        <h3>Capital &amp; Fleet Cost — {selection.fleetSize} machine{selection.fleetSize > 1 ? 's' : ''}</h3>
         <table className="summary-table">
           <thead>
             <tr>
               <th>Machine</th>
               <th>{priceLabel}</th>
-              <th>Fleet capital (×{fleetSize})</th>
+              <th>Fleet capital (×{selection.fleetSize})</th>
               <th>TCO @ {formatHours(maxHours)}</th>
             </tr>
           </thead>
           <tbody>
-            {rows.map(({ machine, result }) => (
-              <tr key={machine.id}>
-                <td>{machine.displayName}</td>
-                <td className="mono">{formatCurrency(result.purchaseFleet / result.fleetSize)}</td>
-                <td className="mono">{formatCurrency(result.purchaseFleet)}</td>
-                <td className="mono">{formatCurrency(result.tcoAtMax)}</td>
+            {machines.map((r) => (
+              <tr key={r.machine.uid}>
+                <td><MachineName machine={r.machine} /></td>
+                <td className="mono">{formatCurrency(r.purchaseFleet / r.fleetSize)}</td>
+                <td className="mono">{formatCurrency(r.purchaseFleet)}</td>
+                <td className="mono">{formatCurrency(r.tcoAtMax)}</td>
               </tr>
             ))}
           </tbody>
@@ -64,17 +62,25 @@ export default function SummaryTable({ comparison, inputs }) {
             </tr>
           </thead>
           <tbody>
-            {rows.map(({ machine, isElectric }) => (
-              <tr key={machine.id}>
-                <td>{machine.displayName}</td>
-                <td className="mono">{machine.operatingWeightKg.toLocaleString()} kg</td>
-                <td className="mono">{machine.ratedPayloadKg.toLocaleString()} kg</td>
-                <td className="mono">{machine.bucketCapacityM3} m³</td>
-                <td className="mono">{machine.tyres}</td>
-                <td className="mono">{isElectric ? `${machine.battery.capacityKWh} kWh · ${machine.battery.chargerRatingKW} kW charger (incl.)` : machine.engine}</td>
-                <td className="mono">{machine.warranty}</td>
-              </tr>
-            ))}
+            {machines.map((r) => {
+              const m = r.machine;
+              return (
+                <tr key={m.uid}>
+                  <td>
+                    <span className="summary-machine">
+                      <img src={m.photo} alt="" className="summary-machine__thumb" loading="lazy" />
+                      <MachineName machine={m} />
+                    </span>
+                  </td>
+                  <td className="mono">{m.operatingWeightKg.toLocaleString()} kg</td>
+                  <td className="mono">{m.ratedPayloadKg.toLocaleString()} kg</td>
+                  <td className="mono">{m.bucketCapacityM3} m³</td>
+                  <td className="mono">{m.tyres}</td>
+                  <td className="mono">{isElec(r) ? `${m.battery.capacityKWh} kWh · ${m.battery.chargerRatingKW} kW charger (incl.)` : m.engine}</td>
+                  <td className="mono">{m.warranty}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -89,26 +95,31 @@ export default function SummaryTable({ comparison, inputs }) {
               <th>Energy / fuel / h</th>
               <th>Service / h</th>
               <th>Total / h</th>
-              <th>Savings starts (vs electric)</th>
+              {hasComparison && <th>Savings starts (vs {heroMachine.name})</th>}
             </tr>
           </thead>
           <tbody>
-            {rows.map((r) => (
-              <tr key={r.machine.id}>
-                <td>{r.machine.displayName}</td>
-                <td className="mono">{r.isElectric ? `${r.result.perHour.cElec} kWh/h` : `${r.result.perHour.cDiesel} L/h`}</td>
-                <td className="mono">{formatCurrency(perHourEnergy(r))}</td>
-                <td className="mono">{r.isElectric ? 'R0' : formatCurrency(perHourService(r))}</td>
-                <td className="mono">{formatCurrency(perHourTotal(r))}</td>
-                <td className="mono">
-                  {r.isElectric
-                    ? '—'
-                    : breakevenHours != null && breakevenHours <= maxHours
-                      ? `${formatHours(breakevenHours)} (~${formatYearsFromHours(breakevenHours, hoursPerYear)})`
-                      : `Beyond ${formatHours(maxHours)}`}
-                </td>
-              </tr>
-            ))}
+            {machines.map((r) => {
+              const cmp = cmpFor(r);
+              return (
+                <tr key={r.machine.uid}>
+                  <td><MachineName machine={r.machine} /></td>
+                  <td className="mono">{isElec(r) ? `${r.perHour.cElec} kWh/h` : `${r.perHour.cDiesel} L/h`}</td>
+                  <td className="mono">{formatCurrency(perHourEnergy(r))}</td>
+                  <td className="mono">{isElec(r) ? 'R0' : formatCurrency(perHourService(r))}</td>
+                  <td className="mono">{formatCurrency(perHourTotal(r))}</td>
+                  {hasComparison && (
+                    <td className="mono">
+                      {!cmp
+                        ? '—'
+                        : cmp.breakevenHours != null && cmp.breakevenHours <= maxHours
+                          ? `${formatHours(cmp.breakevenHours)} (~${formatYearsFromHours(cmp.breakevenHours, hoursPerYear)})`
+                          : `Beyond ${formatHours(maxHours)}`}
+                    </td>
+                  )}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -126,27 +137,38 @@ export default function SummaryTable({ comparison, inputs }) {
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td>{electricMachine.displayName}</td>
-              <td>Battery replacement</td>
-              <td className="mono">{formatCurrency(battery.baseCost)} base</td>
-              <td className="mono">{formatHours(battery.atHours)} (~{formatYearsFromHours(battery.atHours, hoursPerYear)})</td>
-              <td className="mono">{formatRate(battery.rate)}</td>
-            </tr>
-            <tr>
-              <td>{dieselMachine.displayName}</td>
-              <td>Routine engine service</td>
-              <td className="mono">R{DIESEL_SERVICE.ratePerHour}/h (continuous)</td>
-              <td className="mono">Ongoing</td>
-              <td className="mono">{formatRate(ESCALATION.maintenance)}</td>
-            </tr>
+            {machines.map((r) => {
+              const m = r.machine;
+              if (m.type === 'electric') {
+                return (
+                  <tr key={m.uid}>
+                    <td><MachineName machine={m} /></td>
+                    <td>Battery replacement</td>
+                    <td className="mono">{formatCurrency(battery.baseCost)} base</td>
+                    <td className="mono">{formatHours(battery.atHours)} (~{formatYearsFromHours(battery.atHours, hoursPerYear)})</td>
+                    <td className="mono">{formatRate(battery.rate)}</td>
+                  </tr>
+                );
+              }
+              return (
+                <tr key={m.uid}>
+                  <td><MachineName machine={m} /></td>
+                  <td>Routine engine service</td>
+                  <td className="mono">R{DIESEL_SERVICE.ratePerHour}/h (continuous)</td>
+                  <td className="mono">Ongoing</td>
+                  <td className="mono">{formatRate(ESCALATION.maintenance)}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
-        <p className="summary-note">
-          The electric machine carries no mechanical-maintenance line until its battery reaches replacement at
-          {' '}{formatHours(battery.atHours)} — beyond the first owner’s lifecycle and the 20,000 h chart. That absence is the
-          long-term advantage to highlight.
-        </p>
+        {electricSelected && (
+          <p className="summary-note">
+            The electric machine carries no mechanical-maintenance line until its battery reaches replacement at
+            {' '}{formatHours(battery.atHours)} — beyond the first owner’s lifecycle and the 20,000 h chart. That absence is the
+            long-term advantage to highlight.
+          </p>
+        )}
       </div>
 
       <div className="summary-table-block">
