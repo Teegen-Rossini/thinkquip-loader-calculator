@@ -24,8 +24,23 @@ import './App.css';
 
 const DRAFT_STORAGE_KEY = 'thinkquip-loader-calc-draft-v2';
 
+/** Local (not UTC) today as yyyy-mm-dd, for <input type="date">. */
+function todayISO() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+const isISODate = (v) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v);
+
 const defaultInputs = {
-  preparedFor: '',
+  // "Prepared For" — the customer, entered on the cover page. Display-only:
+  // populates the printed cover, never feeds a calculation.
+  preparedForName: '',
+  preparedForCell: '',
+  preparedForEmail: '',
+  // Quote date — auto-filled to today on load, user-editable. Single source
+  // of truth for the date on the cover and both print outputs.
+  quoteDate: '',
   machineTypeId: DEFAULT_MACHINE_TYPE_ID,
   machineModelIds: defaultModelIdsForType(DEFAULT_MACHINE_TYPE_ID),
   fuelIncludedInRate: true,
@@ -38,6 +53,9 @@ const defaultInputs = {
   fuelTheftLevel: 'moderate',
   fleetSize: CALC_DEFAULTS.fleetSizeDefault,
   vatInclusive: false,
+  // Comparison time window (0 → chart limit). Set on the Comparison page
+  // slider; drives every window-dependent figure on screen AND in print.
+  comparisonWindowHours: CALC_DEFAULTS.chartMaxHours,
 };
 
 /** Optional ?draft={...json...} URL override — used for deep links and for
@@ -61,6 +79,18 @@ function draftOverride() {
  */
 function normalizeInputs(parsed) {
   const merged = { ...defaultInputs, ...parsed };
+
+  // Migrate the legacy single "Prepared for" text field to the customer name.
+  if (!merged.preparedForName && typeof parsed.preparedFor === 'string') {
+    merged.preparedForName = parsed.preparedFor;
+  }
+  delete merged.preparedFor;
+  if (!isISODate(merged.quoteDate)) merged.quoteDate = todayISO();
+
+  const windowHours = Number(merged.comparisonWindowHours);
+  merged.comparisonWindowHours = Number.isFinite(windowHours)
+    ? Math.max(0, Math.min(CALC_DEFAULTS.chartMaxHours, windowHours))
+    : CALC_DEFAULTS.chartMaxHours;
 
   // Read from `parsed`, not `merged` — merged always carries the defaults.
   let ids = Array.isArray(parsed.machineModelIds) ? parsed.machineModelIds : null;
@@ -93,19 +123,24 @@ function loadDraftInputs() {
   if (override) return normalizeInputs(override);
   try {
     const saved = localStorage.getItem(DRAFT_STORAGE_KEY);
-    if (!saved) return defaultInputs;
-    return normalizeInputs(JSON.parse(saved));
+    if (!saved) return { ...defaultInputs, quoteDate: todayISO() };
+    // The quote date always defaults to TODAY on a fresh load — a stale date
+    // from a previous day's draft is never restored. (Deep-link ?draft=
+    // overrides above DO honor an explicit quoteDate, for print previews.)
+    return { ...normalizeInputs(JSON.parse(saved)), quoteDate: todayISO() };
   } catch {
-    return defaultInputs;
+    return { ...defaultInputs, quoteDate: todayISO() };
   }
 }
 
+// Calculations is deliberately LAST — the transparent maths appendix follows
+// the Spec Sheet, and carries the end-of-sequence Print button.
 const TABS = [
   { id: 'inputs', index: '01', label: 'Inputs' },
   { id: 'comparison', index: '02', label: 'Comparison' },
   { id: 'chart', index: '03', label: 'Cost Over Time' },
-  { id: 'calculation', index: '04', label: 'Calculations' },
-  { id: 'details', index: '05', label: 'Spec Sheet' },
+  { id: 'details', index: '04', label: 'Spec Sheet' },
+  { id: 'calculation', index: '05', label: 'Calculations' },
 ];
 
 function App() {
@@ -183,7 +218,7 @@ function App() {
 
       <main className="app-body">
         <div className={`tab-panel no-print${isDashboard ? ' is-active' : ''}`}>
-          <Dashboard onStart={() => setActiveTab('inputs')} />
+          <Dashboard onStart={() => setActiveTab('inputs')} inputs={inputs} onUpdate={updateInputs} />
         </div>
 
         <PrintBrochure selection={selection} inputs={inputs} />
@@ -203,7 +238,7 @@ function App() {
 
         <section className={panelClass('comparison')}>
           <FleetSizeToggle fleetSize={inputs.fleetSize} onChange={setFleetSize} />
-          <HeroStat selection={selection} fleetSize={inputs.fleetSize} inputs={inputs} />
+          <HeroStat selection={selection} fleetSize={inputs.fleetSize} onUpdate={updateInputs} />
           <h3 className="section-heading">
             {selection.hasComparison ? 'Machines compared' : 'Selected machine'}
           </h3>
@@ -236,16 +271,6 @@ function App() {
           <PageNav
             prevLabel="Comparison"
             onPrev={() => setActiveTab('comparison')}
-            nextLabel="Calculations"
-            onNext={() => setActiveTab('calculation')}
-          />
-        </section>
-
-        <section className={panelClass('calculation')}>
-          <CalculationView selection={selection} inputs={inputs} />
-          <PageNav
-            prevLabel="Cost Over Time"
-            onPrev={() => setActiveTab('chart')}
             nextLabel="Spec Sheet"
             onNext={() => setActiveTab('details')}
           />
@@ -254,8 +279,18 @@ function App() {
         <section className={panelClass('details')}>
           <SummaryTable selection={selection} inputs={inputs} />
           <PageNav
-            prevLabel="Calculations"
-            onPrev={() => setActiveTab('calculation')}
+            prevLabel="Cost Over Time"
+            onPrev={() => setActiveTab('chart')}
+            nextLabel="Calculations"
+            onNext={() => setActiveTab('calculation')}
+          />
+        </section>
+
+        <section className={panelClass('calculation')}>
+          <CalculationView selection={selection} inputs={inputs} />
+          <PageNav
+            prevLabel="Spec Sheet"
+            onPrev={() => setActiveTab('details')}
             onPrint={() => window.print()}
           />
         </section>

@@ -50,11 +50,16 @@ function unwrapSection(obj) {
  * legacy aliases (`uid`, `type`, `name`, `price`, `battery`, `warranty`, …)
  * that the engine, cards, chart and brochure were built against.
  */
-function resolveModel(model, typeId) {
+function resolveModel(model, typeId, dieselIndex) {
   const specs = unwrapSection(model.specs);
   const costs = unwrapSection(model.costs);
   const isElectric = model.energyType === 'electric';
-  const accent = isElectric ? COLORS.electricAccent : COLORS.dieselAccent;
+  // Electric = blue. Diesels alternate yellow shades (base, then darker) so
+  // two selected diesels (dry vs wet) stay distinguishable on the chart lines
+  // and the comparison time bar alike.
+  const accent = isElectric
+    ? COLORS.electricAccent
+    : (dieselIndex % 2 === 0 ? COLORS.dieselAccent : COLORS.dieselAccentDark);
 
   return {
     // identity
@@ -124,11 +129,15 @@ function resolveModel(model, typeId) {
 }
 
 /** Machine types in JSON order, each with its resolved models. */
-export const MACHINE_TYPES = machinesData.machineTypes.map((t) => ({
-  id: t.id,
-  displayName: t.displayName,
-  models: t.models.map((m) => resolveModel(m, t.id)),
-}));
+export const MACHINE_TYPES = machinesData.machineTypes.map((t) => {
+  let dieselCount = 0;
+  return {
+    id: t.id,
+    displayName: t.displayName,
+    models: t.models.map((m) =>
+      resolveModel(m, t.id, m.energyType === 'diesel' ? dieselCount++ : 0)),
+  };
+});
 
 /** Every model across all types, in canonical (JSON) display order. */
 export const ALL_MODELS = MACHINE_TYPES.flatMap((t) => t.models);

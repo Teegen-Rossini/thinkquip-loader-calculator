@@ -246,7 +246,8 @@
 
 .print-cover__fields {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  /* Party blocks get the width (their rows never wrap); the date needs less. */
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1.25fr) minmax(0, 0.7fr);
   gap: 6mm;
   border-top: 0.5pt solid var(--border);
   border-bottom: 0.5pt solid var(--border);
@@ -266,6 +267,35 @@
   font-size: 12pt;
   font-weight: 600;
   color: var(--text-heading);
+}
+
+.print-cover__party {
+  min-width: 0;
+}
+
+/* One "Name / Cell / Email" line inside a Prepared For / Prepared By block.
+   Each line stays whole — labels and values never wrap onto a second line. */
+.print-cover__party-row {
+  display: flex;
+  align-items: baseline;
+  gap: 2mm;
+  font-size: 10pt;
+  font-weight: 600;
+  color: var(--text-heading);
+  line-height: 1.65;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.print-cover__party-row > span {
+  font-size: 7.5pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  min-width: 11mm;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .print-cover__stats {

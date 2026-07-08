@@ -8,7 +8,9 @@
 }
 
 .app-header {
-  background: linear-gradient(135deg, var(--tq-turquoise) 0%, var(--tq-turquoise-dark) 100%);
+  /* DARK on the left → LIGHT on the right, so the white ThinkQuip logo sits
+     on the darker field and reads cleanly against the banner. */
+  background: linear-gradient(135deg, var(--tq-turquoise-dark) 0%, var(--tq-turquoise) 100%);
   color: #fff;
   padding: 14px clamp(16px, 3vw, 32px);
   min-width: 0;

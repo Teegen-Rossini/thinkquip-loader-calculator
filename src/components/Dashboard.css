@@ -100,6 +100,96 @@
   line-height: 1.4;
 }
 
+/* Quote parties — "Prepared For" (editable) / "Prepared By" (fixed) / date. */
+.dashboard__quote {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 28px;
+}
+
+.dashboard__party {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  min-width: 0;
+}
+
+.dashboard__party-title {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+.dashboard__party-fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+@media (max-width: 640px) {
+  .dashboard__party-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.dashboard__party-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.dashboard__party-field-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.dashboard__party-field input {
+  width: 100%;
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-alt);
+  color: var(--text); /* black = user-entered value */
+  transition: border-color 0.12s var(--ease), box-shadow 0.12s var(--ease);
+}
+
+.dashboard__party-field input::placeholder {
+  color: var(--text-muted); /* grey = placeholder, disappears on entry */
+}
+
+.dashboard__party-field input:hover {
+  border-color: var(--tq-turquoise-mid);
+}
+
+.dashboard__party-field input:focus {
+  outline: none;
+  border-color: var(--tq-turquoise);
+  box-shadow: 0 0 0 3px var(--tq-turquoise-light);
+}
+
+/* Fixed (non-editable) Prepared By values — grey text signals "not an input". */
+.dashboard__party-field-fixed {
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-alt);
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
+.dashboard__party--date .dashboard__party-field {
+  max-width: 220px;
+}
+
 .dashboard__start {
   padding: 14px 26px;
   font-size: 15px;

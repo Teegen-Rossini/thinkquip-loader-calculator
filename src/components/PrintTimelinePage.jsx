@@ -15,11 +15,11 @@ function pct(rate) {
 export default function PrintTimelinePage({ selection, inputs, pageNumber, pageCount }) {
   const { machines, hero, heroMachine, comparisons, hasComparison, battery, hoursPerYear } = selection;
   const maxHours = CALC_DEFAULTS.chartMaxHours;
-  const sampleHours = [5000, 10000, 15000, 20000];
+  const sampleHours = [2500, 5000, 10000, 15000];
 
-  // Best opponent for the "advantage" column (hero vs the machine it saves most against).
+  // Best opponent for the "advantage" column (widest gap at the window).
   const best = hasComparison
-    ? comparisons.reduce((a, b) => ((b.savingsAtMax ?? -Infinity) > (a.savingsAtMax ?? -Infinity) ? b : a))
+    ? comparisons.reduce((a, b) => ((b.gapAtWindow ?? -Infinity) > (a.gapAtWindow ?? -Infinity) ? b : a))
     : null;
 
   return (

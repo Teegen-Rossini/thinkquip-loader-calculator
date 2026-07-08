@@ -51,7 +51,7 @@ export default function PrintSpecSheet({ result, selection, pageNumber, pageCoun
     },
     {
       label: 'At your selected duty cycle',
-      value: isElectric ? `${per.cElec} kWh/h` : `${per.cDiesel} L/h`,
+      value: isElectric ? `${Math.round(per.cElec)} kWh/h` : `${Math.round(per.cDiesel)} L/h`,
     },
   ];
 

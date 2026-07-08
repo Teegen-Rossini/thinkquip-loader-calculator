@@ -2,7 +2,7 @@ import {
   FUEL_THEFT_LEVELS, ESCALATION, CALC_DEFAULTS, THINKQUIP_LOGO,
 } from '../data/machinesConfig';
 import { annualHours, operationBand, interpolateConsumption, theftTheta } from '../lib/calculationEngine';
-import { formatHours } from '../lib/format';
+import { formatHours, formatYearsFromHours } from '../lib/format';
 import { PrintPage, PageHeader, Band, SpecRows } from './PrintKit';
 
 function pct(rate) {
@@ -35,7 +35,8 @@ export default function PrintInputsPage({ selection, inputs, pageNumber, pageCou
         { label: 'Fleet size', value: `${inputs.fleetSize} machine${inputs.fleetSize > 1 ? 's' : ''} — all costs scale ×${inputs.fleetSize} per machine` },
         { label: 'Utilization', value: `${inputs.dailyHours} h/day × ${inputs.daysPerWeek} days/wk × ${inputs.weeksPerYear} wks/yr` },
         { label: 'Annual operating hours (per machine)', value: `${hours.toLocaleString('en-US')} h/yr` },
-        { label: 'Duty cycle', value: `${band.label} — ${cElec} kWh/h electric · ${cDiesel} L/h diesel` },
+        { label: 'Comparison window', value: `${formatHours(selection.windowHours)} — ≈ ${formatYearsFromHours(selection.windowHours, hours)} at your hours` },
+        { label: 'Duty cycle', value: `${band.label} — ${Math.round(cElec)} kWh/h electric · ${Math.round(cDiesel)} L/h diesel` },
       ]} />
 
       <Band>Energy Prices</Band>

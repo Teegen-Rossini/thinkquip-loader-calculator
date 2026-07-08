@@ -28,7 +28,10 @@ export const COLORS = {
   thinkquipTurquoise: '#0AA6A0', // app chrome, header, nav
   sanyRed: '#E2231A', // SANY logo native red
   electricAccent: '#6BB8E0', // sky blue — SW956E card / chart line
-  dieselAccent: '#F2A93E', // amber-yellow — SYL956H5 card / chart line
+  dieselAccent: '#F2A93E', // amber-yellow — first diesel card / chart line
+  // Darker yellow for a SECOND selected diesel (dry vs wet) so the two diesel
+  // lines / time-bar segments stay distinguishable. Chart + bar share these.
+  dieselAccentDark: '#C9821B',
 };
 
 export const THINKQUIP_LOGO = thinkquipLogo;
@@ -40,9 +43,19 @@ export const COMPANY = {
   website: 'www.thinkquip.co.za',
 };
 
+/** "Prepared By" — the salesman block on the cover page (screen + print).
+ *  Fixed values, never user-editable. To issue quotes under a different
+ *  salesman, swap the three values below — this is the ONLY place they live.
+ *  Placeholder identity for this version: ThinkQuip itself. */
+export const PREPARED_BY = {
+  name: 'ThinkQuip',
+  cell: '+27 83 973 1378',
+  email: 'mathew@thinkquip.co.za',
+};
+
 /** SANY SW956E electric loader. Selling price is fixed (the 320 kW charger
  *  is included). Battery reaches replacement at 30,000 h — beyond the first
- *  owner's typical lifecycle and beyond the 20,000 h chart window. */
+ *  owner's typical lifecycle and beyond the 15,000 h chart window. */
 export const ELECTRIC_MACHINE = {
   id: 'sw956e',
   type: 'electric',
@@ -96,7 +109,7 @@ export const ELECTRIC_MACHINE = {
     confidence: 'confirmed',
   },
 
-  // Battery replacement lands at 30,000 h — beyond the 20,000 h chart, so it
+  // Battery replacement lands at 30,000 h — beyond the 15,000 h chart, so it
   // is NOT plotted on the curve; it is surfaced in the lifecycle table and a
   // callout as a "beyond the first owner's lifecycle" event.
   batteryReplacement: {
@@ -223,14 +236,14 @@ export const FUEL_THEFT_LEVELS = [
 /**
  * Diesel routine engine service (spec section 7). A continuous linear line at
  * R29/h — R29,000 @ 1,000 h rising to R377,000 @ 13,000 h — continued at the
- * same rate to the 20,000 h chart limit. There is no separate overhaul event.
+ * same rate to the chart limit. There is no separate overhaul event.
  * The electric machine carries NO mechanical-service line (R0/h) across the
  * whole chart — a genuine long-term advantage, not a missing value.
  */
 export const DIESEL_SERVICE = {
   ratePerHour: 29, // R29,000 per 1,000 h
   confidence: 'confirmed',
-  note: 'Routine engine service — R29,000 per 1,000 h (R29/h), linear from R29,000 @1,000h to R377,000 @13,000h and continued at the same rate to 20,000 h.',
+  note: 'Routine engine service — R29,000 per 1,000 h (R29/h), linear from R29,000 @1,000h to R377,000 @13,000h and continued at the same rate to the chart limit.',
 };
 
 /**
@@ -250,7 +263,7 @@ export const DEFAULT_PRICES = {
 export const CALC_DEFAULTS = {
   daysPerWeek: 6,
   weeksPerYear: 50,
-  chartMaxHours: 20000, // x-axis limit
+  chartMaxHours: 15000, // x-axis limit — most machines are sold before 20,000 h
   sliceYears: 0.25, // Δt for cumulative-cost stepping
   fleetSizeDefault: 1,
   fleetSizeMax: 4,

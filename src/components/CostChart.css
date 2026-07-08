@@ -123,6 +123,14 @@
   color: var(--text-heading);
 }
 
+/* The price gap between the machines at the hovered hour. */
+.cost-chart__tooltip-row--diff {
+  border-top: 1px dashed var(--border);
+  margin-top: 4px;
+  padding-top: 6px;
+  color: var(--text-muted);
+}
+
 .cost-chart__tooltip-logo {
   height: 14px;
   width: 20px;

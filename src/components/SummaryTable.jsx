@@ -95,7 +95,7 @@ export default function SummaryTable({ selection, inputs }) {
               <th>Energy / fuel / h</th>
               <th>Service / h</th>
               <th>Total / h</th>
-              {hasComparison && <th>Savings starts (vs {heroMachine.name})</th>}
+              {hasComparison && <th>Crossover (vs {heroMachine.name})</th>}
             </tr>
           </thead>
           <tbody>
@@ -104,7 +104,7 @@ export default function SummaryTable({ selection, inputs }) {
               return (
                 <tr key={r.machine.uid}>
                   <td><MachineName machine={r.machine} /></td>
-                  <td className="mono">{isElec(r) ? `${r.perHour.cElec} kWh/h` : `${r.perHour.cDiesel} L/h`}</td>
+                  <td className="mono">{isElec(r) ? `${Math.round(r.perHour.cElec)} kWh/h` : `${Math.round(r.perHour.cDiesel)} L/h`}</td>
                   <td className="mono">{formatCurrency(perHourEnergy(r))}</td>
                   <td className="mono">{isElec(r) ? 'R0' : formatCurrency(perHourService(r))}</td>
                   <td className="mono">{formatCurrency(perHourTotal(r))}</td>
@@ -112,9 +112,9 @@ export default function SummaryTable({ selection, inputs }) {
                     <td className="mono">
                       {!cmp
                         ? '—'
-                        : cmp.breakevenHours != null && cmp.breakevenHours <= maxHours
-                          ? `${formatHours(cmp.breakevenHours)} (~${formatYearsFromHours(cmp.breakevenHours, hoursPerYear)})`
-                          : `Beyond ${formatHours(maxHours)}`}
+                        : cmp.crossoverHours != null && cmp.crossoverHours <= maxHours
+                          ? `${cmp.crossoverDirection === 'loses' ? 'until' : 'from'} ${formatHours(cmp.crossoverHours)} (~${formatYearsFromHours(cmp.crossoverHours, hoursPerYear)})`
+                          : 'None in range'}
                     </td>
                   )}
                 </tr>
@@ -165,7 +165,7 @@ export default function SummaryTable({ selection, inputs }) {
         {electricSelected && (
           <p className="summary-note">
             The electric machine carries no mechanical-maintenance line until its battery reaches replacement at
-            {' '}{formatHours(battery.atHours)} — beyond the first owner’s lifecycle and the 20,000 h chart. That absence is the
+            {' '}{formatHours(battery.atHours)} — beyond the first owner’s lifecycle and the {formatHours(maxHours)} chart. That absence is the
             long-term advantage to highlight.
           </p>
         )}

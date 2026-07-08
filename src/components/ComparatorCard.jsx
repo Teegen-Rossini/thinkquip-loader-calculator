@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { formatCurrency, formatHours, formatYearsFromHours, variantName } from '../lib/format';
+import { formatCurrency, formatHours, formatYearsFromHours } from '../lib/format';
 import { applyVat } from '../lib/calculationEngine';
 import { CALC_DEFAULTS } from '../data/machinesConfig';
 import MachineName from './MachineName';
@@ -16,20 +16,18 @@ export default function ComparatorCard({ result, selection, inputs }) {
 
   const machine = result.machine;
   const isElectric = machine.type === 'electric';
-  const { battery, hoursPerYear, hasComparison, heroMachine } = selection;
+  const { battery, hoursPerYear, hasComparison } = selection;
   const per = result.perHour;
   const unitPrice = result.purchaseFleet / result.fleetSize;
   const maxHours = CALC_DEFAULTS.chartMaxHours;
 
-  // Comparison metrics for this machine vs the hero (only present for opponents
-  // when 2+ machines are selected). The hero card carries no "vs" row.
-  const cmp = selection.comparisons.find((c) => c.machine.uid === machine.uid);
   const isBestValue = hasComparison && machine.uid === selection.bestValueUid;
 
-  const energyPerH = applyVat(isElectric ? per.elecEnergyPerH : per.dieselFuelPerH, inputs);
-  const servicePerH = applyVat(isElectric ? per.elecMaintPerH : per.dieselServicePerH, inputs);
-  const totalPerH = applyVat(isElectric ? per.elecPerH : per.dieselPerH, inputs);
-  const consumption = isElectric ? `${per.cElec} kWh/h` : `${per.cDiesel} L/h`;
+  // Exactly three figures, per 1,000 h: energy, maintenance, and their tally.
+  const energyPer1000 = applyVat((isElectric ? per.elecEnergyPerH : per.dieselFuelPerH) * 1000, inputs);
+  const maintPer1000 = applyVat((isElectric ? per.elecMaintPerH : per.dieselServicePerH) * 1000, inputs);
+  const runningPer1000 = applyVat((isElectric ? per.elecPerH : per.dieselPerH) * 1000, inputs);
+  const consumption = isElectric ? `${Math.round(per.cElec)} kWh/h` : `${Math.round(per.cDiesel)} L/h`;
 
   const statusLabel = `${isElectric ? 'Electric' : 'Diesel'}${machine.variant ? ` · ${machine.variant}` : ''}`;
   const statusStyle = { background: machine.accentColor, color: isElectric ? '#0A2E40' : '#1A1A1A' };
@@ -37,7 +35,7 @@ export default function ComparatorCard({ result, selection, inputs }) {
 
   return (
     <div className={`comparator-card${isBestValue ? ' comparator-card--best' : ''}`} style={cardStyle}>
-      {isBestValue && <span className="comparator-card__ribbon">Lowest lifetime cost</span>}
+      {isBestValue && <span className="comparator-card__ribbon">Lowest cost at your window</span>}
 
       <div className="comparator-card__photo">
         <img src={machine.photo} alt={machine.displayName} loading="lazy" />
@@ -51,44 +49,19 @@ export default function ComparatorCard({ result, selection, inputs }) {
         <span className="status-badge" style={statusStyle}>{statusLabel}</span>
       </div>
 
-      <dl className="comparator-card__stats">
-        <div>
-          <dt>{isElectric ? 'Energy / h (yr 0)' : 'Fuel / h (yr 0)'}</dt>
-          <dd className="mono">{formatCurrency(energyPerH)}</dd>
+      <dl className="comparator-card__tally">
+        <div className="comparator-card__tally-row">
+          <dt>Cost of energy / 1,000 h <span className="comparator-card__tally-hint">({isElectric ? 'Electricity' : 'Diesel'})</span></dt>
+          <dd className="mono">{formatCurrency(energyPer1000)}</dd>
         </div>
-        <div>
-          <dt>{isElectric ? 'Maintenance / h' : 'Service / h'}</dt>
-          <dd className="mono">{isElectric ? 'R0' : formatCurrency(servicePerH)}</dd>
+        <div className="comparator-card__tally-row">
+          <dt>Mechanical maintenance / 1,000 h <span className="comparator-card__tally-hint">({isElectric ? 'None needed' : 'Mechanical service line'})</span></dt>
+          <dd className="mono">{isElectric ? 'R0' : formatCurrency(maintPer1000)}</dd>
         </div>
-        <div>
-          <dt>Total / h (yr 0)</dt>
-          <dd className="mono">{formatCurrency(totalPerH)}</dd>
+        <div className="comparator-card__tally-row comparator-card__tally-row--total">
+          <dt>Running cost / 1,000 h</dt>
+          <dd className="mono">= {formatCurrency(runningPer1000)}</dd>
         </div>
-        <div>
-          <dt>Cost at {formatHours(maxHours)}</dt>
-          <dd className="mono">{formatCurrency(result.tcoAtMax)}</dd>
-        </div>
-        {cmp && (cmp.sameRunningCosts ? (
-          <div>
-            <dt>Price vs {variantName(heroMachine)}</dt>
-            <dd className="mono">+{formatCurrency(cmp.priceGapFleet)}</dd>
-          </div>
-        ) : (
-          <div>
-            <dt>Savings start (vs {heroMachine.name})</dt>
-            <dd className="mono">
-              {cmp.breakevenHours != null && cmp.breakevenHours <= maxHours
-                ? `${formatHours(cmp.breakevenHours)} (~${formatYearsFromHours(cmp.breakevenHours, hoursPerYear)})`
-                : `Beyond ${formatHours(maxHours)}`}
-            </dd>
-          </div>
-        ))}
-        {isElectric && (
-          <div>
-            <dt>Mechanical service line</dt>
-            <dd className="mono">None (R0/h)</dd>
-          </div>
-        )}
       </dl>
 
       <button
@@ -145,7 +118,7 @@ export default function ComparatorCard({ result, selection, inputs }) {
               {battery && (
                 <p className="detail-note">
                   Battery reaches replacement at {formatHours(battery.atHours)} (~{formatYearsFromHours(battery.atHours, hoursPerYear)}) —
-                  beyond the 20,000 h chart and the first owner’s lifecycle. It carries no mechanical-maintenance line before then.
+                  beyond the {formatHours(maxHours)} chart and the first owner’s lifecycle. It carries no mechanical-maintenance line before then.
                 </p>
               )}
             </>

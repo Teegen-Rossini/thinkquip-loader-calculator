@@ -36,16 +36,22 @@ export default function PrintChart({ selection }) {
   const maxCost = Math.max(...machines.map((m) => m.tcoAtMax));
   const yTicks = niceTicks(maxCost);
   const yMax = yTicks[yTicks.length - 1];
-  const xTicks = [0, 5000, 10000, 15000, 20000];
+  const xTicks = [0, 2500, 5000, 7500, 10000, 12500, 15000];
 
   const x = (hours) => M.left + (hours / maxHours) * (W - M.left - M.right);
   const y = (cost) => H - M.bottom - (cost / yMax) * (H - M.top - M.bottom);
   const path = (series) => series.map((p, i) => `${i === 0 ? 'M' : 'L'}${x(p.hours).toFixed(1)},${y(p.cumulativeCost).toFixed(1)}`).join(' ');
 
-  // Break-even markers: hero vs each opponent, within the chart.
+  // Crossover markers: cheapest-at-window vs each opponent, within the chart —
+  // the SAME crossover hour shown on the Comparison page.
+  const markerInk = LABEL_INK[hero.machine.type] ?? '#3C86AD';
   const breakevens = comparisons
-    .filter((c) => c.breakevenHours != null && c.breakevenHours > 0 && c.breakevenHours <= maxHours)
-    .map((c) => ({ hours: c.breakevenHours, yPos: cumulativeCostAtHours(hero.series, c.breakevenHours) }));
+    .filter((c) => c.crossoverHours != null && c.crossoverHours > 0 && c.crossoverHours <= maxHours)
+    .map((c) => ({
+      hours: c.crossoverHours,
+      direction: c.crossoverDirection,
+      yPos: cumulativeCostAtHours(hero.series, c.crossoverHours),
+    }));
 
   // End labels: stack them so they never overlap when lines finish close together.
   const ends = machines
@@ -78,18 +84,25 @@ export default function PrintChart({ selection }) {
         Operating hours
       </text>
 
-      {/* break-even markers */}
-      {breakevens.map((b, i) => (
-        <g key={`be-${i}`}>
-          <line x1={x(b.hours)} x2={x(b.hours)} y1={M.top} y2={H - M.bottom} stroke="#3C86AD" strokeWidth="1.5" strokeDasharray="5 4" />
-          {i === 0 && (
-            <text x={x(b.hours)} y={M.top - 8} fontSize="12" fontWeight="700" fill="#3C86AD" textAnchor="middle">
-              Savings start {formatHoursCompact(b.hours)}
-            </text>
-          )}
-          <circle cx={x(b.hours)} cy={y(b.yPos)} r="6" fill="#3C86AD" stroke="#fff" strokeWidth="2" />
-        </g>
-      ))}
+      {/* crossover markers — label anchors inward near the edges so the text
+          never clips or collides with the axis labels */}
+      {breakevens.map((b, i) => {
+        const anchor = b.hours < maxHours * 0.12 ? 'start' : b.hours > maxHours * 0.88 ? 'end' : 'middle';
+        const dx = anchor === 'start' ? 4 : anchor === 'end' ? -4 : 0;
+        return (
+          <g key={`be-${i}`}>
+            <line x1={x(b.hours)} x2={x(b.hours)} y1={M.top} y2={H - M.bottom} stroke={markerInk} strokeWidth="2.5" strokeDasharray="6 5" />
+            {i === 0 && (
+              <text x={x(b.hours) + dx} y={M.top - 8} fontSize="13" fontWeight="700" fill={markerInk} textAnchor={anchor}>
+                {b.direction === 'loses'
+                  ? `Cheaper until ${formatHoursCompact(b.hours)}`
+                  : `Savings start ${formatHoursCompact(b.hours)}`}
+              </text>
+            )}
+            <circle cx={x(b.hours)} cy={y(b.yPos)} r="6" fill={markerInk} stroke="#fff" strokeWidth="2" />
+          </g>
+        );
+      })}
 
       {/* series */}
       {machines.map((m) => (

@@ -1,31 +1,47 @@
-import { applyVat } from '../lib/calculationEngine';
 import { formatCurrency, formatHours, formatYearsFromHours, variantName } from '../lib/format';
 import { CALC_DEFAULTS } from '../data/machinesConfig';
 import MachineName from './MachineName';
+import TimeWindowSlider from './TimeWindowSlider';
 import './HeroStat.css';
 
-export default function HeroStat({ selection, fleetSize, inputs }) {
-  const { machines, heroMachine, comparisons, hasComparison, battery, hoursPerYear } = selection;
+/**
+ * The Comparison page's top summary. Framing is NEUTRAL: whichever selected
+ * machine has the lowest total cost of ownership (purchase price + running
+ * costs) at the user-chosen time window is highlighted — electric OR diesel,
+ * and the answer may flip as the window slider moves. Every figure here
+ * recalculates live with the slider.
+ */
+export default function HeroStat({ selection, fleetSize, onUpdate }) {
+  const {
+    machines, hero, heroMachine, comparisons, hasComparison, battery,
+    hoursPerYear, windowHours, electricSelected,
+  } = selection;
   const maxHours = CALC_DEFAULTS.chartMaxHours;
   const fleetLabel = `${fleetSize} machine${fleetSize > 1 ? 's' : ''}`;
+  const windowLabel = formatHours(windowHours);
+  const windowYears = formatYearsFromHours(windowHours, hoursPerYear);
+  const setWindow = (comparisonWindowHours) => onUpdate({ comparisonWindowHours });
 
-  // ---- Single-selection: standalone results only, no comparison framing. ----
+  const yrs = (h) => formatYearsFromHours(h, hoursPerYear);
+
+  // ---- Single-selection: the machine's own total at the window, nothing else. ----
   if (!hasComparison) {
     const only = machines[0];
     const isElec = only.machine.type === 'electric';
-    const perH = applyVat(isElec ? only.perHour.elecPerH : only.perHour.dieselPerH, inputs);
 
     return (
       <div className="hero-stat">
         <div className="hero-stat__intro">
           <h3 className="hero-stat__title">
-            <MachineName machine={only.machine} /> — standalone cost
+            <MachineName machine={only.machine} /> — total cost
           </h3>
           <p className="hero-stat__lede">
-            Every figure below is for {fleetLabel} over {formatHours(maxHours)} of operation, using the operating inputs you
-            entered. Select a second machine on the Inputs tab to compare and reveal the savings and break-even point.
+            Total cost of ownership for {fleetLabel} — purchase price plus escalated running costs — measured at the
+            point on the slider. Select a second machine on the Inputs tab to compare.
           </p>
         </div>
+
+        <TimeWindowSlider selection={selection} windowHours={windowHours} onChange={setWindow} />
 
         <div className="hero-stat__grid">
           <div className="hero-compare" style={{ '--accent': only.machine.accentColor }}>
@@ -35,140 +51,129 @@ export default function HeroStat({ selection, fleetSize, inputs }) {
 
             <div className="hero-compare__stats">
               <div className="hero-compare__stat">
-                <span className="eyebrow">Total cost of ownership @ {formatHours(maxHours)}</span>
-                <span className="hero-compare__value mono">{formatCurrency(only.tcoAtMax)}</span>
-              </div>
-
-              <span className="hero-compare__divider" aria-hidden="true" />
-
-              <div className="hero-compare__stat">
-                <span className="eyebrow">Running cost / 1,000 h (year 0)</span>
-                <span className="hero-compare__value mono">{formatCurrency(perH * 1000 * fleetSize)}</span>
+                <span className="eyebrow">Total cost @ {windowLabel}</span>
+                <span className="hero-compare__value mono">{formatCurrency(only.tcoAtWindow)}</span>
+                <span className="hero-compare__sub">≈ {windowYears} at your operating hours</span>
               </div>
             </div>
 
             <p className="hero-compare__caption">
               {isElec && battery
-                ? `Battery replacement is projected at ${formatHours(battery.atHours)} (~${formatYearsFromHours(battery.atHours, hoursPerYear)} at these hours) — beyond the ${formatHours(maxHours)} window and the first owner’s lifecycle.`
+                ? `Battery replacement is projected at ${formatHours(battery.atHours)} (~${yrs(battery.atHours)} at these hours) — beyond the ${formatHours(maxHours)} window and the first owner’s lifecycle.`
                 : 'Includes continuous routine service at R29/h. No “vs” comparison is shown while a single machine is selected.'}
             </p>
           </div>
         </div>
-
       </div>
     );
   }
 
-  // ---- Comparison: hero vs each other selected machine. ----
+  // ---- Comparison: highlight the cheapest machine at the selected window. ----
   const heroName = variantName(heroMachine);
-  const opponentNames = comparisons.map((c) => variantName(c.machine)).join(', ');
-  // When every opponent runs at the hero's exact cost per hour (the two
-  // diesel brake variants), break-even framing is meaningless — the whole
-  // comparison is the purchase-price gap.
-  const allSameRunning = comparisons.every((c) => c.sameRunningCosts);
+  // Every opponent runs at the cheapest machine's exact cost per hour AND no
+  // electric machine is selected → the two diesel brake variants alone. The
+  // upfront price gap is the whole story: surface it ONCE here, up top.
+  const dieselsOnlySamePrice = !electricSelected && comparisons.every((c) => c.sameRunningCosts);
+
+  const crossoverCaption = (c) => {
+    const otherName = variantName(c.machine);
+    if (c.sameRunningCosts) {
+      return `The ${otherName} runs at exactly the same cost per hour, so the ${formatCurrency(c.priceGapFleet)} purchase-price gap never closes or grows.`;
+    }
+    if (c.crossoverDirection === 'gains') {
+      return `The ${heroName} is cheaper from ${formatHours(c.crossoverHours)} (~${yrs(c.crossoverHours)} at your hours) onward.`;
+    }
+    if (c.crossoverDirection === 'loses') {
+      return `The ${heroName} is cheaper until ${formatHours(c.crossoverHours)} (~${yrs(c.crossoverHours)} at your hours) — beyond that the ${otherName} takes the lead.`;
+    }
+    return `The ${heroName} stays cheaper across the whole 0–${formatHours(maxHours)} range at these inputs.`;
+  };
 
   return (
     <div className="hero-stat">
       <div className="hero-stat__intro">
         <h3 className="hero-stat__title">
-          {heroName} vs {opponentNames}
+          Cheapest at {windowLabel}: {heroName}
         </h3>
         <p className="hero-stat__lede">
-          Every figure below is for {fleetLabel} over {formatHours(maxHours)} of operation, using the operating inputs you
-          entered. Each card compares the {heroName} against one of the other machines you selected.
+          Total cost of ownership for {fleetLabel} — purchase price plus escalated running costs — measured at the
+          point on the slider. Move it to the hours you expect to sell or replace at; every figure below (and the
+          printed brochure) follows it.
         </p>
-        {allSameRunning ? (
-          <p className="hero-stat__legend">
-            <span>
-              <strong>Price difference</strong> — these machines run at exactly the same cost per hour at your inputs, so
-              the comparison comes down to what you pay upfront. That gap never closes or grows over the machine&rsquo;s life.
-            </span>
-          </p>
-        ) : (
-          <p className="hero-stat__legend">
-            <span>
-              <strong>Savings starts</strong> — the operating-hours point where the {heroName}&rsquo;s higher purchase
-              price is fully repaid by its lower running costs. From there on, you&rsquo;re saving money.
-            </span>
-            <span>
-              <strong>Saving by choosing the {heroName}</strong> — total money you keep versus that machine, measured
-              at {formatHours(maxHours)}.
-            </span>
-          </p>
-        )}
       </div>
 
+      <TimeWindowSlider selection={selection} windowHours={windowHours} onChange={setWindow} />
+
       <div className="hero-stat__grid">
-        {comparisons.map((c) => {
-          const hasBreakeven = c.breakevenHours != null && c.breakevenHours <= maxHours;
-          const hasSavings = c.savingsAtMax != null && c.savingsAtMax > 0;
-          return (
+        <div className="hero-compare hero-compare--cheapest" style={{ '--accent': heroMachine.accentColor }}>
+          <div className="hero-compare__head">
+            <MachineName machine={heroMachine} as="h4" className="hero-compare__name" />
+            <span className="hero-compare__tag">Cheapest</span>
+          </div>
+          <div className="hero-compare__stats">
+            <div className="hero-compare__stat">
+              <span className="eyebrow">Total cost @ {windowLabel}</span>
+              <span className="hero-compare__value mono">{formatCurrency(hero.tcoAtWindow)}</span>
+              <span className="hero-compare__sub">≈ {windowYears} at your operating hours</span>
+            </div>
+          </div>
+          <p className="hero-compare__caption">
+            Lowest total cost of ownership of the {machines.length} selected machines at this window — including
+            purchase price, energy{electricSelected ? ' and service' : ' and the R29/h routine service'}.
+          </p>
+        </div>
+
+        {dieselsOnlySamePrice ? (
+          <div className="hero-compare" style={{ '--accent': comparisons[0].machine.accentColor }}>
+            <div className="hero-compare__head">
+              <span className="hero-compare__vs">vs</span>
+              <MachineName machine={comparisons[0].machine} as="h4" className="hero-compare__name" />
+            </div>
+            <div className="hero-compare__stats">
+              <div className="hero-compare__stat">
+                <span className="eyebrow">Upfront price difference ({fleetLabel})</span>
+                <span className="hero-compare__value hero-compare__value--save mono">
+                  {formatCurrency(comparisons[0].priceGapFleet)}
+                </span>
+              </div>
+            </div>
+            <p className="hero-compare__caption">
+              Same machine, same running costs — the brake option changes only the purchase price, so this upfront
+              gap is the whole story and holds at every hour.
+            </p>
+          </div>
+        ) : (
+          comparisons.map((c) => (
             <div key={c.machine.uid} className="hero-compare" style={{ '--accent': c.machine.accentColor }}>
               <div className="hero-compare__head">
                 <span className="hero-compare__vs">vs</span>
                 <MachineName machine={c.machine} as="h4" className="hero-compare__name" />
               </div>
 
-              {c.sameRunningCosts ? (
-                <>
-                  <div className="hero-compare__stats">
-                    <div className="hero-compare__stat">
-                      <span className="eyebrow">Price difference ({fleetLabel})</span>
-                      <span className="hero-compare__value hero-compare__value--save">
-                        <span className="mono">{formatCurrency(c.priceGapFleet)}</span>
-                      </span>
-                    </div>
+              <div className="hero-compare__stats">
+                <div className="hero-compare__stat">
+                  <span className="eyebrow">Costs more @ {windowLabel}</span>
+                  <span className="hero-compare__value hero-compare__value--save mono">
+                    {c.gapAtWindow > 0 ? `+${formatCurrency(c.gapAtWindow)}` : '—'}
+                  </span>
+                </div>
 
-                    <span className="hero-compare__divider" aria-hidden="true" />
+                <span className="hero-compare__divider" aria-hidden="true" />
 
-                    <div className="hero-compare__stat">
-                      <span className="eyebrow">Running cost / h (year 0)</span>
-                      <span className="hero-compare__value">
-                        <span className="hero-compare__muted">Identical</span>
-                      </span>
-                    </div>
-                  </div>
+                <div className="hero-compare__stat">
+                  <span className="eyebrow">Crossover</span>
+                  <span className="hero-compare__value">
+                    {c.sameRunningCosts || c.crossoverHours == null
+                      ? <span className="hero-compare__muted">None in range</span>
+                      : <span className="mono">{c.crossoverDirection === 'loses' ? 'until ' : 'from '}{formatHours(c.crossoverHours)}</span>}
+                  </span>
+                </div>
+              </div>
 
-                  <p className="hero-compare__caption">
-                    The {variantName(c.machine)} costs {formatCurrency(c.priceGapFleet)} more to buy than the {heroName} and
-                    runs at the same cost per hour, so the {heroName} stays exactly that much cheaper across the full{' '}
-                    {formatHours(maxHours)}.
-                  </p>
-                </>
-              ) : (
-                <>
-                  <div className="hero-compare__stats">
-                    <div className="hero-compare__stat">
-                      <span className="eyebrow">Savings starts</span>
-                      <span className="hero-compare__value">
-                        {hasBreakeven
-                          ? <span className="mono">{formatHours(c.breakevenHours)}</span>
-                          : <span className="hero-compare__muted">&gt; {formatHours(maxHours)}</span>}
-                      </span>
-                    </div>
-
-                    <span className="hero-compare__divider" aria-hidden="true" />
-
-                    <div className="hero-compare__stat">
-                      <span className="eyebrow">Saving @ {formatHours(maxHours)}</span>
-                      <span className="hero-compare__value hero-compare__value--save">
-                        {hasSavings
-                          ? <span className="mono">{formatCurrency(c.savingsAtMax)}</span>
-                          : <span className="hero-compare__muted">—</span>}
-                      </span>
-                    </div>
-                  </div>
-
-                  <p className="hero-compare__caption">
-                    {hasBreakeven
-                      ? `${heroName} is cheaper from ${formatHours(c.breakevenHours)} (~${formatYearsFromHours(c.breakevenHours, hoursPerYear)} at these hours) onward.`
-                      : `${variantName(c.machine)} stays cheaper within the ${formatHours(maxHours)} window at these inputs — try adjusting utilization or duty.`}
-                  </p>
-                </>
-              )}
+              <p className="hero-compare__caption">{crossoverCaption(c)}</p>
             </div>
-          );
-        })}
+          ))
+        )}
       </div>
     </div>
   );

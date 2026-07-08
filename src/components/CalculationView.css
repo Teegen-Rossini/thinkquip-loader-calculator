@@ -83,6 +83,38 @@
   flex-shrink: 0;
 }
 
+/* Calculation on the left, plain-language grey explanation on the right —
+   with a clear gap so the two never collide; stacks below ~720px. */
+.calc-row {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: 8px 24px;
+  align-items: start;
+  margin-bottom: 10px;
+}
+
+.calc-row .calc-eq,
+.calc-row .calc-list {
+  margin-bottom: 0;
+}
+
+.calc-why {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  line-height: 1.55;
+  padding-top: 4px;
+  min-width: 0;
+}
+
+@media (max-width: 720px) {
+  .calc-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .calc-why {
+    padding-top: 0;
+  }
+}
+
 .calc-eq {
   font-size: 13px;
   background: var(--surface-alt);

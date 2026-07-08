@@ -5,7 +5,7 @@
  * No component or React state should duplicate this math.
  *
  * Model (spec sections 4-10):
- *  - The x-axis is OPERATING HOURS, 0 → 20,000 h.
+ *  - The x-axis is OPERATING HOURS, 0 → 15,000 h.
  *  - Consumption is interpolated continuously from the operation slider.
  *  - Cumulative cost is built by stepping in Δt = 0.25-year time slices; each
  *    slice spans H·Δt hours and is escalated at its midpoint year.
@@ -13,6 +13,11 @@
  *    service. Electric: electricity only (always counted); no service line.
  *  - Battery replacement lands at 30,000 h — BEYOND the chart, so it is never
  *    plotted; it is surfaced separately with its calendar year 30,000 / H.
+ *  - Comparison framing is NEUTRAL: at the user-chosen comparison window
+ *    (0 → 15,000 h) the machine with the lowest total cost of ownership —
+ *    purchase price plus all running costs — is the "cheapest" anchor, be it
+ *    electric or diesel. There is at most one crossover between any two
+ *    total-cost lines; the same crossover hour feeds every view.
  */
 
 import {
@@ -194,6 +199,34 @@ export function findBreakevenHours(electricSeries, dieselSeries) {
 }
 
 /**
+ * The single hour (interpolated) where two total-cost lines cross — the point
+ * where the sign of (costB − costA) flips — or null if they never cross
+ * within the series (including two lines that only differ by a constant, e.g.
+ * the two diesel brake variants). Direction-agnostic: this is THE one
+ * crossover event every view (comparison text, chart marker, print) must
+ * share, per the model's "at most one crossover between two machines".
+ */
+export function findCrossoverHours(seriesA, seriesB) {
+  const xs = [...new Set([...seriesA.map((p) => p.hours), ...seriesB.map((p) => p.hours)])].sort((a, b) => a - b);
+  let prevDiff = null;
+  let prevX = null;
+  for (const x of xs) {
+    const a = cumulativeCostAtHours(seriesA, x);
+    const b = cumulativeCostAtHours(seriesB, x);
+    if (a == null || b == null) continue;
+    const diff = b - a;
+    if (prevDiff != null && ((prevDiff < 0 && diff >= 0) || (prevDiff > 0 && diff <= 0))) {
+      const span = x - prevX;
+      const frac = diff - prevDiff === 0 ? 0 : -prevDiff / (diff - prevDiff);
+      return prevX + frac * span;
+    }
+    prevDiff = diff;
+    prevX = x;
+  }
+  return null;
+}
+
+/**
  * The intuitive year-0 breakeven: capital price gap ÷ year-0 hourly saving.
  * A sanity-check companion to the fuller escalated breakeven.
  */
@@ -237,22 +270,64 @@ export function orderedSelection(modelIds) {
 /**
  * Year-0 "simple" break-even between a hero machine (higher capital, lower
  * running) and one opponent: hero's capital premium ÷ hero's hourly saving.
- * Returns null when the hero has no hourly advantage (nothing to repay).
+ * Returns null when the hero has no capital premium to repay or no hourly
+ * advantage — with the neutral hero either side can hold either edge.
  */
 export function simpleBreakevenBetween(hero, opponent) {
   const priceGap = hero.machine.price - opponent.machine.price;
   const hourlyGap = totalPerHourFor(opponent) - totalPerHourFor(hero);
-  if (hourlyGap <= 0) return null;
+  if (priceGap <= 0 || hourlyGap <= 0) return null;
   return priceGap / hourlyGap;
 }
 
 /**
+ * Piecewise "who is cheaper" segments along 0 → maxHours, for the two-colour
+ * comparison time bar. Returns [{ uid, from, to }] in order; each boundary is
+ * the exact crossover hour between the adjacent segments' machines, so the
+ * bar's colour-change point IS the crossover shown everywhere else. A single
+ * machine yields one full-width segment.
+ */
+export function cheaperSegments(machines, maxHours) {
+  if (!machines.length) return [];
+  if (machines.length === 1) return [{ uid: machines[0].machine.uid, from: 0, to: maxHours }];
+
+  const xs = [...new Set(machines.flatMap((m) => m.series.map((p) => p.hours)))]
+    .filter((x) => x <= maxHours)
+    .sort((a, b) => a - b);
+  if (xs[xs.length - 1] < maxHours) xs.push(maxHours);
+
+  const cheapestAt = (x) => machines.reduce((best, m) =>
+    (cumulativeCostAtHours(m.series, x) < cumulativeCostAtHours(best.series, x) ? m : best), machines[0]);
+
+  const segments = [];
+  let current = cheapestAt(0);
+  let from = 0;
+  for (const x of xs) {
+    const now = cheapestAt(x);
+    if (now.machine.uid !== current.machine.uid) {
+      // Boundary = the exact crossover between the outgoing and incoming lines.
+      const cross = findCrossoverHours(current.series, now.series);
+      const boundary = cross != null && cross > from && cross <= x ? cross : x;
+      segments.push({ uid: current.machine.uid, from, to: boundary });
+      current = now;
+      from = boundary;
+    }
+  }
+  segments.push({ uid: current.machine.uid, from, to: maxHours });
+  return segments;
+}
+
+/**
  * Runs the full selected SET of machines. Each selected option becomes its own
- * cost series (fleet size applies per machine). One "hero" anchors the
- * comparisons — the electric machine when selected, otherwise the cheapest
- * selected machine. Savings / break-even are produced ONLY when 2+ machines
- * are selected; with a single machine the comparison arrays are empty and its
- * standalone results still stand on their own.
+ * cost series (fleet size applies per machine). Framing is NEUTRAL: the
+ * machine with the lowest total cost of ownership at the user-chosen
+ * comparison window (`inputs.comparisonWindowHours`, default = the chart
+ * limit) anchors every comparison — electric or diesel, whichever is cheaper.
+ * For each other machine it returns its cost gap at the window and the single
+ * crossover hour between the two total-cost lines, with the direction the
+ * cheapest machine's lead runs ('gains' = cheaper from X onward, 'loses' =
+ * cheaper until X, null = cheaper across the whole range / no crossing).
+ * Savings / crossover outputs are produced ONLY when 2+ machines are selected.
  */
 export function runSelection({ inputs, fleetSize = 1 }) {
   const selected = orderedSelection(inputs.machineModelIds);
@@ -261,39 +336,49 @@ export function runSelection({ inputs, fleetSize = 1 }) {
 
   const electricSelected = machines.some((m) => m.machine.type === 'electric');
 
-  // Hero: electric if present, else the lowest-capital machine.
-  let heroIndex = 0;
-  if (electricSelected) {
-    heroIndex = machines.findIndex((m) => m.machine.type === 'electric');
-  } else {
-    heroIndex = machines.reduce((best, m, i, arr) => (m.machine.price < arr[best].machine.price ? i : best), 0);
-  }
-  const hero = machines[heroIndex];
+  // The comparison window (0 → chart limit). Every window-dependent figure —
+  // totals, the cheapest call, gaps, crossover text — derives from this.
+  const maxHours = CALC_DEFAULTS.chartMaxHours;
+  const rawWindow = Number(inputs.comparisonWindowHours);
+  const windowHours = Number.isFinite(rawWindow)
+    ? Math.max(0, Math.min(maxHours, rawWindow))
+    : maxHours;
+
+  machines.forEach((m) => { m.tcoAtWindow = cumulativeCostAtHours(m.series, windowHours); });
+
+  // Cheapest total cost of ownership at the window anchors the comparison.
+  const cheapestIndex = machines.reduce(
+    (best, m, i, arr) => (m.tcoAtWindow < arr[best].tcoAtWindow ? i : best), 0);
+  const hero = machines[cheapestIndex];
 
   const hasComparison = machines.length >= 2;
 
   const comparisons = hasComparison
     ? machines
         .map((result, index) => ({ result, index }))
-        .filter(({ index }) => index !== heroIndex)
-        .map(({ result }) => ({
-          machine: result.machine,
-          result,
-          // True when this machine runs at exactly the hero's cost per hour
-          // (e.g. the two SYL956H5 brake variants, which differ ONLY in
-          // price) — break-even framing is meaningless there, so the views
-          // compare on the price gap instead.
-          sameRunningCosts: totalPerHourFor(result) === totalPerHourFor(hero),
-          priceGapFleet: result.purchaseFleet - hero.purchaseFleet,
-          breakevenHours: findBreakevenHours(hero.series, result.series),
-          simpleBreakevenHours: simpleBreakevenBetween(hero, result),
-          savingsAtMax: savingsAtHours(hero.series, result.series, CALC_DEFAULTS.chartMaxHours),
-        }))
+        .filter(({ index }) => index !== cheapestIndex)
+        .map(({ result }) => {
+          const crossoverHours = findCrossoverHours(hero.series, result.series);
+          // Price gap at hour 0 tells which side of the crossover the cheapest
+          // machine started on: more expensive at 0 → it GAINS the lead at the
+          // crossover; cheaper at 0 → it LOSES the lead there.
+          const diffAtZero = result.series[0].cumulativeCost - hero.series[0].cumulativeCost;
+          return {
+            machine: result.machine,
+            result,
+            // True when this machine runs at exactly the cheapest machine's
+            // cost per hour (e.g. the two SYL956H5 brake variants, which
+            // differ ONLY in price) — crossover framing is meaningless there,
+            // so the views compare on the price gap instead.
+            sameRunningCosts: totalPerHourFor(result) === totalPerHourFor(hero),
+            priceGapFleet: result.purchaseFleet - hero.purchaseFleet,
+            crossoverHours,
+            crossoverDirection: crossoverHours == null ? null : (diffAtZero < 0 ? 'gains' : 'loses'),
+            gapAtWindow: result.tcoAtWindow - hero.tcoAtWindow,
+            simpleBreakevenHours: simpleBreakevenBetween(hero, result),
+          };
+        })
     : [];
-
-  // Best overall value = lowest TCO at the chart limit (drives the ribbon).
-  const bestValueIndex = machines.reduce(
-    (best, m, i, arr) => (m.tcoAtMax < arr[best].tcoAtMax ? i : best), 0);
 
   return {
     machines,
@@ -303,7 +388,10 @@ export function runSelection({ inputs, fleetSize = 1 }) {
     comparisons,
     hasComparison,
     electricSelected,
-    bestValueUid: machines[bestValueIndex].machine.uid,
+    bestValueUid: hero.machine.uid,
+    windowHours,
+    windowYears: hero.hoursPerYear > 0 ? windowHours / hero.hoursPerYear : null,
+    segments: cheaperSegments(machines, maxHours),
     battery: electricSelected
       ? batteryReplacementProjection(inputs, machines.find((m) => m.machine.type === 'electric')?.machine)
       : null,

@@ -6,19 +6,23 @@ Guidance for working in this repository.
 
 The **ThinkQuip SANY Electric Loader Savings Calculator** — an in-person sales
 tool. A salesperson enters a customer's operating parameters; the app produces a
-cost comparison arguing for the **SANY SW956E electric wheel loader** vs. the
-**SANY SYL956H5 diesel** loader, backed by the customer's own numbers. The
-cumulative **cost-over-operating-hours** chart with the crossover (breakeven)
-point is the centerpiece.
+**neutral** cost comparison between the **SANY SW956E electric wheel loader**
+and the **SANY SYL956H5 diesel** loader, backed by the customer's own numbers.
+It highlights whichever machine has the **lower total cost of ownership**
+(purchase price + all running costs) at a **user-chosen comparison window** —
+the answer can be electric OR diesel and may flip as the window moves. The
+cumulative **cost-over-operating-hours** chart with the crossover point is the
+centerpiece.
 
 The tool models **one SANY family in two forms** — the SW956E electric loader
 and the SYL956H5 diesel loader (dry or wet brake, which changes only the diesel
 price). The user **multi-selects** any combination of the three options
-(`electric`, `diesel-dry`, `diesel-wet`) to compare; the electric machine is the
-"hero" that savings/breakeven are measured against. There are **no competitor
-machines** (CAT / Komatsu / Volvo were removed, including from the printed
-brochure), **no solar**, **no tender logic**, and **no separate charging-
-infrastructure cost** (the charger is included in the electric price).
+(`electric`, `diesel-dry`, `diesel-wet`) to compare; the comparison anchor
+("hero") is **whichever selected machine is cheapest at the window** — do NOT
+hard-assume electric wins. There are **no competitor machines** (CAT / Komatsu /
+Volvo were removed, including from the printed brochure), **no solar**, **no
+tender logic**, and **no separate charging-infrastructure cost** (the charger is
+included in the electric price).
 
 ThinkQuip owns the tool and is an **authorized SANY distributor**; this is
 surfaced as co-branding in the sticky header and the print cover. Brand roles
@@ -69,16 +73,20 @@ npm run lint     # oxlint
 ## App flow
 
 Landing `Dashboard` → then a tab bar: **01 Inputs** → **02 Comparison** →
-**03 Cost Over Time** → **04 Calculations** → **05 Spec Sheet**. Note: `activeTab`
-initializes to `'dashboard'`, which is intentionally **not** a member of the
-`TABS` array — the dashboard is a separate landing view rendered outside the tab
-bar. Keep that in mind before touching navigation.
+**03 Cost Over Time** → **04 Spec Sheet** → **05 Calculations**. Calculations is
+deliberately **last** (swapped with Spec Sheet). Note: `activeTab` initializes
+to `'dashboard'`, which is intentionally **not** a member of the `TABS` array —
+the dashboard is a separate landing view rendered outside the tab bar. Keep that
+in mind before touching navigation.
 
 Every tab carries a `PageNav` footer: a yellow **NEXT** button bottom-right and
-(except Inputs) a yellow **PREVIOUS** button bottom-left, all identical size. The
-Spec Sheet's next slot is replaced by a turquoise **PRINT / SAVE AS PDF** button
-(same action as the header button). The Dashboard's five "how it works" tiles
-mirror the five tabs.
+(except Inputs) a yellow **PREVIOUS** button bottom-left, all identical size.
+The **Calculations** tab (the final page) has its next slot replaced by a
+turquoise **PRINT / SAVE AS PDF** button (same action as the header button).
+Nav/CTA buttons carry a subtle top-light gradient + inner highlight for depth —
+texture only, never a size/position change. The header gradient runs **dark
+left → light right** so the white ThinkQuip logo sits on the darker field. The
+Dashboard's "how it works" tiles mirror the tab order (Calculations last).
 
 Customer inputs are persisted to `localStorage` under
 `thinkquip-loader-calc-draft-v2` and restored on load (a legacy single-select
@@ -99,8 +107,9 @@ computes `Page X of Y`, so page numbers stay correct whichever pages render:
 1. **Cover** (`PrintCover`) — logos, customer/date fields, hero cutout, headline stats.
 2. **Inputs & Assumptions** (`PrintInputsPage`) — lists every selected machine.
 3. **Machine Comparison** (`PrintComparisonPage`) — one column per selected
-   machine; the "where the lines cross" savings block appears only when 2+ are
-   selected.
+   machine (totals at the comparison window); the neutral "Cheapest at X h"
+   block with gaps and directional crossovers appears only when 2+ are
+   selected. **The printed figures follow the on-screen window slider.**
 4. **Cost Over Operating Hours** (`PrintTimelinePage`) — the chart re-rendered as
    **pure static SVG** (`PrintChart.jsx`, no Recharts — Recharts can't render in
    the hidden print DOM), plotting every selected series, plus a sampled-points
@@ -139,11 +148,18 @@ machine selections of one, two and all three.
 - **Fuel-theft control** (`fuelTheftLevel`): low/moderate/well → θ 10/3.5/1% on
   diesel fuel only.
 - **Fleet size** (1–4): multiplies all costs by N.
+- **Comparison window** (`comparisonWindowHours`, 0 → 15,000, default 15,000):
+  set by the slider on the **Comparison** page, not the Inputs tab. Drives every
+  window-dependent figure on screen AND in the printed brochure (a salesman sets
+  it to the customer's expected sell/replace hours, then prints).
+- **Displayed decimals are rounded** (consumption readouts to whole kWh/h · L/h,
+  θ to one decimal) — display only; the engine keeps full precision.
 
 ## The financial model (important conventions)
 
-- **X-axis is OPERATING HOURS, 0 → 20,000 h** (`CALC_DEFAULTS.chartMaxHours`),
-  not years. Convert with `t(x) = x / H`.
+- **X-axis is OPERATING HOURS, 0 → 15,000 h** (`CALC_DEFAULTS.chartMaxHours` —
+  lowered from 20,000 because most machines are sold before then), not years.
+  Convert with `t(x) = x / H`.
 - **Consumption is continuous.** Interpolated linearly between the breakpoints in
   `CONSUMPTION_BREAKPOINTS` (electric 20→40 kWh/h, diesel 10→16 L/h across slider
   50→100). The bands are only where the slope changes.
@@ -155,39 +171,80 @@ machine selections of one, two and all three.
   electricity +8%, maintenance/service +6%, battery replacement **−5%** (it
   declines — do not inflate it).
 - **Battery replacement @ 30,000 h** (electric only, base R1,120,000, escalated
-  by (0.95)^t). This is **beyond the 20,000 h chart** — it is **never plotted on
+  by (0.95)^t). This is **beyond the 15,000 h chart** — it is **never plotted on
   the curve**. It is surfaced in the lifecycle/spec tables and a chart callout,
   labelled as occurring beyond the first owner's lifecycle. Its calendar year =
   30,000 / H (`batteryReplacementProjection`).
 - **No diesel overhaul event.** Diesel maintenance is the continuous R29/h
   routine-service line (`DIESEL_SERVICE`), linear R29,000 @1,000h → R377,000
-  @13,000h, continued at the same rate to 20,000 h. Electric carries **no
+  @13,000h, continued at the same rate to the chart limit. Electric carries **no
   mechanical-service line (R0/h)** — a deliberate long-term advantage to surface.
 - **Fleet scaling:** every cost (capital, energy, service) scales ×N. The charger
   is included in the electric price, so there is no separate infra line.
-- **Selection & hero (`runSelection`):** the engine builds one cost series per
-  selected option (fleet size applies **per machine**). A single **hero** anchors
-  comparisons — the electric machine when selected, else the cheapest selected
-  machine. For every other selected machine it returns `Savings(x) =
-  TCO_other − TCO_hero`, breakeven = smallest hour where Savings ≥ 0
-  (`findBreakevenHours`), and a simple year-0 breakeven (price gap ÷ hourly saving)
-  as a sanity check.
+- **Selection & the neutral hero (`runSelection`):** the engine builds one cost
+  series per selected option (fleet size applies **per machine**). The **hero**
+  that anchors comparisons is the machine with the **lowest TCO at the
+  comparison window** (`inputs.comparisonWindowHours`) — never hard-coded to
+  electric. For every other selected machine it returns `gapAtWindow`
+  (TCO_other − TCO_hero at the window), the single `crossoverHours` between the
+  two total-cost lines (`findCrossoverHours`) with `crossoverDirection`
+  (`'gains'` = hero cheaper from X onward, `'loses'` = hero cheaper until X,
+  `null` = no crossing in range), and a simple year-0 breakeven (price gap ÷
+  hourly saving) as a sanity check. It also returns `segments`
+  (`cheaperSegments`) — the piecewise cheapest machine along 0 → 15,000 h that
+  drives the **two-colour time bar** under the window slider; the bar's colour
+  change point IS the crossover hour.
+- **One crossover, everywhere.** The crossover hour shown in the Comparison
+  text, the chart's marker ("Savings start" / "Cheaper until"), and the print
+  pages is the SAME `crossoverHours` value — never compute it twice.
 - **Single-selection hides comparison:** when only one machine is selected there
-  is nothing to compare, so **all** savings / breakeven / "vs" outputs are
-  **hidden entirely** (not blanked or zeroed) across every tab; the machine's own
-  standalone results still show. `selection.hasComparison` gates this.
+  is nothing to compare, so **all** gap / crossover / "vs" outputs are
+  **hidden entirely** (not blanked or zeroed) across every tab; the machine
+  shows only its own total cost at the window. `selection.hasComparison` gates
+  this. The time bar is then a single solid colour.
+- **Wet/dry price-gap placement:** when ONLY the two diesels are selected, the
+  R350,000 upfront gap is surfaced ONCE in the Comparison page's top summary —
+  never repeated in the machine cards. When electric is also selected (3
+  machines), the wet/dry price difference is not called out anywhere; each
+  non-cheapest machine just shows its gap vs the cheapest.
+- **Two-diesel shading:** the second diesel model gets a **darker yellow**
+  (`COLORS.dieselAccentDark`, assigned in `machinesRepo`) so two diesel chart
+  lines / bar segments stay distinguishable everywhere.
 - **VAT** is a display toggle (`vatInclusive`), applied at the engine's output
   boundary via `applyVat`, at the SA rate in `CALC_DEFAULTS.vatRate` (15%).
 
-## The Calculations tab
+## The Comparison page
+
+`HeroStat` is the top summary: the **0 → 15,000 h window slider**
+(`TimeWindowSlider`) whose track is the two-colour cheaper-machine bar (hours +
+equivalent years shown live), a highlighted "Cheapest at X h" card, and one
+card per other machine showing its cost gap at the window and the directional
+crossover ("cheaper from X h onward" / "cheaper until X h"). Below it, each
+`ComparatorCard` shows exactly **three per-1,000 h figures** — Cost of energy
+("(Electricity)" / "(Diesel)"), Mechanical maintenance ("(None needed)" /
+"(Mechanical service line)"), and Running cost laid out as their **tally** (a
+ruled "=" total row) — plus the price header and the expandable spec details.
+No savings/crossover info lives in the machine cards.
+
+The Cost Over Time chart's hover tooltip includes a **Difference** row (the
+price gap between the machines at the hovered hour); its crossover marker is a
+thick dotted line with a bold label, directional like the Comparison text.
+
+## The Calculations tab (now the LAST tab)
 
 `CalculationView` transparently shows, with the live input numbers plugged in:
 global H and the four escalation formulas once, then **for each selected machine**
-the slider→consumption interpolation arithmetic, its year-0 per-hour cost lines,
-sampled (hour, year, cumulative) points, and (electric only) the
-battery-replacement injection, ending in that machine's TCO. A final savings /
-breakeven section (simple year-0 + escalated) appears **only when 2+ machines are
-selected**. Figures are normalized to per-machine, ex-VAT for readability.
+the slider→consumption interpolation arithmetic (the variable is written
+**"Consumption"**, not "C"), its year-0 per-hour cost lines, sampled (hour,
+year, cumulative) points, and (electric only) the battery-replacement
+injection, ending in that machine's TCO at the comparison window. A final cost
+gap / crossover section (simple year-0 check + full escalated crossover)
+appears **only when 2+ machines are selected**. Figures are normalized to
+per-machine, ex-VAT for readability. **Every calculation carries a
+plain-language explanation** in grey to its right (`CalcRow` / `.calc-why` —
+two-column grid, stacking below ~720px): concepts are explained in words
+("grows 6% every year, compounded"), not just symbols — keep that pattern when
+adding steps.
 
 ## Data confidence system — fully removed from the UI
 

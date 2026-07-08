@@ -39,15 +39,6 @@ export default function InputForm({ inputs, onUpdate, onSelectMachineType, onTog
 
   return (
     <form className="input-form" onSubmit={(e) => e.preventDefault()}>
-      <div className="input-card input-card--wide">
-        <label className="field__label" htmlFor="preparedFor">
-          Prepared for <span className="field__optional">(optional — appears on the printed cover page)</span>
-        </label>
-        <input id="preparedFor" type="text" placeholder="Customer / company name"
-          value={inputs.preparedFor}
-          onChange={(e) => onUpdate({ preparedFor: e.target.value })} />
-      </div>
-
       <div className="input-grid">
         <section className="input-card input-card--wide">
           <h3>Machine Type</h3>
@@ -145,7 +136,7 @@ export default function InputForm({ inputs, onUpdate, onSelectMachineType, onTog
             </span>
             <div className="slider-labels">
               <span className="slider-labels__band">{band.label} duty</span>
-              <span className="mono">{cElec} kWh/h · {cDiesel} L/h</span>
+              <span className="mono">{Math.round(cElec)} kWh/h · {Math.round(cDiesel)} L/h</span>
             </div>
             <input type="range" min="50" max="100" step="1" className="slider"
               value={inputs.operationSlider}

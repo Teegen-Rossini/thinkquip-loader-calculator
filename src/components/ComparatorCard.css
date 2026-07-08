@@ -102,26 +102,60 @@
   flex-shrink: 0;
 }
 
-.comparator-card__stats {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px 14px;
+/* Three-figure tally: energy + maintenance, then their SUM as the total row. */
+.comparator-card__tally {
   margin: 14px 0 12px;
 }
 
-.comparator-card__stats dt {
+.comparator-card__tally-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+}
+
+.comparator-card__tally-row dt {
   font-size: 10.5px;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  margin-bottom: 2px;
+  min-width: 0;
 }
 
-.comparator-card__stats dd {
+.comparator-card__tally-hint {
+  display: block;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 10.5px;
+  color: var(--text-muted);
+  opacity: 0.85;
+}
+
+.comparator-card__tally-row dd {
   margin: 0;
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 600;
   color: var(--text);
+  white-space: nowrap;
+}
+
+/* The total reads as the tally of the two rows above it. */
+.comparator-card__tally-row--total {
+  border-top: 2px solid var(--card-accent, var(--border));
+  margin-top: 4px;
+  padding-top: 9px;
+}
+
+.comparator-card__tally-row--total dt {
+  color: var(--text-heading);
+  font-weight: 700;
+}
+
+.comparator-card__tally-row--total dd {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-heading);
 }
 
 .comparator-card__toggle {

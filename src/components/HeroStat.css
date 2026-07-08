@@ -129,6 +129,18 @@
   font-weight: 500;
 }
 
+.hero-compare__sub {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* The cheapest-at-window machine gets the emphasis treatment. */
+.hero-compare--cheapest {
+  background: var(--surface-alt);
+  border-color: var(--accent, var(--border));
+  box-shadow: var(--shadow-sm);
+}
+
 .hero-compare__tag {
   display: inline-block;
   margin-left: 6px;

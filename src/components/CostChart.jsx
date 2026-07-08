@@ -41,6 +41,12 @@ function ChartTooltip({ active, payload, label, machinesByUid, winnerUid, hoursP
   if (!active || !payload?.length) return null;
   const hours = Number(label);
   const rows = payload.filter((p) => p.value != null).sort((a, b) => a.value - b.value);
+  // Price gap at the hovered hour: cheapest machine vs each other machine.
+  const cheapest = rows[0];
+  const differences = rows.slice(1).map((p) => ({
+    machine: machinesByUid.get(p.dataKey),
+    gap: p.value - cheapest.value,
+  }));
 
   return (
     <div className="cost-chart__tooltip">
@@ -57,6 +63,14 @@ function ChartTooltip({ active, payload, label, machinesByUid, winnerUid, hoursP
           </div>
         );
       })}
+      {differences.map(({ machine, gap }) => machine && (
+        <div key={`diff-${machine.uid}`} className="cost-chart__tooltip-row cost-chart__tooltip-row--diff">
+          <span className="cost-chart__tooltip-name">
+            Difference{differences.length > 1 ? ` vs ${modelOnly(machine.displayName)}` : ''}
+          </span>
+          <span className="cost-chart__tooltip-value mono">{formatCurrency(gap)}</span>
+        </div>
+      ))}
     </div>
   );
 }
@@ -70,15 +84,39 @@ export default function CostChart({ selection }) {
   const machinesByUid = useMemo(() => new Map(machines.map((m) => [m.uid, m])), [machines]);
   const chartData = useMemo(() => buildChartData(results), [results]);
 
-  // Break-even markers: one per opponent (hero-vs-opponent), within the chart.
+  // Crossover markers: one per opponent (cheapest-vs-opponent), within the
+  // chart. Same crossover hour the Comparison page describes — one event.
   const breakevens = useMemo(() => comparisons
-    .filter((c) => c.breakevenHours != null && c.breakevenHours > 0 && c.breakevenHours <= maxHours)
+    .filter((c) => c.crossoverHours != null && c.crossoverHours > 0 && c.crossoverHours <= maxHours)
     .map((c) => ({
       uid: c.machine.uid,
       name: c.machine.name,
-      hours: c.breakevenHours,
-      y: cumulativeCostAtHours(hero.series, c.breakevenHours),
+      hours: c.crossoverHours,
+      direction: c.crossoverDirection,
+      y: cumulativeCostAtHours(hero.series, c.crossoverHours),
     })), [comparisons, hero, maxHours]);
+
+  // Crossover-label layout: when two markers sit close enough for their text
+  // to collide, drop the later label onto a second row; labels near the chart
+  // edges anchor inward so they never clip or sit over the axis text.
+  const labelMeta = useMemo(() => {
+    const sorted = [...breakevens].sort((a, b) => a.hours - b.hours);
+    const meta = new Map();
+    let prevHours = -Infinity;
+    let prevRow = 0;
+    for (const b of sorted) {
+      const tooClose = b.hours - prevHours < maxHours * 0.18; // ≈ label width in hours
+      const row = tooClose && prevRow === 0 ? 1 : 0;
+      meta.set(b.uid, {
+        row,
+        anchor: b.hours < maxHours * 0.09 ? 'start' : b.hours > maxHours * 0.91 ? 'end' : 'middle',
+      });
+      prevHours = b.hours;
+      prevRow = row;
+    }
+    return meta;
+  }, [breakevens, maxHours]);
+  const hasSecondLabelRow = breakevens.some((b) => labelMeta.get(b.uid)?.row === 1);
 
   const winnerUid = useMemo(() => {
     if (!hasComparison || hoverHours == null) return null;
@@ -110,14 +148,14 @@ export default function CostChart({ selection }) {
       <ResponsiveContainer width="100%" height={420}>
         <LineChart
           data={chartData}
-          margin={{ top: 24, right: 24, left: 8, bottom: 8 }}
+          margin={{ top: hasSecondLabelRow ? 40 : 24, right: 24, left: 8, bottom: 8 }}
           onMouseMove={handleMove}
           onClick={handleMove}
           onMouseLeave={handleLeave}
         >
           <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
           <XAxis dataKey="hours" type="number" domain={[0, maxHours]}
-            ticks={[0, 2500, 5000, 7500, 10000, 12500, 15000, 17500, 20000]}
+            ticks={[0, 2500, 5000, 7500, 10000, 12500, 15000]}
             tickFormatter={formatHoursCompact} stroke="var(--text-muted)"
             label={{ value: 'Operating hours', position: 'insideBottom', offset: -4, fill: 'var(--text-muted)' }} />
           <YAxis tickFormatter={formatCurrencyCompact} stroke="var(--text-muted)" width={70} />
@@ -128,14 +166,21 @@ export default function CostChart({ selection }) {
               key={`be-${b.uid}`}
               x={b.hours}
               stroke={hero.machine.chartColor}
-              strokeDasharray="4 4"
-              label={(props) => (
-                <text x={props.viewBox.x} y={14} textAnchor="middle" fill={hero.machine.chartColor} fontSize={11}>
-                  {breakevens.length > 1
-                    ? `vs ${b.name} ${formatHoursCompact(b.hours)}`
-                    : `Savings start ${formatHoursCompact(b.hours)}`}
-                </text>
-              )}
+              strokeWidth={2.5}
+              strokeDasharray="6 5"
+              label={(props) => {
+                const { row, anchor } = labelMeta.get(b.uid) ?? { row: 0, anchor: 'middle' };
+                const dx = anchor === 'start' ? 4 : anchor === 'end' ? -4 : 0;
+                return (
+                  <text x={props.viewBox.x + dx} y={14 + row * 16} textAnchor={anchor} fill={hero.machine.chartColor} fontSize={13} fontWeight={700}>
+                    {breakevens.length > 1
+                      ? `vs ${b.name} ${formatHoursCompact(b.hours)}`
+                      : b.direction === 'loses'
+                        ? `Cheaper until ${formatHoursCompact(b.hours)}`
+                        : `Savings start ${formatHoursCompact(b.hours)}`}
+                  </text>
+                );
+              }}
             />
           ))}
           {breakevens.map((b) => (
@@ -180,7 +225,7 @@ export default function CostChart({ selection }) {
       {battery && (
         <p className="cost-chart__note">
           Battery replacement lands at {formatHours(battery.atHours)} (~{formatYearsFromHours(battery.atHours, hoursPerYear)}) — beyond this
-          20,000 h chart and the first owner’s lifecycle, so it is not plotted here. Escalated cost when it lands:{' '}
+          {' '}{formatHours(maxHours)} chart and the first owner’s lifecycle, so it is not plotted here. Escalated cost when it lands:{' '}
           <strong className="mono">{formatCurrency(battery.escalatedCost)}</strong>.
         </p>
       )}
