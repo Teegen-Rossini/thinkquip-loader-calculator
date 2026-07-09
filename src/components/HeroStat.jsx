@@ -13,7 +13,7 @@ import './HeroStat.css';
  */
 export default function HeroStat({ selection, fleetSize, onUpdate }) {
   const {
-    machines, hero, heroMachine, comparisons, hasComparison, battery,
+    machines, hero, heroMachine, comparisons, hasComparison,
     hoursPerYear, windowHours, electricSelected,
   } = selection;
   const maxHours = CALC_DEFAULTS.chartMaxHours;
@@ -58,8 +58,8 @@ export default function HeroStat({ selection, fleetSize, onUpdate }) {
             </div>
 
             <p className="hero-compare__caption">
-              {isElec && battery
-                ? `Battery replacement is projected at ${formatHours(battery.atHours)} (~${yrs(battery.atHours)} at these hours) — beyond the ${formatHours(maxHours)} window and the first owner’s lifecycle.`
+              {isElec
+                ? 'Running cost is electricity only — no mechanical service line. No “vs” comparison is shown while a single machine is selected.'
                 : 'Includes continuous routine service at R29/h. No “vs” comparison is shown while a single machine is selected.'}
             </p>
           </div>

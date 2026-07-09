@@ -62,7 +62,6 @@ export default function PrintInputsPage({ selection, inputs, pageNumber, pageCou
         { label: 'Diesel fuel', value: pct(ESCALATION.dieselFuel) },
         { label: 'Electricity', value: pct(ESCALATION.electricity) },
         { label: 'Routine service (diesel)', value: pct(ESCALATION.maintenance) },
-        { label: 'Battery replacement (declines)', value: pct(ESCALATION.batteryReplacement) },
       ]} />
 
       <p className="print-note">

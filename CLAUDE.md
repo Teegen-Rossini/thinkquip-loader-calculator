@@ -169,12 +169,16 @@ machine selections of one, two and all three.
   R29·(1.06)^t. See `buildCostSeries`.
 - **Escalation is real, not flat.** Rates in `ESCALATION`: diesel fuel +6%,
   electricity +8%, maintenance/service +6%, battery replacement **−5%** (it
-  declines — do not inflate it).
-- **Battery replacement @ 30,000 h** (electric only, base R1,120,000, escalated
-  by (0.95)^t). This is **beyond the 15,000 h chart** — it is **never plotted on
-  the curve**. It is surfaced in the lifecycle/spec tables and a chart callout,
-  labelled as occurring beyond the first owner's lifecycle. Its calendar year =
-  30,000 / H (`batteryReplacementProjection`).
+  declines — do not inflate it; chat-assistant knowledge only, see below).
+- **Battery replacement — removed from the visible UI, kept in the chat
+  assistant** (July 2026, at Michael's request). No screen tab, chart callout,
+  Calculations step or printed-brochure element mentions the 30,000 h battery
+  replacement — do **not** reintroduce it there. It survives ONLY in the chat
+  assistant layer: the engine's `batteryReplacementProjection` and
+  `selection.battery` feed `chatPageContext.js` and the generated knowledge
+  base (`scripts/generate-knowledge.mjs`, `content/`), all framed as
+  "background knowledge — mention only if the customer asks". Data lives in
+  `machines.json` (`costs.batteryReplacement`: 30,000 h, R1,120,000).
 - **No diesel overhaul event.** Diesel maintenance is the continuous R29/h
   routine-service line (`DIESEL_SERVICE`), linear R29,000 @1,000h → R377,000
   @13,000h, continued at the same rate to the chart limit. Electric carries **no
@@ -233,11 +237,10 @@ thick dotted line with a bold label, directional like the Comparison text.
 ## The Calculations tab (now the LAST tab)
 
 `CalculationView` transparently shows, with the live input numbers plugged in:
-global H and the four escalation formulas once, then **for each selected machine**
+global H and the three escalation formulas once, then **for each selected machine**
 the slider→consumption interpolation arithmetic (the variable is written
-**"Consumption"**, not "C"), its year-0 per-hour cost lines, sampled (hour,
-year, cumulative) points, and (electric only) the battery-replacement
-injection, ending in that machine's TCO at the comparison window. A final cost
+**"Consumption"**, not "C"), its year-0 per-hour cost lines, and sampled (hour,
+year, cumulative) points, ending in that machine's TCO at the comparison window. A final cost
 gap / crossover section (simple year-0 check + full escalated crossover)
 appears **only when 2+ machines are selected**. Figures are normalized to
 per-machine, ex-VAT for readability. **Every calculation carries a

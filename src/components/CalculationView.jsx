@@ -36,7 +36,7 @@ function CalcRow({ children, why }) {
 
 export default function CalculationView({ selection, inputs }) {
   const {
-    machines, hero, heroMachine, comparisons, hasComparison, battery,
+    machines, hero, heroMachine, comparisons, hasComparison,
     fleetSize, windowHours,
   } = selection;
   const H = annualHours(inputs);
@@ -83,15 +83,14 @@ export default function CalculationView({ selection, inputs }) {
             <li>Diesel fuel price × (1.06)<sup>t</sup> (+6%/yr)</li>
             <li>Electricity price × (1.08)<sup>t</sup> (+8%/yr)</li>
             <li>Routine service × (1.06)<sup>t</sup> (+6%/yr)</li>
-            <li>Battery replacement × (0.95)<sup>t</sup> (−5%/yr — declines)</li>
           </ul>
           <p className="calc-why">
             Prices don&rsquo;t stand still, so each cost grows at its own yearly rate, compounded. &ldquo;× (1.06)<sup>t</sup>&rdquo;
             means &ldquo;grows 6% every year — t years from now the price has been multiplied by 1.06 that many
-            times&rdquo;. Battery prices are the exception: they are projected to FALL 5% a year, so that multiplier shrinks.
+            times&rdquo;.
           </p>
         </div>
-        <p className="calc-note">Steps b, c, e, f and g below are shown for each selected machine in turn.</p>
+        <p className="calc-note">Steps b, c, e and f below are shown for each selected machine in turn.</p>
       </section>
 
       {machines.map((r) => {
@@ -180,21 +179,8 @@ export default function CalculationView({ selection, inputs }) {
               <p className="calc-note">Each point = purchase price + Σ escalated slice costs up to that hour.</p>
             </div>
 
-            {isElec && battery && (
-              <div className="calc-step">
-                <h5><span className="calc-step__tag">f</span> Battery replacement injection</h5>
-                <CalcRow
-                  why="The battery is only due at 30,000 hours — far beyond this comparison window. Its cost when it lands is today's price shrunk by 5% for every year until then, because battery prices are falling."
-                >
-                  Lands at {formatHours(battery.atHours)} → year {n(battery.year, 1)} = 30,000 / {n(H, 0)}.
-                  Cost = {formatCurrency(battery.baseCost)} × (0.95)<sup>{n(battery.year, 1)}</sup> = <strong>{formatCurrency(battery.escalatedCost)}</strong>
-                </CalcRow>
-                <p className="calc-note">Beyond the {formatHours(maxHours)} chart and the first owner’s lifecycle, so it is not plotted on the curve.</p>
-              </div>
-            )}
-
             <div className="calc-step calc-step--result">
-              <h5><span className="calc-step__tag">g</span> Total cost of ownership</h5>
+              <h5><span className="calc-step__tag">f</span> Total cost of ownership</h5>
               <div className="calc-row">
                 <div className="calc-output">
                   <span className="calc-output__label">TCO @ {formatHours(windowHours)} (your comparison window)</span>
@@ -212,7 +198,7 @@ export default function CalculationView({ selection, inputs }) {
 
       {hasComparison && (
         <section className="calc-step calc-step--result">
-          <h4><span className="calc-step__tag">h</span> Cost gap &amp; crossover (vs {variantName(heroMachine)}, the cheapest at {formatHours(windowHours)})</h4>
+          <h4><span className="calc-step__tag">g</span> Cost gap &amp; crossover (vs {variantName(heroMachine)}, the cheapest at {formatHours(windowHours)})</h4>
           {comparisons.map((c) => {
             const priceGap = heroMachine.price - c.machine.price;
             const hourlyGap = totalPerHourFor(c.result) - totalPerHourFor(hero);

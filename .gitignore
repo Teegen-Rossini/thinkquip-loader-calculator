@@ -12,6 +12,11 @@ dist
 dist-ssr
 *.local
 
+# API keys for the RAG chatbot (ingest + serverless function) — never commit
+.env
+.env.*
+!.env.example
+
 # Claude Code local settings
 .claude/settings.local.json
 

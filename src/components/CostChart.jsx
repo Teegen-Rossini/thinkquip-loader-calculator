@@ -76,7 +76,7 @@ function ChartTooltip({ active, payload, label, machinesByUid, winnerUid, hoursP
 }
 
 export default function CostChart({ selection }) {
-  const { machines: results, hero, comparisons, battery, hasComparison, hoursPerYear } = selection;
+  const { machines: results, hero, comparisons, hasComparison, hoursPerYear } = selection;
   const [hoverHours, setHoverHours] = useState(null);
   const maxHours = CALC_DEFAULTS.chartMaxHours;
 
@@ -219,14 +219,6 @@ export default function CostChart({ selection }) {
       {winnerUid && winnerCost != null && (
         <p className="cost-chart__winner">
           Cheaper at {formatHours(hoverHours)}: <strong>{winnerMachine.displayName}</strong> ({formatCurrency(winnerCost)})
-        </p>
-      )}
-
-      {battery && (
-        <p className="cost-chart__note">
-          Battery replacement lands at {formatHours(battery.atHours)} (~{formatYearsFromHours(battery.atHours, hoursPerYear)}) — beyond this
-          {' '}{formatHours(maxHours)} chart and the first owner’s lifecycle, so it is not plotted here. Escalated cost when it lands:{' '}
-          <strong className="mono">{formatCurrency(battery.escalatedCost)}</strong>.
         </p>
       )}
 

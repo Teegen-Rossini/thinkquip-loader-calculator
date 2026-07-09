@@ -11,10 +11,9 @@ function pct(rate) {
 }
 
 /** Brochure section 4 — the centerpiece cumulative cost-over-hours chart as
- *  static print SVG, its sampled data table, and (when electric is selected)
- *  the battery-replacement callout that lands beyond the chart. */
+ *  static print SVG, plus its sampled data table. */
 export default function PrintTimelinePage({ selection, inputs, pageNumber, pageCount }) {
-  const { machines, hero, heroMachine, comparisons, hasComparison, battery, hoursPerYear, windowHours } = selection;
+  const { machines, hero, heroMachine, comparisons, hasComparison, hoursPerYear, windowHours } = selection;
   const maxHours = CALC_DEFAULTS.chartMaxHours;
   // Sample points derive from the live chart horizon; the customer's chosen
   // comparison window is always among them (highlighted below).
@@ -79,18 +78,6 @@ export default function PrintTimelinePage({ selection, inputs, pageNumber, pageC
           ))}
         </tbody>
       </table>
-
-      {battery && (
-        <div className="print-callout">
-          <p className="print-callout__value">Battery replacement: {formatHours(battery.atHours)}</p>
-          <p className="print-callout__text">
-            The SW956E battery reaches replacement at {formatHours(battery.atHours)} — roughly{' '}
-            {formatYearsFromHours(battery.atHours, hoursPerYear)} at your hours, beyond this {formatHours(maxHours)} window
-            and the first owner&rsquo;s typical lifecycle, so it is not on the curve above. Projected cost per machine when it
-            lands (battery prices are falling {pct(ESCALATION.batteryReplacement)}/yr): <strong>{formatCurrency(battery.escalatedCost)}</strong>.
-          </p>
-        </div>
-      )}
 
       <p className="print-note">
         Projection escalates diesel fuel {pct(ESCALATION.dieselFuel)}/yr, electricity {pct(ESCALATION.electricity)}/yr and

@@ -54,8 +54,7 @@ export const PREPARED_BY = {
 };
 
 /** SANY SW956E electric loader. Selling price is fixed (the 320 kW charger
- *  is included). Battery reaches replacement at 30,000 h — beyond the first
- *  owner's typical lifecycle and beyond the 15,000 h chart window. */
+ *  is included). */
 export const ELECTRIC_MACHINE = {
   id: 'sw956e',
   type: 'electric',
@@ -109,9 +108,10 @@ export const ELECTRIC_MACHINE = {
     confidence: 'confirmed',
   },
 
-  // Battery replacement lands at 30,000 h — beyond the 15,000 h chart, so it
-  // is NOT plotted on the curve; it is surfaced in the lifecycle table and a
-  // callout as a "beyond the first owner's lifecycle" event.
+  // Battery replacement was removed from every screen and print surface
+  // (July 2026) — do not reintroduce it in the UI. It survives ONLY as
+  // chat-assistant knowledge (chatPageContext / generate-knowledge), which
+  // reads the copy of this data in machines.json.
   batteryReplacement: {
     atHours: 30000,
     baseCost: 1120000,
@@ -276,7 +276,8 @@ export const CALC_DEFAULTS = {
 /**
  * Annual escalation assumptions (spec section 8) — running costs compound
  * per year; the battery-replacement lump sum DECLINES (batteryReplacement is
- * negative — battery cost is projected to fall).
+ * negative — battery cost is projected to fall). batteryReplacement feeds only
+ * the chat assistant's projection — no screen or print surface shows it.
  */
 export const ESCALATION = {
   dieselFuel: 0.06,

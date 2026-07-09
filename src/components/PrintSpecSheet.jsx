@@ -1,6 +1,6 @@
 import { DIESEL_SERVICE, ESCALATION } from '../data/machinesConfig';
 import { operationBand } from '../lib/calculationEngine';
-import { formatCurrency, formatHours } from '../lib/format';
+import { formatCurrency } from '../lib/format';
 import { PrintPage, PageHeader, Band, SpecRows } from './PrintKit';
 
 const TINT = { electric: 'var(--sany-electric-light)', diesel: 'var(--sany-diesel-light)' };
@@ -25,11 +25,10 @@ function Block({ title, rows }) {
  * on a tinted hero panel with the price, then banded two-column spec sections.
  * Figures come from machinesConfig.js and this machine's computed result.
  */
-export default function PrintSpecSheet({ result, selection, inputs, pageNumber, pageCount, isLast }) {
+export default function PrintSpecSheet({ result, inputs, pageNumber, pageCount, isLast }) {
   const machine = result.machine;
   const isElectric = machine.type === 'electric';
   const per = result.perHour;
-  const battery = selection.battery;
   const band = operationBand(inputs.operationSlider);
 
   const identity = [
@@ -73,14 +72,6 @@ export default function PrintSpecSheet({ result, selection, inputs, pageNumber, 
           rows: [
             { label: 'Service life', value: machine.serviceLifeHours.label },
             { label: 'Mechanical service line', value: 'R0 — none required' },
-            {
-              label: `Battery replacement @ ${formatHours(machine.batteryReplacement.atHours)}`,
-              value: formatCurrency(machine.batteryReplacement.baseCost),
-            },
-            ...(battery ? [{
-              label: 'Projected when it lands (prices falling)',
-              value: formatCurrency(battery.escalatedCost),
-            }] : []),
           ],
         },
         { title: 'Warranty', rows: warrantyRows(machine) },

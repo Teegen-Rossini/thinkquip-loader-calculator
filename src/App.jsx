@@ -8,6 +8,7 @@ import {
   LEGACY_OPTION_TO_MODEL,
 } from './data/machinesRepo';
 import { runSelection } from './lib/calculationEngine';
+import { buildPageContext } from './lib/chatPageContext';
 import Dashboard from './components/Dashboard';
 import InputForm from './components/InputForm';
 import TabBar from './components/TabBar';
@@ -20,6 +21,7 @@ import CalculationView from './components/CalculationView';
 import PageNav from './components/PageNav';
 import SummaryTable from './components/SummaryTable';
 import PrintBrochure from './components/PrintBrochure';
+import ChatWidget from './ChatWidget';
 import './App.css';
 
 const DRAFT_STORAGE_KEY = 'thinkquip-loader-calc-draft-v2';
@@ -296,11 +298,13 @@ function App() {
         </section>
       </main>
 
+      <ChatWidget pageContext={buildPageContext({ activeTab, inputs, selection })} />
+
       {!isDashboard && (
         <footer className="app-footer no-print">
           <p>
-            Projections apply researched annual escalation trends (diesel, electricity, routine service and battery
-            replacement costs) to the operating inputs and manufacturer figures shown above &mdash; not a forecast of your
+            Projections apply researched annual escalation trends (diesel, electricity and routine service costs) to
+            the operating inputs and manufacturer figures shown above &mdash; not a forecast of your
             business income. Planning estimate only &mdash; final pricing, maintenance, finance and availability must be
             confirmed before purchase.
           </p>

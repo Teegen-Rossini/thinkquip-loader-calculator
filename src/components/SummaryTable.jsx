@@ -10,7 +10,7 @@ function formatRate(rate) {
 }
 
 export default function SummaryTable({ selection, inputs }) {
-  const { machines, comparisons, hasComparison, battery, heroMachine, electricSelected, hoursPerYear } = selection;
+  const { machines, comparisons, hasComparison, heroMachine, electricSelected, hoursPerYear } = selection;
   const maxHours = CALC_DEFAULTS.chartMaxHours;
   const vatInclusive = inputs.vatInclusive;
   const priceLabel = vatInclusive ? 'Unit price (incl. VAT)' : 'Unit price (excl. VAT)';
@@ -125,7 +125,7 @@ export default function SummaryTable({ selection, inputs }) {
       </div>
 
       <div className="summary-table-block">
-        <h3>Engine / Battery Maintenance</h3>
+        <h3>Mechanical Maintenance</h3>
         <table className="summary-table">
           <thead>
             <tr>
@@ -143,10 +143,10 @@ export default function SummaryTable({ selection, inputs }) {
                 return (
                   <tr key={m.uid}>
                     <td><MachineName machine={m} /></td>
-                    <td>Battery replacement</td>
-                    <td className="mono">{formatCurrency(battery.baseCost)} base</td>
-                    <td className="mono">{formatHours(battery.atHours)} (~{formatYearsFromHours(battery.atHours, hoursPerYear)})</td>
-                    <td className="mono">{formatRate(battery.rate)}</td>
+                    <td>No mechanical service line</td>
+                    <td className="mono">R0/h</td>
+                    <td className="mono">—</td>
+                    <td className="mono">—</td>
                   </tr>
                 );
               }
@@ -164,8 +164,7 @@ export default function SummaryTable({ selection, inputs }) {
         </table>
         {electricSelected && (
           <p className="summary-note">
-            The electric machine carries no mechanical-maintenance line until its battery reaches replacement at
-            {' '}{formatHours(battery.atHours)} — beyond the first owner’s lifecycle and the {formatHours(maxHours)} chart. That absence is the
+            The electric machine carries no mechanical-maintenance line across the whole {formatHours(maxHours)} chart. That absence is the
             long-term advantage to highlight.
           </p>
         )}
@@ -179,7 +178,7 @@ export default function SummaryTable({ selection, inputs }) {
           <li><strong>Fuel theft:</strong> diesel fuel cost × (1 + θ) for the selected site-control level; electricity is never affected.</li>
           <li>
             <strong>Escalation assumptions:</strong> diesel fuel {formatRate(ESCALATION.dieselFuel)}, electricity {formatRate(ESCALATION.electricity)},
-            routine service {formatRate(ESCALATION.maintenance)}, battery replacement {formatRate(ESCALATION.batteryReplacement)} —
+            routine service {formatRate(ESCALATION.maintenance)} —
             researched trends applied per 0.25-year slice at its midpoint year, not flat projections.
           </li>
           <li><strong>Pricing shown:</strong> {vatInclusive ? 'Includes 15% VAT.' : 'Excludes VAT — toggle "Show prices including VAT" on the Inputs tab to add 15%.'}</li>

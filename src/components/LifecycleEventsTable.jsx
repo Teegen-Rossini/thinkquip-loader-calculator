@@ -1,9 +1,8 @@
-import { formatCurrency, formatHours, formatYearsFromHours } from '../lib/format';
 import MachineName from './MachineName';
 import './LifecycleEventsTable.css';
 
 export default function LifecycleEventsTable({ selection, onViewAssumptions }) {
-  const { machines, battery, hoursPerYear, electricSelected } = selection;
+  const { machines, electricSelected } = selection;
 
   return (
     <div className="lifecycle-table panel-surface">
@@ -13,7 +12,7 @@ export default function LifecycleEventsTable({ selection, onViewAssumptions }) {
           <thead>
             <tr>
               <th>Machine</th>
-              <th>Engine / battery maintenance</th>
+              <th>Mechanical maintenance</th>
               <th>When</th>
             </tr>
           </thead>
@@ -24,8 +23,8 @@ export default function LifecycleEventsTable({ selection, onViewAssumptions }) {
                 return (
                   <tr key={m.uid}>
                     <td><MachineName machine={m} /></td>
-                    <td className="mono">Battery replacement · {formatCurrency(battery.baseCost)} base</td>
-                    <td className="mono">{formatHours(battery.atHours)} (~{formatYearsFromHours(battery.atHours, hoursPerYear)})</td>
+                    <td className="mono">No mechanical service line · R0/h</td>
+                    <td className="mono">—</td>
                   </tr>
                 );
               }
@@ -44,8 +43,7 @@ export default function LifecycleEventsTable({ selection, onViewAssumptions }) {
         {electricSelected ? (
           <p>
             The diesel machine’s routine service runs continuously; the electric machine carries <strong>no mechanical-maintenance
-            line</strong> until its battery reaches replacement at {formatHours(battery.atHours)} — beyond the first owner’s
-            lifecycle. That is the point to highlight.
+            line</strong>. That is the point to highlight.
           </p>
         ) : (
           <p>

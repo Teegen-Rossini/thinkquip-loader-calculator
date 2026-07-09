@@ -21,7 +21,7 @@ const HOW_IT_WORKS = [
 
 const FEATURES = [
   { Icon: ShieldIcon, title: 'Accurate Cost Model', body: 'Real-world escalation over operating hours' },
-  { Icon: LifecycleIcon, title: 'Lifecycle Planning', body: 'Battery replacement and routine service' },
+  { Icon: LifecycleIcon, title: 'Lifecycle Planning', body: 'Routine service and running costs over the machine’s life' },
   { Icon: ConfidenceIcon, title: 'Transparent Maths', body: 'Every step shown on the Calculations tab' },
   { Icon: ResearchIcon, title: 'Research Based', body: 'SANY data and transparent assumptions' },
 ];

@@ -11,8 +11,6 @@
  *    slice spans H·Δt hours and is escalated at its midpoint year.
  *  - Diesel: fuel (× (1+θ) theft, only if fuel is included) + R29/h routine
  *    service. Electric: electricity only (always counted); no service line.
- *  - Battery replacement lands at 30,000 h — BEYOND the chart, so it is never
- *    plotted; it is surfaced separately with its calendar year 30,000 / H.
  *  - Comparison framing is NEUTRAL: at the user-chosen comparison window
  *    (0 → 15,000 h) the machine with the lowest total cost of ownership —
  *    purchase price plus all running costs — is the "cheapest" anchor, be it
@@ -240,6 +238,9 @@ export function simpleBreakevenHours({ electricPrice, dieselPrice, per }) {
 /**
  * Escalated (declining) battery-replacement lump sum at its landing year, for
  * a given electric machine (defaults to the first electric model on file).
+ * NOT rendered anywhere on screen or in the printed brochure (removed July
+ * 2026) — it feeds only the chat assistant (chatPageContext / the generated
+ * knowledge base) so the assistant can answer battery questions.
  */
 export function batteryReplacementProjection(inputs, machine) {
   const electric = machine ?? ALL_MODELS.find((m) => m.type === 'electric');
@@ -392,6 +393,7 @@ export function runSelection({ inputs, fleetSize = 1 }) {
     windowHours,
     windowYears: hero.hoursPerYear > 0 ? windowHours / hero.hoursPerYear : null,
     segments: cheaperSegments(machines, maxHours),
+    // Chat-assistant context only — no screen or print component renders this.
     battery: electricSelected
       ? batteryReplacementProjection(inputs, machines.find((m) => m.machine.type === 'electric')?.machine)
       : null,

@@ -1,25 +1,18 @@
 import { useState } from 'react';
-import { formatCurrency, formatHours, formatYearsFromHours } from '../lib/format';
+import { formatCurrency } from '../lib/format';
 import { applyVat } from '../lib/calculationEngine';
-import { CALC_DEFAULTS } from '../data/machinesConfig';
 import MachineName from './MachineName';
 import { ArrowRightIcon } from './icons';
 import './ComparatorCard.css';
-
-function formatRate(rate) {
-  const pct = Math.round(rate * 1000) / 10;
-  return `${pct > 0 ? '+' : ''}${pct}%/yr`;
-}
 
 export default function ComparatorCard({ result, selection, inputs }) {
   const [expanded, setExpanded] = useState(false);
 
   const machine = result.machine;
   const isElectric = machine.type === 'electric';
-  const { battery, hoursPerYear, hasComparison } = selection;
+  const { hasComparison } = selection;
   const per = result.perHour;
   const unitPrice = result.purchaseFleet / result.fleetSize;
-  const maxHours = CALC_DEFAULTS.chartMaxHours;
 
   const isBestValue = hasComparison && machine.uid === selection.bestValueUid;
 
@@ -107,20 +100,9 @@ export default function ComparatorCard({ result, selection, inputs }) {
                 <span className="detail-row__label">Battery / charger</span>
                 <span className="mono">{machine.battery.capacityKWh} kWh · {machine.battery.chargerRatingKW} kW charger (incl.)</span>
               </div>
-              {battery && (
-                <div className="detail-row">
-                  <span className="detail-row__label">Battery replacement</span>
-                  <span className="mono">
-                    {formatCurrency(battery.baseCost)} base @ {formatHours(battery.atHours)}, {formatRate(battery.rate)}
-                  </span>
-                </div>
-              )}
-              {battery && (
-                <p className="detail-note">
-                  Battery reaches replacement at {formatHours(battery.atHours)} (~{formatYearsFromHours(battery.atHours, hoursPerYear)}) —
-                  beyond the {formatHours(maxHours)} chart and the first owner’s lifecycle. It carries no mechanical-maintenance line before then.
-                </p>
-              )}
+              <p className="detail-note">
+                The electric machine carries no mechanical-maintenance line — its running cost is electricity only.
+              </p>
             </>
           ) : (
             <>
