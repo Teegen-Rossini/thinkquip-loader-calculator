@@ -1,5 +1,6 @@
-import { formatCurrency, formatHours, formatYearsFromHours } from '../lib/format';
-import { PREPARED_BY, THINKQUIP_LOGO } from '../data/machinesConfig';
+import { formatCurrency, formatHours, formatYearsFromHours, variantName } from '../lib/format';
+import { THINKQUIP_LOGO_TURQUOISE } from '../data/machinesConfig';
+import { copyKindOrDefault } from '../lib/salesmanCopyPath';
 import { applyVat } from '../lib/calculationEngine';
 import { PrintPage } from './PrintKit';
 
@@ -7,7 +8,10 @@ import { PrintPage } from './PrintKit';
  *  from the inputs, hero-machine cutout and the headline outcomes. The hero is
  *  NEUTRAL — whichever selected machine has the lowest total cost of ownership
  *  at the comparison window chosen on screen (electric or diesel). */
-export default function PrintCover({ selection, inputs, pageNumber, pageCount }) {
+export default function PrintCover({ selection, inputs, salesman, copyKind, pageNumber, pageCount }) {
+  // Which of the two labelled variants this is. "THINKQUIP COPY" is a FIXED
+  // label — never the salesman's name; it is ThinkQuip's master record.
+  const copy = copyKindOrDefault(copyKind);
   const { heroMachine, machines, comparisons, hasComparison, hoursPerYear, windowHours, electricSelected } = selection;
   const heroResult = machines.find((m) => m.machine.uid === heroMachine.uid) ?? machines[0];
 
@@ -28,8 +32,12 @@ export default function PrintCover({ selection, inputs, pageNumber, pageCount })
 
   return (
     <PrintPage pageNumber={pageNumber} pageCount={pageCount} className="print-cover">
+      <p className={`print-cover__copy-label print-cover__copy-label--${copy.kind}`}>
+        {copy.label}
+      </p>
+
       <div className="print-cover__brands">
-        <img src={THINKQUIP_LOGO} alt="ThinkQuip" className="print-cover__brands-thinkquip" />
+        <img src={THINKQUIP_LOGO_TURQUOISE} alt="ThinkQuip" className="print-cover__brands-thinkquip" />
         <img src={heroMachine.logo} alt="SANY" className="print-cover__brands-sany" />
       </div>
 
@@ -53,9 +61,9 @@ export default function PrintCover({ selection, inputs, pageNumber, pageCount })
         </div>
         <div className="print-cover__party">
           <p className="print-cover__field-label">Prepared By</p>
-          <p className="print-cover__party-row"><span>Name</span>{PREPARED_BY.name}</p>
-          <p className="print-cover__party-row"><span>Cell</span>{PREPARED_BY.cell}</p>
-          <p className="print-cover__party-row"><span>Email</span>{PREPARED_BY.email}</p>
+          <p className="print-cover__party-row"><span>Name</span>{salesman.name}</p>
+          <p className="print-cover__party-row"><span>Cell</span>{salesman.cell}</p>
+          <p className="print-cover__party-row"><span>Email</span>{salesman.email}</p>
         </div>
         <div className="print-cover__party">
           <p className="print-cover__field-label">Date</p>
@@ -66,7 +74,7 @@ export default function PrintCover({ selection, inputs, pageNumber, pageCount })
       <div className="print-cover__stats">
         <div className="print-cover__stat">
           <p className="print-cover__stat-label">{hasComparison ? `Cheapest at ${formatHours(windowHours)}` : 'Selected machine'}</p>
-          <p className="print-cover__stat-value">{heroMachine.name}</p>
+          <p className="print-cover__stat-value">{variantName(heroMachine)}</p>
           <p className="print-cover__stat-sub">
             {heroMachine.type === 'electric' ? 'SANY electric wheel loader — charger included' : 'SANY diesel wheel loader'}
           </p>
@@ -81,8 +89,8 @@ export default function PrintCover({ selection, inputs, pageNumber, pageCount })
               </p>
               <p className="print-cover__stat-sub">
                 {crossover != null
-                  ? `${heroMachine.name} is cheaper ${best.crossoverDirection === 'loses' ? 'until' : 'from'} ~${formatYearsFromHours(crossover, hoursPerYear)} at your hours`
-                  : `${heroMachine.name} is cheaper across the whole range at these inputs`}
+                  ? `${variantName(heroMachine)} is cheaper ${best.crossoverDirection === 'loses' ? 'until' : 'from'} ~${formatYearsFromHours(crossover, hoursPerYear)} at your hours`
+                  : `${variantName(heroMachine)} is cheaper across the whole range at these inputs`}
               </p>
             </div>
             <div className="print-cover__stat">
@@ -90,17 +98,17 @@ export default function PrintCover({ selection, inputs, pageNumber, pageCount })
                 Saving @ {formatHours(windowHours)} · {inputs.fleetSize} machine{inputs.fleetSize > 1 ? 's' : ''}
               </p>
               <p className="print-cover__stat-value">{hasSavings ? formatCurrency(savings) : '—'}</p>
-              <p className="print-cover__stat-sub">vs {best.machine.displayName}</p>
+              <p className="print-cover__stat-sub">vs {variantName(best.machine)}</p>
             </div>
           </>
         ) : (
           <>
             <div className="print-cover__stat">
               <p className="print-cover__stat-label">
-                Total cost @ {formatHours(windowHours)} · {inputs.fleetSize} machine{inputs.fleetSize > 1 ? 's' : ''}
+                TCO @ {formatHours(windowHours)} · {inputs.fleetSize} machine{inputs.fleetSize > 1 ? 's' : ''}
               </p>
               <p className="print-cover__stat-value">{formatCurrency(heroResult.tcoAtWindow)}</p>
-              <p className="print-cover__stat-sub">purchase price plus escalated running cost</p>
+              <p className="print-cover__stat-sub">total cost of ownership — purchase price plus escalated running costs</p>
             </div>
             <div className="print-cover__stat">
               <p className="print-cover__stat-label">Running cost / h (year 0)</p>

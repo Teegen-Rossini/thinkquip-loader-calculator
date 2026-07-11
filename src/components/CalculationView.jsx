@@ -152,12 +152,12 @@ export default function CalculationView({ selection, inputs }) {
             </div>
 
             <div className="calc-step">
-              <h5><span className="calc-step__tag">e</span> Sampled cumulative cost (per machine, ex VAT)</h5>
+              <h5><span className="calc-step__tag">e</span> Sampled cumulative cost (per machine, excl. VAT)</h5>
               <div className="calc-row">
                 <div className="calc-table-scroll">
                   <table className="calc-table">
                     <thead>
-                      <tr><th>Hours</th><th>≈ Years</th><th>Cumulative TCO</th></tr>
+                      <tr><th>Hours</th><th>≈ Years</th><th>TCO</th></tr>
                     </thead>
                     <tbody>
                       {samples.map((h) => (
@@ -173,7 +173,7 @@ export default function CalculationView({ selection, inputs }) {
                 <p className="calc-why">
                   The running total of owning this machine: the purchase price up front, then every hour worked added
                   on — each quarter-year priced at its then-current (escalated) rates. These rows are checkpoints along
-                  that total; the Cost Over Time chart draws the whole line.
+                  that total; the Cost Over Hours chart draws the whole line.
                 </p>
               </div>
               <p className="calc-note">Each point = purchase price + Σ escalated slice costs up to that hour.</p>
@@ -219,7 +219,7 @@ export default function CalculationView({ selection, inputs }) {
                   </strong>
                 </CalcRow>
                 <CalcRow
-                  why="The full model replays every quarter-year with escalating prices and finds the exact hour where the two total-cost lines cross — the same crossover marked on the Cost Over Time chart."
+                  why="The full model replays every quarter-year with escalating prices and finds the exact hour where the two total-cost lines cross — the same crossover marked on the Cost Over Hours chart."
                 >
                   Crossover (full model) ={' '}
                   <strong>
@@ -233,7 +233,7 @@ export default function CalculationView({ selection, inputs }) {
           })}
           <p className="calc-note">
             The crossover hour is the same event on every page — the point where the two machines&rsquo; total-cost
-            lines cross on the Cost Over Time chart.
+            lines cross on the Cost Over Hours chart.
           </p>
         </section>
       )}

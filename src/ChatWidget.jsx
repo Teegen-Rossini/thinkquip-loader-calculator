@@ -3,9 +3,21 @@
 // It only ever talks to /api/chat — no keys, no secrets in the browser.
 import { useState, useRef, useEffect } from 'react';
 import './ChatWidget.css';
-import askFace from './ask-button.jpg';
+import launcherKid from './thinkquip-assistant-launcher.png';
+import peekKid from './thinkquip-assistant-peek.png';
+import { THINKQUIP_LOGO_WHITE } from './data/machinesConfig';
 
-const ENDPOINT = '/api/chat';
+/**
+ * In the browser/dev this is the relative route (Vite middleware in dev, the
+ * serverless function api/chat.js when hosted).
+ *
+ * The PACKAGED DESKTOP APP has no server of its own, so a relative path would
+ * resolve to tauri://localhost/api/chat and 404. Set VITE_CHAT_API_URL to the
+ * DEPLOYED absolute endpoint (e.g. https://<host>/api/chat) before building the
+ * desktop app. The API keys stay on that host — they are never shipped in the
+ * desktop binary.
+ */
+const ENDPOINT = import.meta.env.VITE_CHAT_API_URL?.trim() || '/api/chat';
 
 // Conversation survives page reloads within the tab; a closed tab starts fresh
 // (sessionStorage, deliberately not localStorage — this runs on shared sales machines).
@@ -13,7 +25,7 @@ const STORAGE_KEY = 'tq-chat-messages-v1';
 
 const GREETING = {
   role: 'assistant',
-  content: 'Ask me anything about the loader range, how the TCO calculator works, or what the figures on this page mean.',
+  content: 'Ask me anything about the loader range, how the ThinkQuip TCO Calculator works, or what the figures on this page mean.',
 };
 
 function restoreMessages() {
@@ -102,10 +114,10 @@ export default function ChatWidget({ pageContext }) {
   return (
     <div className="tq-chat no-print">
       {open && (
-        <div className="tq-chat__panel" role="dialog" aria-label="Daddy Matt">
+        <div className="tq-chat__panel" role="dialog" aria-label="Mr Freig">
           <header className="tq-chat__header">
-            <span className="tq-chat__eyebrow">ThinkQuip</span>
-            <span className="tq-chat__title">Daddy Matt</span>
+            <img className="tq-chat__logo" src={THINKQUIP_LOGO_WHITE} alt="ThinkQuip" />
+            <span className="tq-chat__title">Mr Freig</span>
             <button
               className="tq-chat__close"
               onClick={() => setOpen(false)}
@@ -118,11 +130,15 @@ export default function ChatWidget({ pageContext }) {
           <div className="tq-chat__messages" ref={listRef} aria-live="polite">
             {messages.map((m, i) => (
               <div key={i} className={`tq-chat__msg tq-chat__msg--${m.role}`}>
+                {m.role === 'assistant' && (
+                  <span className="tq-chat__avatar-name">Mr Freig</span>
+                )}
                 <div className="tq-chat__bubble">{m.content}</div>
               </div>
             ))}
             {busy && (
               <div className="tq-chat__msg tq-chat__msg--assistant">
+                <span className="tq-chat__avatar-name">Mr Freig</span>
                 <div className="tq-chat__bubble tq-chat__bubble--typing">
                   <span></span>
                   <span></span>
@@ -156,11 +172,18 @@ export default function ChatWidget({ pageContext }) {
       )}
 
       <button
-        className={`tq-chat__launcher ${open ? 'tq-chat__launcher--open' : ''}`}
+        className={`tq-chat__launcher ${open ? 'tq-chat__launcher--open' : 'tq-chat__launcher--closed'}`}
         onClick={() => setOpen((v) => !v)}
-        aria-label={open ? 'Close assistant' : 'Open assistant'}
+        aria-label={open ? 'Close ThinkQuip Assistant' : 'Open ThinkQuip Assistant'}
       >
-        {open ? '×' : <img className="tq-chat__launcherFace" src={askFace} alt="Ask" />}
+        {open ? (
+          <img className="tq-chat__launcherFull" src={launcherKid} alt="ThinkQuip assistant character" />
+        ) : (
+          <>
+            <img className="tq-chat__launcherPeek" src={peekKid} alt="" aria-hidden="true" />
+            <span className="tq-chat__launcherLabel">Question?</span>
+          </>
+        )}
       </button>
     </div>
   );

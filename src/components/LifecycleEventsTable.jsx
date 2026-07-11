@@ -12,7 +12,7 @@ export default function LifecycleEventsTable({ selection, onViewAssumptions }) {
           <thead>
             <tr>
               <th>Machine</th>
-              <th>Mechanical maintenance</th>
+              <th>Routine service</th>
               <th>When</th>
             </tr>
           </thead>
@@ -23,7 +23,7 @@ export default function LifecycleEventsTable({ selection, onViewAssumptions }) {
                 return (
                   <tr key={m.uid}>
                     <td><MachineName machine={m} /></td>
-                    <td className="mono">No mechanical service line · R0/h</td>
+                    <td className="mono">No mechanical service line — R0/h</td>
                     <td className="mono">—</td>
                   </tr>
                 );
@@ -42,7 +42,7 @@ export default function LifecycleEventsTable({ selection, onViewAssumptions }) {
       <div className="lifecycle-table__note">
         {electricSelected ? (
           <p>
-            The diesel machine’s routine service runs continuously; the electric machine carries <strong>no mechanical-maintenance
+            The diesel machine’s routine service runs continuously; the electric machine has <strong>no mechanical service
             line</strong>. That is the point to highlight.
           </p>
         ) : (

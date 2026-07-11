@@ -54,7 +54,8 @@
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.18);
 }
 
-/* End-of-sequence Print / Save button — inverse of the yellow nav buttons. */
+/* End-of-sequence output buttons. The customer take-home brochure is the
+   turquoise one; ThinkQuip's own filed record keeps the yellow CTA treatment. */
 .btn-nav--print {
   background-color: var(--tq-turquoise);
   color: #fff;
@@ -62,6 +63,12 @@
 
 .btn-nav--print:hover {
   background-color: var(--tq-turquoise-dark);
+}
+
+.btn-nav--thinkquip-copy:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
 }
 
 @media (max-width: 560px) {

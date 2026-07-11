@@ -6,7 +6,7 @@ The ThinkQuip savings calculator compares the following SANY machines. All price
 
 - Machine type: Wheel Loader
 - Energy type: electric
-- Selling price: R3 150 000 excluding VAT (R3 622 500 including 15% VAT) — the 320 kW charger is included in this price; there is no separate charging-infrastructure cost
+- Selling price: R3 450 000 excluding VAT (R3 967 500 including 15% VAT) — the 320 kW charger is included in this price; there is no separate charging-infrastructure cost
 - Operating weight: 20 000 kg
 - Rated payload: 5 800 kg
 - Bucket capacity: 3.5 m³
@@ -30,7 +30,7 @@ The ThinkQuip savings calculator compares the following SANY machines. All price
 
 - Machine type: Wheel Loader (dry brake)
 - Energy type: diesel
-- Selling price: R1 850 000 excluding VAT (R2 127 500 including 15% VAT)
+- Selling price: R2 000 000 excluding VAT (R2 300 000 including 15% VAT)
 - Operating weight: 17 100 kg
 - Rated payload: 5 000 kg
 - Bucket capacity: 3 m³
@@ -48,7 +48,7 @@ The ThinkQuip savings calculator compares the following SANY machines. All price
 
 - Machine type: Wheel Loader (wet brake)
 - Energy type: diesel
-- Selling price: R2 200 000 excluding VAT (R2 530 000 including 15% VAT)
+- Selling price: R2 350 000 excluding VAT (R2 702 500 including 15% VAT)
 - Operating weight: 17 100 kg
 - Rated payload: 5 000 kg
 - Bucket capacity: 3 m³

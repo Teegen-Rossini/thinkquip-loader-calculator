@@ -32,12 +32,89 @@ turquoise** for the tool's own chrome (header, nav) with **yellow** primary CTAs
 Stack: **React 19 + Vite 8**, charts via **Recharts 3**, linting via **Oxlint**.
 No TypeScript. No test framework is set up yet.
 
+It ships as a **Tauri 2 desktop app for Windows** (and still runs in the browser
+for development). See "Desktop app (Tauri)" below.
+
+## Login & the salesman (Supabase)
+
+Every user signs in (Supabase email/password) before the calculator is usable —
+`src/lib/useAuth.js` + `src/components/LoginScreen.jsx`, gated in `App.jsx`.
+After login it reads the user's own row from the `salesman` table (RLS:
+`auth.uid() = user_id`) for `name`, `cell`, `email`, `folder_name`.
+
+- **"Prepared By"** on the cover (screen + print) is that profile — non-editable,
+  and there is **no hardcoded fallback**: a user with no `salesman` row is
+  blocked with an explicit error rather than printing placeholder details.
+  ("Prepared For", the customer, stays editable.)
+- **`folder_name`** decides where that salesman's ThinkQuip Copies are filed.
+- Salesman identity comes from **login, not the build** — one build serves every
+  salesman; there are no per-salesman builds.
+- Keys live in `.env` (gitignored): `VITE_SUPABASE_URL` (the **project base**
+  URL — not the `/rest/v1` endpoint) and `VITE_SUPABASE_ANON_KEY`. Never a
+  service-role key: this all runs in the browser, so RLS is the security boundary.
+
+## The two copies
+
+One brochure, two labelled variants (`COPY_KINDS` in `src/lib/salesmanCopyPath.js`);
+the cover is stamped with the label, everything else is identical.
+
+- **Print / Save Customer Copy** — cover reads **"CUSTOMER COPY"**. The take-home
+  brochure: normal print/save flow, reaches a real printer. Never auto-filed.
+  Suggested name `Customer Copy - {customer} - {date}.pdf`.
+- **Save ThinkQuip Copy** — cover reads **"THINKQUIP COPY"** (a **fixed** label —
+  never the salesman's name; it is ThinkQuip's master record). Saves only, no
+  print dialog. Auto-files to
+  `{SALESMAN_COPIES_BASE_PATH}\{folder_name}\{customer} - {date}.pdf`, so all
+  ThinkQuip Copies collect in one company log sorted by salesman.
+
+Each button forces its own variant with `flushSync` **before** the PDF is
+produced, so a button can never emit the other copy's label. Blank customer →
+`Unnamed Customer`; illegal filename characters are stripped; an existing file is
+**never overwritten** (` (2)`, ` (3)` …).
+
+## Desktop app (Tauri)
+
+`src-tauri/` wraps the existing Vite app — it does not replace it; `npm run dev`
+still works in a browser.
+
+- **Silent auto-save**: `src/lib/desktopBridge.js` installs `window.thinkquipDesktop`
+  only inside Tauri. `src-tauri/src/lib.rs` renders the brochure to PDF via
+  **WebView2's own `PrintToPdf`** (the same `@media print` pipeline as the print
+  dialog, so the A4 output is identical — but with no dialog), then creates the
+  salesman's subfolder and writes the file.
+- In a **plain browser** the bridge is absent and the save degrades to a suggested
+  filename in the save dialog. Same path/filename rules either way.
+- **Minimal filesystem permissions**: there is deliberately **no `tauri-plugin-fs`**.
+  The frontend has no general filesystem access; the few Rust commands
+  (`ensure_dir` / `path_exists` / `write_file`) each take the configured base
+  folder and refuse any path outside it. `dialog:allow-save` exists only for the
+  fallback below.
+- **Folder unreachable** (Drive not mounted): a clear message plus a manual
+  save-location prompt — the PDF is never lost, and never fails silently.
+
+**`SALESMAN_COPIES_BASE_PATH`** is the single per-install config value
+(`VITE_SALESMAN_COPIES_BASE_PATH` in `.env`; default `G:\My Drive\Salesman Copies`,
+a Google Drive for Desktop mount). It is the only thing that differs per machine.
+
+**Known gap:** the chatbot posts to `/api/chat`, which is a Vite dev middleware /
+hosted serverless function. A packaged desktop app has no server, so
+`VITE_CHAT_API_URL` must be set to the **deployed** absolute endpoint before
+building, or the chat will not work in the desktop app. Do **not** bundle the
+OpenAI/Pinecone keys into the desktop binary — they stay on the host.
+
 ## Commands
 
 ```bash
-npm run dev      # Vite dev server (HMR)
-npm run build    # production build
-npm run preview  # preview a production build
+npm run dev            # Vite dev server (HMR) — browser development
+npm run build          # production web build
+npm run preview        # preview a production build
+npx tauri dev          # run the desktop app (hot-reloads the frontend)
+npx tauri build        # build the Windows installer (see below)
+```
+
+The Windows installer lands at:
+`src-tauri/target/release/bundle/nsis/ThinkQuip Loader Calculator_<version>_x64-setup.exe`
+Rebuilding needs Rust + the MSVC C++ build tools + WebView2.
 npm run lint     # oxlint
 ```
 
@@ -132,10 +209,20 @@ machine selections of one, two and all three.
   `electric`, `diesel-dry`, `diesel-wet` (one, two or all three; at least one is
   enforced). Each selected option becomes its own priced machine instance with a
   unique `uid` — so selecting **both** diesel variants yields two distinct
-  lines/cards. Wet vs dry brake changes **only the diesel purchase price** (dry
-  R1,850,000, wet R2,200,000; electric fixed R3,150,000, charger included). The
+  lines/cards. Wet vs dry brake changes **only the diesel purchase price**. The
   selectable options and every downstream view (screen and brochure) show the
   machine's cutout image.
+- **Machine prices** (`machinePrices`, a map of model id → number): editable on
+  the Inputs tab, defaulting to the list prices in `machines.json` (electric
+  R3,450,000 — charger included; diesel dry R2,000,000; wet R2,350,000). The
+  engine resolves the effective price per machine (`effectiveMachinePrice`:
+  entered value if a positive number, else the default — an empty field never
+  breaks a calc) and every downstream figure, screen and print, follows it.
+  When the entered price is **below** list, a **discount-off-list** summary
+  (whole-number %, Rand off, new price) shows once on screen (under the price
+  input) and once in print (the machine's spec-sheet Price block). It is
+  deliberately worded "discount / off list" — never "saving", which is the TCO
+  cost-gap term. At or above list, nothing extra shows.
 - **Fuel included in rate** (`fuelIncludedInRate`): `No` drops diesel **fuel**
   cost (and its theft uplift) from the diesel total. Electricity is **always**
   counted for the electric machine; the R29/h diesel service is **always**

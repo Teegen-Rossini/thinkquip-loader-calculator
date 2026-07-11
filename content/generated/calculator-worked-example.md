@@ -9,23 +9,23 @@ Assumptions (the app's defaults; every one is adjustable on screen): 8 h/day × 
 
 ## Cumulative total cost of ownership (purchase price + escalated running costs)
 At 5 000 h (about 2,1 years at these hours):
-- SANY SW956E (Electric): R3 643 636
-- SANY SYL956H5 (Diesel, dry brake): R3 685 457
-- SANY SYL956H5 (Diesel, wet brake): R4 035 457
+- SANY SW956E (Electric): R3 943 636
+- SANY SYL956H5 (Diesel, dry brake): R3 835 457
+- SANY SYL956H5 (Diesel, wet brake): R4 185 457
 
 At 10 000 h (about 4,2 years at these hours):
-- SANY SW956E (Electric): R4 222 980
-- SANY SYL956H5 (Diesel, dry brake): R5 757 434
-- SANY SYL956H5 (Diesel, wet brake): R6 107 434
+- SANY SW956E (Electric): R4 522 980
+- SANY SYL956H5 (Diesel, dry brake): R5 907 434
+- SANY SYL956H5 (Diesel, wet brake): R6 257 434
 
 At 15 000 h (about 6,3 years at these hours):
-- SANY SW956E (Electric): R4 902 887
-- SANY SYL956H5 (Diesel, dry brake): R8 096 359
-- SANY SYL956H5 (Diesel, wet brake): R8 446 359
+- SANY SW956E (Electric): R5 202 887
+- SANY SYL956H5 (Diesel, dry brake): R8 246 359
+- SANY SYL956H5 (Diesel, wet brake): R8 596 359
 
 ## Crossover points (where the cheaper machine changes)
-- SANY SW956E (Electric) vs SANY SYL956H5 (Diesel, dry brake): the diesel is cheaper up to 4 852 h; from 4 852 h onward (about 2,0 years at these hours) the electric machine's total cost is lower and the gap keeps widening.
-- SANY SW956E (Electric) vs SANY SYL956H5 (Diesel, wet brake): the diesel is cheaper up to 3 595 h; from 3 595 h onward (about 1,5 years at these hours) the electric machine's total cost is lower and the gap keeps widening.
+- SANY SW956E (Electric) vs SANY SYL956H5 (Diesel, dry brake): the diesel is cheaper up to 5 382 h; from 5 382 h onward (about 2,2 years at these hours) the electric machine's total cost is lower and the gap keeps widening.
+- SANY SW956E (Electric) vs SANY SYL956H5 (Diesel, wet brake): the diesel is cheaper up to 4 138 h; from 4 138 h onward (about 1,7 years at these hours) the electric machine's total cost is lower and the gap keeps widening.
 - The two SYL956H5 brake variants have identical running costs, so their lines never cross — the wet-brake variant simply stays the fixed purchase-price gap more expensive.
 
 ## Battery replacement projection (electric — background knowledge, not shown in the tool)

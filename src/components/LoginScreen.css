@@ -1,0 +1,131 @@
+/* Login / auth screens — ThinkQuip turquoise field, white card, yellow CTA.
+   Colours come from the app's tokens in src/index.css. */
+
+.auth-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  /* Same dark-left → light-right turquoise as the app header. */
+  background: linear-gradient(110deg, var(--tq-turquoise-darker) 0%, var(--tq-turquoise) 100%);
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--surface);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  padding: 34px 32px 30px;
+  text-align: center;
+}
+
+.auth-card__logo {
+  height: 42px;
+  width: auto;
+  display: block;
+  margin: 0 auto 6px;
+}
+
+.auth-card__eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 22px;
+}
+
+.auth-card__title {
+  font-family: var(--display);
+  font-size: 26px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--text-heading);
+  margin-bottom: 8px;
+}
+
+.auth-card__lede {
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--text-muted);
+  margin-bottom: 24px;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  text-align: left;
+}
+
+.auth-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.auth-field__label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.auth-field input {
+  width: 100%;
+  padding: 11px 12px;
+  font: inherit;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.auth-field input:focus-visible {
+  outline: 2px solid var(--tq-turquoise);
+  outline-offset: -1px;
+  border-color: var(--tq-turquoise);
+}
+
+.auth-field input::placeholder {
+  color: var(--text-muted);
+}
+
+.auth-error {
+  background: var(--sany-red-light);
+  border-left: 3px solid var(--sany-red);
+  color: #8A1510;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.45;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+}
+
+.auth-submit {
+  justify-content: center;
+  width: 100%;
+  margin-top: 4px;
+}
+
+.auth-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.auth-notice {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--text);
+  margin-bottom: 20px;
+}
+
+.auth-notice--muted {
+  color: var(--text-muted);
+  margin-bottom: 0;
+}

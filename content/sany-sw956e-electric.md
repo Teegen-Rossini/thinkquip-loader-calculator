@@ -6,10 +6,13 @@ calculator. ThinkQuip is an authorized SANY distributor in South Africa.
 
 ## Price
 
-The SANY SW956E electric loader sells for **R3,150,000 excluding VAT**. The
-320 kW charger is **included** in that price — there is no separate
-charging-infrastructure cost. VAT in South Africa is 15%; the calculator can
-show figures VAT-inclusive or VAT-exclusive.
+The SANY SW956E electric loader has a **list price of R3,450,000 excluding
+VAT**. The 320 kW charger is **included** in that price — there is no separate
+charging-infrastructure cost. In the calculator the price is an editable
+input defaulting to the list price; when the salesperson enters a lower
+price, a discount-off-list summary is shown and every figure follows the
+entered price. VAT in South Africa is 15%; the calculator can show figures
+VAT-inclusive or VAT-exclusive.
 
 ## Key specifications (SANY SW956E)
 

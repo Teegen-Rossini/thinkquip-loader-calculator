@@ -28,7 +28,7 @@ export default function ComparatorCard({ result, selection, inputs }) {
 
   return (
     <div className={`comparator-card${isBestValue ? ' comparator-card--best' : ''}`} style={cardStyle}>
-      {isBestValue && <span className="comparator-card__ribbon">Lowest cost at your window</span>}
+      {isBestValue && <span className="comparator-card__ribbon">Cheapest at your window</span>}
 
       <div className="comparator-card__photo">
         <img src={machine.photo} alt={machine.displayName} loading="lazy" />
@@ -44,11 +44,11 @@ export default function ComparatorCard({ result, selection, inputs }) {
 
       <dl className="comparator-card__tally">
         <div className="comparator-card__tally-row">
-          <dt>Cost of energy / 1,000 h <span className="comparator-card__tally-hint">({isElectric ? 'Electricity' : 'Diesel'})</span></dt>
+          <dt>Energy cost / 1,000 h <span className="comparator-card__tally-hint">({isElectric ? 'Electricity' : 'Diesel'})</span></dt>
           <dd className="mono">{formatCurrency(energyPer1000)}</dd>
         </div>
         <div className="comparator-card__tally-row">
-          <dt>Mechanical maintenance / 1,000 h <span className="comparator-card__tally-hint">({isElectric ? 'None needed' : 'Mechanical service line'})</span></dt>
+          <dt>Routine service / 1,000 h <span className="comparator-card__tally-hint">({isElectric ? 'No mechanical service line' : 'R29/h continuous'})</span></dt>
           <dd className="mono">{isElectric ? 'R0' : formatCurrency(maintPer1000)}</dd>
         </div>
         <div className="comparator-card__tally-row comparator-card__tally-row--total">
@@ -86,7 +86,7 @@ export default function ComparatorCard({ result, selection, inputs }) {
             <span className="mono">{machine.tyres}</span>
           </div>
           <div className="detail-row">
-            <span className="detail-row__label">Consumption (at current duty)</span>
+            <span className="detail-row__label">Consumption (at your duty cycle)</span>
             <span className="mono">{consumption}</span>
           </div>
           <div className="detail-row">
@@ -101,7 +101,7 @@ export default function ComparatorCard({ result, selection, inputs }) {
                 <span className="mono">{machine.battery.capacityKWh} kWh · {machine.battery.chargerRatingKW} kW charger (incl.)</span>
               </div>
               <p className="detail-note">
-                The electric machine carries no mechanical-maintenance line — its running cost is electricity only.
+                The electric machine has no mechanical service line — its running cost is electricity only.
               </p>
             </>
           ) : (
@@ -115,7 +115,7 @@ export default function ComparatorCard({ result, selection, inputs }) {
                 <span className="mono">R29/h (continuous)</span>
               </div>
               <p className="detail-note">
-                Routine engine service runs continuously at R29/h (R29,000 per 1,000 h) — there is no separate overhaul event.
+                Routine service runs continuously at R29/h (R29,000 per 1,000 h) — there is no separate overhaul event.
               </p>
             </>
           )}

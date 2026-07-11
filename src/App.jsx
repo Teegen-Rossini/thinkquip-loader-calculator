@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { DEFAULT_PRICES, CALC_DEFAULTS, THINKQUIP_LOGO } from './data/machinesConfig';
+import { flushSync } from 'react-dom';
+import { DEFAULT_PRICES, CALC_DEFAULTS, THINKQUIP_LOGO_WHITE } from './data/machinesConfig';
 import {
   MACHINE_TYPES,
   DEFAULT_MACHINE_TYPE_ID,
@@ -9,6 +10,11 @@ import {
 } from './data/machinesRepo';
 import { runSelection } from './lib/calculationEngine';
 import { buildPageContext } from './lib/chatPageContext';
+import { useAuth } from './lib/useAuth';
+import { saveSalesmanCopy } from './lib/saveSalesmanCopy';
+import { printWithSuggestedName } from './lib/printDialog';
+import { suggestedFileName } from './lib/salesmanCopyPath';
+import LoginScreen, { AuthNotice, AuthLoading } from './components/LoginScreen';
 import Dashboard from './components/Dashboard';
 import InputForm from './components/InputForm';
 import TabBar from './components/TabBar';
@@ -45,6 +51,9 @@ const defaultInputs = {
   quoteDate: '',
   machineTypeId: DEFAULT_MACHINE_TYPE_ID,
   machineModelIds: defaultModelIdsForType(DEFAULT_MACHINE_TYPE_ID),
+  // Per-model price overrides, keyed by model id. Empty = every machine at its
+  // default list price; the engine falls back per machine (effectiveMachinePrice).
+  machinePrices: {},
   fuelIncludedInRate: true,
   dailyHours: 8,
   daysPerWeek: CALC_DEFAULTS.daysPerWeek,
@@ -88,6 +97,11 @@ function normalizeInputs(parsed) {
   }
   delete merged.preparedFor;
   if (!isISODate(merged.quoteDate)) merged.quoteDate = todayISO();
+
+  merged.machinePrices =
+    parsed.machinePrices && typeof parsed.machinePrices === 'object' && !Array.isArray(parsed.machinePrices)
+      ? parsed.machinePrices
+      : {};
 
   const windowHours = Number(merged.comparisonWindowHours);
   merged.comparisonWindowHours = Number.isFinite(windowHours)
@@ -140,7 +154,7 @@ function loadDraftInputs() {
 const TABS = [
   { id: 'inputs', index: '01', label: 'Inputs' },
   { id: 'comparison', index: '02', label: 'Comparison' },
-  { id: 'chart', index: '03', label: 'Cost Over Time' },
+  { id: 'chart', index: '03', label: 'Cost Over Hours' },
   { id: 'details', index: '04', label: 'Spec Sheet' },
   { id: 'calculation', index: '05', label: 'Calculations' },
 ];
@@ -148,6 +162,30 @@ const TABS = [
 function App() {
   const [inputs, setInputs] = useState(loadDraftInputs);
   const [activeTab, setActiveTab] = useState('dashboard');
+  // Salesman auth + their Supabase profile (name / cell / email / folder_name).
+  const { status: authStatus, salesman, profileError, signIn, signOut } = useAuth();
+  // Result of the last "Save ThinkQuip Copy" (where it filed, or why it couldn't).
+  const [saveNotice, setSaveNotice] = useState(null);
+  const [saving, setSaving] = useState(false);
+  // Which labelled variant the (hidden) brochure is currently rendering.
+  // Each button forces its own variant before it acts, so a button can never
+  // emit the other copy's label.
+  const [copyKind, setCopyKind] = useState('customer');
+
+  // Successful saves self-dismiss; failures stay until the salesman closes them.
+  useEffect(() => {
+    if (!saveNotice?.ok) return undefined;
+    const t = setTimeout(() => setSaveNotice(null), 9000);
+    return () => clearTimeout(t);
+  }, [saveNotice]);
+
+  // Once any print dialog closes, fall back to the customer variant so a stray
+  // Ctrl+P later can't emit a THINKQUIP COPY.
+  useEffect(() => {
+    const reset = () => setCopyKind('customer');
+    window.addEventListener('afterprint', reset);
+    return () => window.removeEventListener('afterprint', reset);
+  }, []);
 
   // Moving between pages always lands at the TOP of the new page — without
   // this, the scroll position of the previous page carries over.
@@ -161,6 +199,33 @@ function App() {
   }, [inputs]);
 
   const updateInputs = (patch) => setInputs((prev) => ({ ...prev, ...patch }));
+
+  // --- The two copies. Each stamps its OWN label on the cover before it acts.
+  // flushSync forces the brochure to re-render with the right label BEFORE the
+  // print dialog opens / the desktop bridge snapshots the DOM — without it the
+  // state update would land after the PDF was already produced.
+
+  /** Customer take-home brochure: cover reads "CUSTOMER COPY". Print or save.
+   *  Never auto-files into the salesman folder. */
+  const handlePrintCustomerCopy = () => {
+    flushSync(() => setCopyKind('customer'));
+    printWithSuggestedName(suggestedFileName('customer', { inputs }));
+  };
+
+  /** ThinkQuip's master record: cover reads "THINKQUIP COPY" (a fixed label,
+   *  never the salesman's name). Saves only — no print dialog on the desktop —
+   *  auto-filing into {base}\{folder_name}\ via prompt 2's logic. */
+  const handleSaveThinkquipCopy = async () => {
+    if (saving) return;
+    flushSync(() => setCopyKind('thinkquip'));
+    setSaving(true);
+    setSaveNotice(null);
+    const result = await saveSalesmanCopy({ salesman, inputs });
+    setSaveNotice(result);
+    setSaving(false);
+    // A silent desktop write fires no afterprint event, so reset the variant here.
+    if (result.mode === 'desktop') setCopyKind('customer');
+  };
   const setFleetSize = (fleetSize) => updateInputs({ fleetSize });
 
   // Switching machine type resets the model selection to that type's default.
@@ -180,10 +245,36 @@ function App() {
 
   const selection = runSelection({ inputs, fleetSize: inputs.fleetSize });
 
+  // ---- Login gate: the calculator is unusable until a salesman is signed in
+  // AND their profile has loaded. We never proceed on blank/placeholder details.
+  if (authStatus === 'misconfigured') {
+    return (
+      <AuthNotice
+        title="Setup Needed"
+        message="This app isn't connected to its login service yet. Contact the administrator."
+      />
+    );
+  }
+  if (authStatus === 'loading') return <AuthLoading />;
+  if (authStatus === 'signedOut') return <LoginScreen onSignIn={signIn} />;
+  if (authStatus === 'noProfile') {
+    return <AuthNotice title="No Profile Found" message={profileError} onSignOut={signOut} />;
+  }
+
   // ?printview=1 renders ONLY the brochure, on screen, exactly as it prints —
   // for checking the document before handing a customer the PDF.
-  if (new URLSearchParams(window.location.search).has('printview')) {
-    return <PrintBrochure selection={selection} inputs={inputs} preview />;
+  // &copy=thinkquip previews the ThinkQuip-labelled variant instead.
+  const printViewParams = new URLSearchParams(window.location.search);
+  if (printViewParams.has('printview')) {
+    return (
+      <PrintBrochure
+        selection={selection}
+        inputs={inputs}
+        salesman={salesman}
+        copyKind={printViewParams.get('copy') === 'thinkquip' ? 'thinkquip' : 'customer'}
+        preview
+      />
+    );
   }
 
   const isDashboard = activeTab === 'dashboard';
@@ -203,15 +294,31 @@ function App() {
               onKeyDown={(e) => e.key === 'Enter' && setActiveTab('dashboard')}
             >
               <span className="app-header__lockup">
-                <img src={THINKQUIP_LOGO} alt="ThinkQuip" className="app-header__logo" />
+                <img src={THINKQUIP_LOGO_WHITE} alt="ThinkQuip" className="app-header__logo" />
                 <span className="app-header__tagline">Authorized SANY Distributor</span>
               </span>
               <span className="app-header__divider" aria-hidden="true" />
-              <span className="app-header__subtitle">SANY Electric Loader Savings Calculator</span>
+              <span className="app-header__subtitle">ThinkQuip TCO Calculator</span>
             </div>
-            <button type="button" className="print-btn" onClick={() => window.print()}>
-              Print / Save as PDF
-            </button>
+            <div className="app-header__actions">
+              <span className="app-header__user" title={salesman.email}>
+                {salesman.name}
+              </span>
+              <button
+                type="button"
+                className="salesman-copy-btn"
+                onClick={handleSaveThinkquipCopy}
+                disabled={saving}
+              >
+                {saving ? 'Saving…' : 'Save ThinkQuip Copy'}
+              </button>
+              <button type="button" className="print-btn" onClick={handlePrintCustomerCopy}>
+                Print / Save Customer Copy
+              </button>
+              <button type="button" className="logout-btn" onClick={signOut}>
+                Log out
+              </button>
+            </div>
           </div>
         </header>
 
@@ -220,10 +327,10 @@ function App() {
 
       <main className="app-body">
         <div className={`tab-panel no-print${isDashboard ? ' is-active' : ''}`}>
-          <Dashboard onStart={() => setActiveTab('inputs')} inputs={inputs} onUpdate={updateInputs} />
+          <Dashboard onStart={() => setActiveTab('inputs')} inputs={inputs} onUpdate={updateInputs} salesman={salesman} />
         </div>
 
-        <PrintBrochure selection={selection} inputs={inputs} />
+        <PrintBrochure selection={selection} inputs={inputs} salesman={salesman} copyKind={copyKind} />
 
         <section className={panelClass('inputs')}>
           <InputForm
@@ -252,7 +359,7 @@ function App() {
           <PageNav
             prevLabel="Inputs"
             onPrev={() => setActiveTab('inputs')}
-            nextLabel="Cost Over Time"
+            nextLabel="Cost Over Hours"
             onNext={() => setActiveTab('chart')}
           />
         </section>
@@ -262,7 +369,7 @@ function App() {
           <div className="chart-details-layout">
             <div className="panel-surface chart-details-layout__chart">
               <h3 className="section-heading section-heading--flush">
-                Cumulative cost over operating hours ({inputs.fleetSize} machine{inputs.fleetSize > 1 ? 's' : ''})
+                Cumulative TCO over operating hours ({inputs.fleetSize} machine{inputs.fleetSize > 1 ? 's' : ''})
               </h3>
               <CostChart selection={selection} />
             </div>
@@ -281,7 +388,7 @@ function App() {
         <section className={panelClass('details')}>
           <SummaryTable selection={selection} inputs={inputs} />
           <PageNav
-            prevLabel="Cost Over Time"
+            prevLabel="Cost Over Hours"
             onPrev={() => setActiveTab('chart')}
             nextLabel="Calculations"
             onNext={() => setActiveTab('calculation')}
@@ -293,10 +400,29 @@ function App() {
           <PageNav
             prevLabel="Spec Sheet"
             onPrev={() => setActiveTab('details')}
-            onPrint={() => window.print()}
+            onPrintCustomerCopy={handlePrintCustomerCopy}
+            onSaveThinkquipCopy={handleSaveThinkquipCopy}
+            saving={saving}
           />
         </section>
       </main>
+
+      {saveNotice && (
+        <div
+          className={`save-notice no-print${saveNotice.ok ? '' : ' save-notice--warn'}`}
+          role="status"
+        >
+          <span className="save-notice__text">{saveNotice.message}</span>
+          <button
+            type="button"
+            className="save-notice__close"
+            onClick={() => setSaveNotice(null)}
+            aria-label="Dismiss"
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       <ChatWidget pageContext={buildPageContext({ activeTab, inputs, selection })} />
 

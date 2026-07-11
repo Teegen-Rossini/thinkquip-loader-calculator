@@ -1,110 +1,151 @@
-/* ChatWidget.css — everything scoped under .tq-chat so it won't collide with your app */
+/* ChatWidget.css — everything scoped under .tq-chat so it won't collide with the app.
+   Restyled to the calculator's identity: turquoise chrome, white surfaces,
+   yellow primary CTA. All colours come from the app's design tokens in
+   src/index.css (:root) — --tq-turquoise*, --cta-yellow/--cta-ink, --surface,
+   --text, --border, --shadow-* — never hardcoded where a token exists.
+   NOTE: header + user bubbles use the DARK turquoise tokens (not #0AA6A0 flat)
+   because white text on #0AA6A0 fails WCAG AA (~2.5:1); the dark turquoise
+   (#067A76) passes (~4.8:1) and matches the app header's dark-side gradient.
+   SANY red is deliberately absent from all chrome. */
 .tq-chat {
-  --tq-bg: #14171c;
-  --tq-surface: #1d222a;
-  --tq-surface-2: #262c36;
-  --tq-line: #333b47;
-  --tq-text: #e8ebef;
-  --tq-muted: #9aa4b2;
-  --tq-accent: #f2a900;        /* safety amber — a loader-yard cue, used sparingly */
-  --tq-accent-ink: #14171c;
-  --tq-user: #2b3644;
-  --tq-radius: 4px;
-  --tq-font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --tq-mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, monospace;
-
   position: fixed;
   right: 20px;
   bottom: 20px;
   z-index: 9999;
-  font-family: var(--tq-font);
+  font-family: var(--sans);
 }
 
-/* Launcher */
+/* Launcher — a transparent button. Two states:
+   CLOSED: a white "Question?" pill with the peeking character above it.
+   OPEN:   the full calculator character (no crop, no circle) as a close toggle. */
 .tq-chat__launcher {
   position: relative;
-  display: inline-flex;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  /* closed state: the full photo, at its native 9:16 shape */
-  width: 90px;
-  height: 160px;
   padding: 0;
-  border: 2px solid var(--tq-accent);
-  border-radius: 14px;
-  overflow: hidden;
-  background: var(--tq-accent);
-  color: var(--tq-accent-ink);
-  font-weight: 700;
-  font-size: 15px;
-  letter-spacing: 0.02em;
+  border: none;
+  background: none;
   cursor: pointer;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-.tq-chat__launcher--open {
-  width: 56px;
-  height: 56px;
-  border-radius: 999px;
+  transition: transform 0.15s var(--ease);
 }
 .tq-chat__launcher:hover { transform: translateY(-2px); }
-.tq-chat__launcherFace {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
+.tq-chat__launcher:active { transform: translateY(0) scale(0.98); }
+.tq-chat__launcher:focus-visible {
+  outline: 3px solid var(--tq-turquoise-dark);
+  outline-offset: 3px;
+  border-radius: 14px;
 }
-.tq-chat__launcher:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
 
-/* Panel */
+/* Closed: the peeking character sits above the pill, its built-in white ledge
+   blending into the white pill so it reads as peeking over the card. */
+.tq-chat__launcherPeek {
+  width: 116px;
+  height: auto;
+  margin-bottom: -7px; /* overlap the pill's top edge */
+  filter: drop-shadow(0 3px 4px rgba(20, 21, 15, 0.18));
+  pointer-events: none;
+}
+.tq-chat__launcherLabel {
+  background: var(--surface);
+  color: var(--tq-turquoise-dark);
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.01em;
+  padding: 9px 20px;
+  border: 1px solid var(--tq-turquoise-mid);
+  border-radius: 12px;
+  box-shadow: var(--shadow-md);
+}
+
+/* Open: the full calculator character, shown whole (no crop / circle). */
+.tq-chat__launcherFull {
+  width: 104px;
+  height: auto;
+  display: block;
+  filter: drop-shadow(0 4px 8px rgba(20, 21, 15, 0.28));
+}
+
+/* Panel — white card, 16px corners, soft elevation. */
 .tq-chat__panel {
   position: absolute;
   right: 0;
-  bottom: 70px;
+  bottom: 76px;
   width: min(380px, calc(100vw - 40px));
-  height: min(560px, calc(100vh - 120px));
+  height: min(560px, calc(100vh - 130px));
   display: flex;
   flex-direction: column;
-  background: var(--tq-bg);
-  color: var(--tq-text);
-  border: 1px solid var(--tq-line);
-  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
-  animation: tq-rise 0.18s ease;
+  box-shadow: var(--shadow-lg);
+  animation: tq-rise 0.18s var(--ease);
 }
 @keyframes tq-rise {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: none; }
 }
 
-/* Header */
+/* Bottom sheet on small screens so the panel stays usable on mobile. */
+@media (max-width: 480px) {
+  .tq-chat__panel {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: min(82vh, 640px);
+    border-radius: 16px 16px 0 0;
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+  }
+
+  /* The sheet spans the full width, so the floating launcher would sit on top
+     of the input row — the header's × is the close control on mobile. */
+  .tq-chat__launcher--open { display: none; }
+}
+
+/* Header — dark-turquoise band (AA with white text), logo + title + close. */
 .tq-chat__header {
   display: flex;
-  align-items: baseline;
-  gap: 8px;
-  padding: 14px 16px;
-  background: var(--tq-surface);
-  border-bottom: 1px solid var(--tq-line);
+  align-items: center;
+  gap: 10px;
+  padding: 13px 16px;
+  background: linear-gradient(90deg, var(--tq-turquoise-darker) 0%, var(--tq-turquoise-dark) 100%);
+  color: #fff;
 }
-.tq-chat__eyebrow {
-  font-family: var(--tq-mono);
-  font-size: 11px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--tq-accent);
+.tq-chat__logo {
+  height: 20px;
+  width: auto;
+  display: block;
+  flex-shrink: 0;
 }
-.tq-chat__title { font-size: 15px; font-weight: 600; }
+.tq-chat__title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+}
 .tq-chat__close {
   margin-left: auto;
   background: none;
   border: none;
-  color: var(--tq-muted);
-  font-size: 22px;
+  color: #fff;
+  font-size: 24px;
   line-height: 1;
   cursor: pointer;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  opacity: 0.85;
 }
-.tq-chat__close:hover { color: var(--tq-text); }
+.tq-chat__close:hover { opacity: 1; }
+.tq-chat__close:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 2px;
+  opacity: 1;
+}
 
 /* Messages */
 .tq-chat__messages {
@@ -114,33 +155,71 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+  background: var(--surface);
+  scrollbar-width: thin;
+  scrollbar-color: var(--tq-turquoise) var(--surface-alt);
 }
-.tq-chat__msg { display: flex; flex-direction: column; max-width: 85%; }
-.tq-chat__msg--user { align-self: flex-end; align-items: flex-end; }
-.tq-chat__msg--assistant { align-self: flex-start; }
+.tq-chat__messages::-webkit-scrollbar { width: 8px; }
+.tq-chat__messages::-webkit-scrollbar-track { background: var(--surface-alt); }
+.tq-chat__messages::-webkit-scrollbar-thumb {
+  background: var(--tq-turquoise);
+  border-radius: 999px;
+}
+
+.tq-chat__msg { display: flex; max-width: 85%; }
+.tq-chat__msg--user { align-self: flex-end; justify-content: flex-end; }
+.tq-chat__msg--assistant {
+  align-self: flex-start;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+/* The assistant's name beside each bot message (in place of an avatar). */
+.tq-chat__avatar-name {
+  flex-shrink: 0;
+  align-self: flex-end;
+  width: 46px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--tq-turquoise-dark);
+}
+
 .tq-chat__bubble {
   padding: 10px 13px;
-  border-radius: var(--tq-radius);
+  border-radius: 12px;
   font-size: 14px;
   line-height: 1.5;
   white-space: pre-wrap;
   word-wrap: break-word;
 }
 .tq-chat__msg--assistant .tq-chat__bubble {
-  background: var(--tq-surface-2);
-  border: 1px solid var(--tq-line);
+  /* Very light turquoise tint (token turquoise at ~7% over white). */
+  background: color-mix(in srgb, var(--tq-turquoise) 7%, var(--surface));
+  border: 1px solid var(--tq-turquoise-mid);
+  color: var(--text);
+  border-bottom-left-radius: 4px;
 }
 .tq-chat__msg--user .tq-chat__bubble {
-  background: var(--tq-user);
-  color: var(--tq-text);
+  background: var(--tq-turquoise-dark); /* AA with white text */
+  color: #fff;
+  border-bottom-right-radius: 4px;
 }
-/* Typing indicator */
+
+/* Links / inline citations the assistant returns: turquoise (AA on white). */
+.tq-chat__msg--assistant .tq-chat__bubble a {
+  color: var(--tq-turquoise-dark);
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+/* Typing indicator — turquoise dots. */
 .tq-chat__bubble--typing { display: inline-flex; gap: 4px; }
 .tq-chat__bubble--typing span {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--tq-muted);
+  background: var(--tq-turquoise);
   animation: tq-blink 1.2s infinite ease-in-out;
 }
 .tq-chat__bubble--typing span:nth-child(2) { animation-delay: 0.2s; }
@@ -150,44 +229,65 @@
   40% { opacity: 1; }
 }
 
-/* Input */
+/* Input row — white field, light border; Send = the app's yellow CTA. */
 .tq-chat__inputRow {
   display: flex;
   gap: 8px;
   padding: 12px;
-  border-top: 1px solid var(--tq-line);
-  background: var(--tq-surface);
+  border-top: 1px solid var(--border);
+  background: var(--surface);
 }
 .tq-chat__input {
   flex: 1;
   resize: none;
   max-height: 120px;
   padding: 10px 12px;
-  background: var(--tq-bg);
-  color: var(--tq-text);
-  border: 1px solid var(--tq-line);
-  border-radius: var(--tq-radius);
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
   font: inherit;
   font-size: 14px;
 }
-.tq-chat__input:focus { outline: none; border-color: var(--tq-accent); }
-.tq-chat__input::placeholder { color: var(--tq-muted); }
+.tq-chat__input:focus-visible {
+  outline: 2px solid var(--tq-turquoise);
+  outline-offset: -1px;
+  border-color: var(--tq-turquoise);
+}
+.tq-chat__input::placeholder { color: var(--text-muted); }
+
+/* Same treatment as the app's .btn-cta (top-light gradient + inner highlight),
+   dark text on yellow for AA contrast. */
 .tq-chat__send {
   align-self: stretch;
-  padding: 0 16px;
-  background: var(--tq-accent);
-  color: var(--tq-accent-ink);
+  padding: 0 18px;
+  background-color: var(--cta-yellow);
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0) 52%, rgba(0, 0, 0, 0.07) 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), inset 0 -1px 0 rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.18);
+  color: var(--cta-ink);
   border: none;
-  border-radius: var(--tq-radius);
+  border-radius: var(--radius-sm);
   font-weight: 700;
   font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
   cursor: pointer;
+  transition: background-color 0.15s var(--ease), transform 0.1s var(--ease);
 }
+.tq-chat__send:hover:not(:disabled) {
+  background-color: var(--cta-yellow-dark);
+  transform: translateY(-1px);
+}
+.tq-chat__send:active:not(:disabled) { transform: translateY(0) scale(0.97); }
 .tq-chat__send:disabled { opacity: 0.45; cursor: not-allowed; }
-.tq-chat__send:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+.tq-chat__send:focus-visible {
+  outline: 3px solid var(--tq-turquoise-dark);
+  outline-offset: 2px;
+}
 
 @media (prefers-reduced-motion: reduce) {
   .tq-chat__panel,
-  .tq-chat__launcher { animation: none; transition: none; }
+  .tq-chat__launcher,
+  .tq-chat__send { animation: none; transition: none; }
   .tq-chat__bubble--typing span { animation: none; }
 }

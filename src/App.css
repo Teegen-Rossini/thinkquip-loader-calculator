@@ -80,6 +80,129 @@
   min-width: 0;
 }
 
+/* Right-hand header cluster: signed-in salesman, print, log out. */
+.app-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.app-header__user {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.logout-btn {
+  background: transparent;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: var(--radius-sm);
+  padding: 9px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s var(--ease), border-color 0.15s var(--ease);
+  flex-shrink: 0;
+}
+
+.logout-btn:hover {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: #fff;
+}
+
+.logout-btn:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 2px;
+}
+
+/* "Save ThinkQuip Copy" — files the THINKQUIP COPY variant into the logged-in
+   salesman's own folder (desktop app); in a browser it falls back to the normal
+   save dialog. Save only — never a print dialog on the desktop. */
+.salesman-copy-btn {
+  background: var(--cta-yellow);
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0) 52%, rgba(0, 0, 0, 0.07) 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), inset 0 -1px 0 rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.18);
+  color: var(--cta-ink);
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 9px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.15s var(--ease), transform 0.1s var(--ease);
+  flex-shrink: 0;
+}
+
+.salesman-copy-btn:hover:not(:disabled) {
+  background-color: var(--cta-yellow-dark);
+  transform: translateY(-1px);
+}
+
+.salesman-copy-btn:active:not(:disabled) {
+  transform: translateY(0) scale(0.97);
+}
+
+.salesman-copy-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.salesman-copy-btn:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 2px;
+}
+
+/* Where-it-saved confirmation (or why it couldn't). */
+.save-notice {
+  position: fixed;
+  left: 20px;
+  bottom: 20px;
+  z-index: 9998;
+  max-width: min(520px, calc(100vw - 40px));
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  background: var(--tq-turquoise-light);
+  border-left: 4px solid var(--tq-turquoise);
+  box-shadow: var(--shadow-md);
+  color: var(--text);
+}
+
+.save-notice--warn {
+  background: #FDF3E3;
+  border-left-color: var(--estimate);
+}
+
+.save-notice__text {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.save-notice__close {
+  margin-left: auto;
+  background: none;
+  border: none;
+  font-size: 20px;
+  line-height: 1;
+  color: var(--text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.save-notice__close:hover {
+  color: var(--text);
+}
+
 .print-btn {
   background: #fff;
   color: var(--tq-turquoise-darker);

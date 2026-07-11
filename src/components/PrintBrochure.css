@@ -207,6 +207,32 @@
   justify-content: flex-start;
 }
 
+/* Which of the two variants this printed brochure is. Stamped at the top of the
+   cover. "THINKQUIP COPY" is fixed — it never carries the salesman's name. */
+.print-cover__copy-label {
+  align-self: flex-end;
+  margin-bottom: 3mm;
+  padding: 1.4mm 3.5mm;
+  border: 1.2pt solid var(--tq-turquoise);
+  border-radius: 1.5mm;
+  color: var(--tq-turquoise-darker);
+  background: var(--tq-turquoise-light);
+  font-family: var(--display);
+  font-size: 9.5pt;
+  font-weight: 700;
+  font-style: italic;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* ThinkQuip's internal master record — deliberately louder than the customer's. */
+.print-cover__copy-label--thinkquip {
+  color: #fff;
+  background: var(--tq-turquoise-darker);
+  border-color: var(--tq-turquoise-darker);
+}
+
 .print-cover__brands {
   display: flex;
   align-items: center;

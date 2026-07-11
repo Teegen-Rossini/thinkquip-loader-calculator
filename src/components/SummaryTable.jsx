@@ -1,4 +1,4 @@
-import { formatCurrency, formatHours, formatYearsFromHours } from '../lib/format';
+import { formatCurrency, formatHours, formatYearsFromHours, variantName } from '../lib/format';
 import { ESCALATION, DIESEL_SERVICE, CALC_DEFAULTS } from '../data/machinesConfig';
 import { applyVat } from '../lib/calculationEngine';
 import MachineName from './MachineName';
@@ -10,7 +10,7 @@ function formatRate(rate) {
 }
 
 export default function SummaryTable({ selection, inputs }) {
-  const { machines, comparisons, hasComparison, heroMachine, electricSelected, hoursPerYear } = selection;
+  const { machines, comparisons, hasComparison, heroMachine, electricSelected, hoursPerYear, windowHours } = selection;
   const maxHours = CALC_DEFAULTS.chartMaxHours;
   const vatInclusive = inputs.vatInclusive;
   const priceLabel = vatInclusive ? 'Unit price (incl. VAT)' : 'Unit price (excl. VAT)';
@@ -31,7 +31,7 @@ export default function SummaryTable({ selection, inputs }) {
               <th>Machine</th>
               <th>{priceLabel}</th>
               <th>Fleet capital (×{selection.fleetSize})</th>
-              <th>TCO @ {formatHours(maxHours)}</th>
+              <th>TCO @ {formatHours(windowHours)}</th>
             </tr>
           </thead>
           <tbody>
@@ -40,7 +40,7 @@ export default function SummaryTable({ selection, inputs }) {
                 <td><MachineName machine={r.machine} /></td>
                 <td className="mono">{formatCurrency(r.purchaseFleet / r.fleetSize)}</td>
                 <td className="mono">{formatCurrency(r.purchaseFleet)}</td>
-                <td className="mono">{formatCurrency(r.tcoAtMax)}</td>
+                <td className="mono">{formatCurrency(r.tcoAtWindow)}</td>
               </tr>
             ))}
           </tbody>
@@ -86,16 +86,16 @@ export default function SummaryTable({ selection, inputs }) {
       </div>
 
       <div className="summary-table-block">
-        <h3>Year-0 Running Cost per Hour</h3>
+        <h3>Running Cost per Hour (Year 0)</h3>
         <table className="summary-table">
           <thead>
             <tr>
               <th>Machine</th>
-              <th>Consumption (current duty)</th>
-              <th>Energy / fuel / h</th>
-              <th>Service / h</th>
-              <th>Total / h</th>
-              {hasComparison && <th>Crossover (vs {heroMachine.name})</th>}
+              <th>Consumption (at your duty cycle)</th>
+              <th>Energy cost / h</th>
+              <th>Routine service / h</th>
+              <th>Running cost / h (year 0)</th>
+              {hasComparison && <th>Crossover (vs {variantName(heroMachine)})</th>}
             </tr>
           </thead>
           <tbody>
@@ -125,7 +125,7 @@ export default function SummaryTable({ selection, inputs }) {
       </div>
 
       <div className="summary-table-block">
-        <h3>Mechanical Maintenance</h3>
+        <h3>Routine Service</h3>
         <table className="summary-table">
           <thead>
             <tr>
@@ -153,7 +153,7 @@ export default function SummaryTable({ selection, inputs }) {
               return (
                 <tr key={m.uid}>
                   <td><MachineName machine={m} /></td>
-                  <td>Routine engine service</td>
+                  <td>Routine service</td>
                   <td className="mono">R{DIESEL_SERVICE.ratePerHour}/h (continuous)</td>
                   <td className="mono">Ongoing</td>
                   <td className="mono">{formatRate(ESCALATION.maintenance)}</td>
@@ -164,7 +164,7 @@ export default function SummaryTable({ selection, inputs }) {
         </table>
         {electricSelected && (
           <p className="summary-note">
-            The electric machine carries no mechanical-maintenance line across the whole {formatHours(maxHours)} chart. That absence is the
+            The electric machine has no mechanical service line across the whole {formatHours(maxHours)} chart. That absence is the
             long-term advantage to highlight.
           </p>
         )}

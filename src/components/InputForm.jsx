@@ -1,6 +1,7 @@
 import { FUEL_THEFT_LEVELS } from '../data/machinesConfig';
 import { getModelsForType } from '../data/machinesRepo';
-import { annualHours, interpolateConsumption, operationBand } from '../lib/calculationEngine';
+import { annualHours, interpolateConsumption, operationBand, effectiveMachinePrice } from '../lib/calculationEngine';
+import { formatCurrency } from '../lib/format';
 import MachineTypeSelector from './MachineTypeSelector';
 import MachineName from './MachineName';
 import './InputForm.css';
@@ -37,6 +38,20 @@ export default function InputForm({ inputs, onUpdate, onSelectMachineType, onTog
   const electricityPriceWarning = inputs.electricityPrice <= 0 ? 'Must be greater than 0.' : rangeWarning(inputs.electricityPrice, 0.5, 8, ' R/kWh');
   const dieselPriceWarning = inputs.dieselPrice <= 0 ? 'Must be greater than 0.' : rangeWarning(inputs.dieselPrice, 10, 45, ' R/L');
 
+  // The raw field value for a machine-price input ('' while cleared); the
+  // engine falls back to the default list price via effectiveMachinePrice.
+  const priceFieldValue = (model) => inputs.machinePrices?.[model.id] ?? model.price;
+  const setMachinePrice = (model, raw) => onUpdate({
+    machinePrices: { ...inputs.machinePrices, [model.id]: raw === '' ? '' : Number(raw) },
+  });
+  // Discount off the LIST price — deliberately never worded as "saving"
+  // (that term is the TCO cost-gap figure elsewhere in the app).
+  const discountFor = (model) => {
+    const entered = effectiveMachinePrice(model, inputs);
+    const off = model.price - entered;
+    return off > 0 ? { entered, off, pct: Math.round((off / model.price) * 100) } : null;
+  };
+
   return (
     <form className="input-form" onSubmit={(e) => e.preventDefault()}>
       <div className="input-grid">
@@ -69,11 +84,45 @@ export default function InputForm({ inputs, onUpdate, onSelectMachineType, onTog
                     <MachineName machine={model} className="machine-option__name" />
                     <span className="machine-option__meta">
                       <span className={`machine-option__type machine-option__type--${model.type}`}>{model.type === 'electric' ? 'Electric' : 'Diesel'}</span>
-                      <span className="machine-option__price mono">R{model.price.toLocaleString('en-US')} <span className="machine-option__exvat">ex VAT</span></span>
+                      <span className="machine-option__price mono">R{effectiveMachinePrice(model, inputs).toLocaleString('en-US')} <span className="machine-option__exvat">excl. VAT</span></span>
                     </span>
                   </span>
                   <span className="machine-option__check" aria-hidden="true">{selected ? '✓' : ''}</span>
                 </button>
+              );
+            })}
+          </div>
+        </section>
+
+        <section className="input-card input-card--wide">
+          <h3>Machine Prices (R, excl. VAT)</h3>
+          <p className="field__help">
+            Defaults are the list prices — edit a price to quote a discount; every figure in the tool
+            (and the printed brochure) follows the entered price. <InfoTip text="An empty or zero field falls back to that machine's default list price. A price below list shows a discount summary; a price at or above list shows nothing extra." />
+          </p>
+          <div className="field-row field-row--prices">
+            {models.map((model) => {
+              const discount = discountFor(model);
+              return (
+                <div className="field" key={model.id}>
+                  <label className="field__label" htmlFor={`price-${model.id}`}>
+                    <MachineName machine={model} />
+                  </label>
+                  <input
+                    id={`price-${model.id}`}
+                    type="number"
+                    min="0"
+                    step="10000"
+                    value={priceFieldValue(model)}
+                    onChange={(e) => setMachinePrice(model, e.target.value)}
+                  />
+                  <p className="field__help">List price: <span className="mono">{formatCurrency(model.price)}</span></p>
+                  {discount && (
+                    <p className="field__discount">
+                      Discount: {discount.pct}% — {formatCurrency(discount.off)} off list (now {formatCurrency(discount.entered)})
+                    </p>
+                  )}
+                </div>
               );
             })}
           </div>
@@ -129,7 +178,7 @@ export default function InputForm({ inputs, onUpdate, onSelectMachineType, onTog
         </section>
 
         <section className="input-card">
-          <h3>Operation</h3>
+          <h3>Duty Cycle</h3>
           <div className="field">
             <span className="field__label">
               Duty cycle <InfoTip text="Moves consumption between the light/normal/heavy breakpoints. This drives consumption only — never the time axis." />

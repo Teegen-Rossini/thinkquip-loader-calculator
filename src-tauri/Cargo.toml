@@ -1,0 +1,36 @@
+[package]
+name = "app"
+version = "0.1.0"
+description = "ThinkQuip SANY Loader Savings Calculator"
+authors = ["ThinkQuip"]
+license = ""
+repository = ""
+edition = "2021"
+rust-version = "1.77.2"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name = "app_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.6.3", features = [] }
+
+[dependencies]
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+log = "0.4"
+tauri = { version = "2.11.3", features = [] }
+tauri-plugin-log = "2"
+# Only used for the "folder unreachable" fallback: ask the salesman where to put
+# the PDF rather than losing it.
+tauri-plugin-dialog = "2"
+
+# Silent print-to-PDF goes through WebView2's own PrintToPdf, so the brochure is
+# rendered by the SAME print pipeline (and print CSS) the print dialog would use.
+# These versions are pinned to what Tauri/tao already resolve, so the COM types
+# unify (a mismatched webview2-com would not typecheck against the webview handle).
+[target.'cfg(windows)'.dependencies]
+webview2-com = "0.38"
+windows = { version = "0.61", features = ["Win32_Foundation"] }

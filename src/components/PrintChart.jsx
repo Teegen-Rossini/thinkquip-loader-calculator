@@ -102,7 +102,7 @@ export default function PrintChart({ selection }) {
         transform={`translate(14 ${(M.top + H - M.bottom) / 2}) rotate(-90)`}
         fontSize="11.5" fill={INK_MUTED} textAnchor="middle"
       >
-        Cumulative cost of ownership
+        Cumulative TCO
       </text>
 
       {/* crossover markers — label anchors inward near the edges so the text
@@ -117,7 +117,7 @@ export default function PrintChart({ selection }) {
               <text x={x(b.hours) + dx} y={M.top - 8} fontSize="13" fontWeight="700" fill={markerInk} textAnchor={anchor}>
                 {b.direction === 'loses'
                   ? `Cheaper until ${formatHoursCompact(b.hours)}`
-                  : `Savings start ${formatHoursCompact(b.hours)}`}
+                  : `Cheaper from ${formatHoursCompact(b.hours)}`}
               </text>
             )}
             <circle cx={x(b.hours)} cy={y(b.yPos)} r="6" fill={markerInk} stroke="#fff" strokeWidth="2" />

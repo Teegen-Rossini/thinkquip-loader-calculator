@@ -9,12 +9,15 @@ distributor in South Africa.
 
 ## Price
 
-- SANY SYL956H5 diesel, **dry brake**: R1,850,000 excluding VAT
-- SANY SYL956H5 diesel, **wet brake**: R2,200,000 excluding VAT
+- SANY SYL956H5 diesel, **dry brake**: list price R2,000,000 excluding VAT
+- SANY SYL956H5 diesel, **wet brake**: list price R2,350,000 excluding VAT
 
-The wet-brake variant costs R350,000 more upfront than the dry-brake variant.
-VAT in South Africa is 15%; the calculator can show figures VAT-inclusive or
-VAT-exclusive.
+At list prices the wet-brake variant costs R350,000 more upfront than the
+dry-brake variant. In the calculator each price is an editable input
+defaulting to its list price; when the salesperson enters a lower price, a
+discount-off-list summary is shown and every figure follows the entered
+price. VAT in South Africa is 15%; the calculator can show figures
+VAT-inclusive or VAT-exclusive.
 
 ## Key specifications (SANY SYL956H5)
 

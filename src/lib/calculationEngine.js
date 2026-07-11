@@ -69,6 +69,17 @@ export function applyVat(value, inputs) {
 }
 
 /**
+ * The purchase price the engine uses for a machine: the salesperson's entered
+ * price (`inputs.machinePrices[modelId]`) when it is a positive number, else
+ * the model's default list price. An empty/cleared/invalid field never breaks
+ * a calculation — it just falls back to the default. Prices are ex-VAT.
+ */
+export function effectiveMachinePrice(model, inputs) {
+  const raw = Number(inputs?.machinePrices?.[model.id]);
+  return Number.isFinite(raw) && raw > 0 ? raw : model.price;
+}
+
+/**
  * Year-0 (today's-price) per-hour cost lines for both machines from the live
  * inputs. Electricity is ALWAYS counted for the electric machine; diesel fuel
  * (and its theft uplift) is dropped when fuel is not included in the rate;
@@ -332,8 +343,18 @@ export function cheaperSegments(machines, maxHours) {
  */
 export function runSelection({ inputs, fleetSize = 1 }) {
   const selected = orderedSelection(inputs.machineModelIds);
-  const machines = selected.map((modelId) =>
-    buildCostSeries({ machine: getModelById(modelId), inputs, fleetSize }));
+  // Each machine runs at its EFFECTIVE price (the salesperson's entered price,
+  // else the default list price). `listPrice` keeps the default alongside so
+  // views can show a discount-off-list summary; the formulas read only `price`.
+  const machines = selected.map((modelId) => {
+    const model = getModelById(modelId);
+    const price = effectiveMachinePrice(model, inputs);
+    return buildCostSeries({
+      machine: { ...model, price, listPrice: model.price },
+      inputs,
+      fleetSize,
+    });
+  });
 
   const electricSelected = machines.some((m) => m.machine.type === 'electric');
 

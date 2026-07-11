@@ -16,7 +16,8 @@
  *   unconfirmed — no usable number yet (renders as "Pending quote")
  */
 
-import thinkquipLogo from '../thinkquip-assets/logos/thinkquip-logo.png';
+import thinkquipLogoWhite from '../thinkquip-assets/logos/thinkquip-logo-white.png';
+import thinkquipLogoTurquoise from '../thinkquip-assets/logos/thinkquip-logo-turquoise.png';
 import sanyLogo from '../thinkquip-assets-v3/logos-transparent/sany-logo.png';
 
 import sanyElectricPhoto from '../thinkquip-assets-v3/machines-cutout/sany-sw956e-electric.png';
@@ -34,7 +35,13 @@ export const COLORS = {
   dieselAccentDark: '#C9821B',
 };
 
-export const THINKQUIP_LOGO = thinkquipLogo;
+// Two translucent-background ThinkQuip marks, chosen by the surface behind them:
+//  - WHITE text  → use on turquoise / dark surfaces (app header, chat header)
+//  - TURQUOISE text → use on white / light surfaces (the printed brochure)
+export const THINKQUIP_LOGO_WHITE = thinkquipLogoWhite;
+export const THINKQUIP_LOGO_TURQUOISE = thinkquipLogoTurquoise;
+// Back-compat default: the white mark (its historical use was the turquoise header).
+export const THINKQUIP_LOGO = thinkquipLogoWhite;
 
 /** Company identity printed in the brochure footer. */
 export const COMPANY = {
@@ -43,15 +50,12 @@ export const COMPANY = {
   website: 'www.thinkquip.co.za',
 };
 
-/** "Prepared By" — the salesman block on the cover page (screen + print).
- *  Fixed values, never user-editable. To issue quotes under a different
- *  salesman, swap the three values below — this is the ONLY place they live.
- *  Placeholder identity for this version: ThinkQuip itself. */
-export const PREPARED_BY = {
-  name: 'ThinkQuip',
-  cell: '+27 83 973 1378',
-  email: 'mathew@thinkquip.co.za',
-};
+/* "Prepared By" (the salesman block on the cover, screen + print) is NOT a
+ * constant any more. It comes from the logged-in salesman's Supabase `salesman`
+ * row (name / cell / email), fetched by src/lib/useAuth.js and passed down as
+ * the `salesman` prop. There is deliberately no hardcoded fallback — if a user
+ * has no profile row, the app blocks with an explicit error rather than
+ * printing placeholder details. */
 
 /** SANY SW956E electric loader. Selling price is fixed (the 320 kW charger
  *  is included). */
@@ -243,7 +247,7 @@ export const FUEL_THEFT_LEVELS = [
 export const DIESEL_SERVICE = {
   ratePerHour: 29, // R29,000 per 1,000 h
   confidence: 'confirmed',
-  note: 'Routine engine service — R29,000 per 1,000 h (R29/h), linear from R29,000 @1,000h to R377,000 @13,000h and continued at the same rate to the chart limit.',
+  note: 'Routine service — R29,000 per 1,000 h (R29/h), linear from R29,000 @1,000h to R377,000 @13,000h and continued at the same rate to the chart limit.',
 };
 
 /**

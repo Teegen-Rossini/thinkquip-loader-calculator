@@ -1,0 +1,12 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Minimal permissions. Note there is deliberately NO fs plugin: the frontend has no general filesystem access. All file writes go through this app's own commands (ensure_dir / path_exists / write_file), which refuse any path outside the configured salesman-copies base folder. The dialog permission exists only for the 'shared folder unreachable' fallback, so a PDF is never lost.",
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "core:default",
+    "dialog:allow-save"
+  ]
+}

@@ -1,4 +1,4 @@
-import { THINKQUIP_LOGO, DIESEL_SERVICE } from '../data/machinesConfig';
+import { THINKQUIP_LOGO_TURQUOISE, DIESEL_SERVICE } from '../data/machinesConfig';
 import { applyVat } from '../lib/calculationEngine';
 import { formatCurrency, formatHours, formatYearsFromHours, variantName } from '../lib/format';
 import { PrintPage, PageHeader, Band, SpecRows } from './PrintKit';
@@ -22,11 +22,11 @@ function MachineColumn({ machine, result, inputs, isElectric, windowHours }) {
       <SpecRows rows={[
         { label: `Unit price (${vatLabel})`, value: formatCurrency(result.purchaseFleet / result.fleetSize) },
         { label: `Fleet capital (×${result.fleetSize})`, value: formatCurrency(result.purchaseFleet) },
-        { label: 'Consumption at your duty', value: isElectric ? `${Math.round(per.cElec)} kWh/h` : `${Math.round(per.cDiesel)} L/h` },
-        { label: isElectric ? 'Electricity cost / h' : 'Fuel cost / h (incl. theft θ)', value: formatCurrency(energyPerH) },
-        { label: 'Mechanical service / h', value: isElectric ? 'R0 — none' : formatCurrency(servicePerH) },
-        { label: 'Total running cost / h (year 0)', value: formatCurrency(totalPerH) },
-        { label: `Total cost @ ${formatHours(windowHours)}`, value: formatCurrency(result.tcoAtWindow), emph: true },
+        { label: 'Consumption at your duty cycle', value: isElectric ? `${Math.round(per.cElec)} kWh/h` : `${Math.round(per.cDiesel)} L/h` },
+        { label: isElectric ? 'Energy cost / h (Electricity)' : 'Energy cost / h (Diesel, incl. theft θ)', value: formatCurrency(energyPerH) },
+        { label: 'Routine service / h', value: isElectric ? 'No mechanical service line — R0/h' : formatCurrency(servicePerH) },
+        { label: 'Running cost / h (year 0)', value: formatCurrency(totalPerH) },
+        { label: `TCO @ ${formatHours(windowHours)}`, value: formatCurrency(result.tcoAtWindow), emph: true },
       ]} />
     </div>
   );
@@ -63,7 +63,7 @@ export default function PrintComparisonPage({ selection, inputs, pageNumber, pag
 
   return (
     <PrintPage pageNumber={pageNumber} pageCount={pageCount}>
-      <PageHeader logo={THINKQUIP_LOGO} logoAlt="ThinkQuip" title="Machine Comparison" />
+      <PageHeader logo={THINKQUIP_LOGO_TURQUOISE} logoAlt="ThinkQuip" title="Machine Comparison" />
       <p className="print-intro">
         {hasComparison
           ? comparisonIntro
@@ -93,8 +93,8 @@ export default function PrintComparisonPage({ selection, inputs, pageNumber, pag
               ]
             : comparisons.flatMap((c) => [
                 {
-                  label: `Cost gap @ ${formatHours(windowHours)} — ${variantName(c.machine)} vs ${heroName}`,
-                  value: c.gapAtWindow > 0 ? `${formatCurrency(c.gapAtWindow)} more` : 'Level at this window',
+                  label: `Saving @ ${formatHours(windowHours)} — ${heroName} vs ${variantName(c.machine)}`,
+                  value: c.gapAtWindow > 0 ? `${formatCurrency(c.gapAtWindow)} saved` : 'Level at this window',
                 },
                 {
                   label: `Crossover vs ${variantName(c.machine)}`,
@@ -107,8 +107,8 @@ export default function PrintComparisonPage({ selection, inputs, pageNumber, pag
               <p className="print-callout__value">{formatCurrency(bestSaving)} saved by {formatHours(windowHours)}</p>
               <p className="print-callout__text">
                 {best.sameRunningCosts
-                  ? `The ${heroMachine.displayName} costs ${formatCurrency(best.priceGapFleet)} less to buy than the ${best.machine.displayName} for ${inputs.fleetSize} machine${inputs.fleetSize > 1 ? 's' : ''} and runs at the same cost per hour — the saving holds at every operating hour.`
-                  : `Total cost of ownership advantage of the ${heroMachine.displayName} over the ${best.machine.displayName} for ${inputs.fleetSize} machine${inputs.fleetSize > 1 ? 's' : ''} at your ${formatHours(windowHours)} window, including purchase price, energy and service.`}
+                  ? `The ${variantName(heroMachine)} costs ${formatCurrency(best.priceGapFleet)} less to buy than the ${variantName(best.machine)} for ${inputs.fleetSize} machine${inputs.fleetSize > 1 ? 's' : ''} and runs at the same cost per hour — the saving holds at every operating hour.`
+                  : `Total cost of ownership saving of the ${variantName(heroMachine)} over the ${variantName(best.machine)} for ${inputs.fleetSize} machine${inputs.fleetSize > 1 ? 's' : ''} at your ${formatHours(windowHours)} window, including purchase price, energy and service.`}
               </p>
             </div>
           )}

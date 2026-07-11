@@ -1,5 +1,5 @@
 import {
-  FUEL_THEFT_LEVELS, ESCALATION, CALC_DEFAULTS, DIESEL_SERVICE, THINKQUIP_LOGO,
+  FUEL_THEFT_LEVELS, ESCALATION, CALC_DEFAULTS, DIESEL_SERVICE, THINKQUIP_LOGO_TURQUOISE,
 } from '../data/machinesConfig';
 import { annualHours, operationBand, interpolateConsumption, theftTheta } from '../lib/calculationEngine';
 import { formatHours, formatYearsFromHours } from '../lib/format';
@@ -23,7 +23,7 @@ export default function PrintInputsPage({ selection, inputs, pageNumber, pageCou
 
   return (
     <PrintPage pageNumber={pageNumber} pageCount={pageCount}>
-      <PageHeader logo={THINKQUIP_LOGO} logoAlt="ThinkQuip" title="Inputs & Assumptions" />
+      <PageHeader logo={THINKQUIP_LOGO_TURQUOISE} logoAlt="ThinkQuip" title="Inputs & Assumptions" />
       <p className="print-intro">
         Every figure in this proposal is derived from the operating inputs below — supplied by you — combined
         with SANY factory data and researched escalation trends.
@@ -66,7 +66,7 @@ export default function PrintInputsPage({ selection, inputs, pageNumber, pageCou
 
       <p className="print-note">
         The comparison runs over operating hours, 0 → {formatHours(CALC_DEFAULTS.chartMaxHours)}, stepping cost in
-        quarter-year slices escalated at each slice midpoint. The electric machine carries no routine mechanical-service
+        quarter-year slices escalated at each slice midpoint. The electric machine has no mechanical service
         line (R0/h); the diesel R{DIESEL_SERVICE.ratePerHour}/h routine service is always counted. Escalation rates are
         researched annual trends — not flat projections and not a forecast of your business income.
       </p>

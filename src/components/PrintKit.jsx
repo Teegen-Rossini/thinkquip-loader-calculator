@@ -5,7 +5,7 @@
  * spec sheets): turquoise section bands, two-column ruled spec rows, brand
  * page header, and a ThinkQuip footer with page numbers.
  */
-import { THINKQUIP_LOGO, COMPANY } from '../data/machinesConfig';
+import { THINKQUIP_LOGO_TURQUOISE, COMPANY } from '../data/machinesConfig';
 
 /** One fixed A4 page. Footer (logo · address · site · Page X of Y) is pinned
  *  to the bottom; content that overflows is clipped rather than spilling into
@@ -16,7 +16,7 @@ export function PrintPage({ pageNumber, pageCount, isLast, className = '', child
       <div className="print-page__content">{children}</div>
       {footer && (
         <footer className="print-page__footer">
-          <img src={THINKQUIP_LOGO} alt="ThinkQuip" className="print-page__footer-logo" />
+          <img src={THINKQUIP_LOGO_TURQUOISE} alt="ThinkQuip" className="print-page__footer-logo" />
           <span>{COMPANY.address}</span>
           <span className="print-page__footer-dot" aria-hidden="true" />
           <span>{COMPANY.website}</span>

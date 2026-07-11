@@ -31,9 +31,20 @@ export default function PrintSpecSheet({ result, inputs, pageNumber, pageCount, 
   const per = result.perHour;
   const band = operationBand(inputs.operationSlider);
 
+  // Discount off the LIST price (entered price below the default). Worded as
+  // "off list" — never "saving", which is the TCO figure elsewhere in print.
+  const listPrice = machine.listPrice ?? machine.price;
+  const discountOff = listPrice - machine.price;
+  const discountRows = discountOff > 0
+    ? [{
+        label: 'Discount off list price',
+        value: `${Math.round((discountOff / listPrice) * 100)}% — ${formatCurrency(discountOff)} off the ${formatCurrency(listPrice)} list price`,
+      }]
+    : [];
+
   const identity = [
     { label: 'Operating weight', value: `${machine.operatingWeightKg.toLocaleString('en-US')} kg` },
-    { label: 'Rated load', value: `${machine.ratedPayloadKg.toLocaleString('en-US')} kg` },
+    { label: 'Rated payload', value: `${machine.ratedPayloadKg.toLocaleString('en-US')} kg` },
     { label: 'Bucket capacity', value: `${machine.bucketCapacityM3} m³` },
     { label: 'Tyres', value: machine.tyres },
   ];
@@ -71,7 +82,7 @@ export default function PrintSpecSheet({ result, inputs, pageNumber, pageCount, 
           title: 'Life & Maintenance',
           rows: [
             { label: 'Service life', value: machine.serviceLifeHours.label },
-            { label: 'Mechanical service line', value: 'R0 — none required' },
+            { label: 'Routine service', value: 'No mechanical service line — R0/h' },
           ],
         },
         { title: 'Warranty', rows: warrantyRows(machine) },
@@ -79,9 +90,10 @@ export default function PrintSpecSheet({ result, inputs, pageNumber, pageCount, 
           title: 'Price',
           rows: [
             {
-              label: 'Selling price (excl. VAT), charger incl.',
+              label: 'Unit price (excl. VAT), charger incl.',
               value: formatCurrency(machine.price),
             },
+            ...discountRows,
           ],
         },
       ]
@@ -98,7 +110,7 @@ export default function PrintSpecSheet({ result, inputs, pageNumber, pageCount, 
         {
           title: 'Maintenance',
           rows: [
-            { label: 'Routine engine service', value: `R${DIESEL_SERVICE.ratePerHour}/h — continuous` },
+            { label: 'Routine service', value: `R${DIESEL_SERVICE.ratePerHour}/h — continuous` },
             { label: 'Per 1,000 operating hours', value: formatCurrency(DIESEL_SERVICE.ratePerHour * 1000) },
             { label: 'Service escalation', value: `+${Math.round(ESCALATION.maintenance * 1000) / 10}% / yr` },
           ],
@@ -108,9 +120,10 @@ export default function PrintSpecSheet({ result, inputs, pageNumber, pageCount, 
           title: 'Price',
           rows: [
             {
-              label: `Selling price (excl. VAT)${machine.variant ? ` — ${machine.variant}` : ''}`,
+              label: `Unit price (excl. VAT)${machine.variant ? ` — ${machine.variant}` : ''}`,
               value: formatCurrency(machine.price),
             },
+            ...discountRows,
           ],
         },
       ];

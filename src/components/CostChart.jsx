@@ -3,7 +3,7 @@ import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ReferenceLine, ReferenceDot,
 } from 'recharts';
-import { formatCurrency, formatCurrencyCompact, formatHours, formatHoursCompact, formatYearsFromHours } from '../lib/format';
+import { formatCurrency, formatCurrencyCompact, formatHours, formatHoursCompact, formatYearsFromHours, variantName } from '../lib/format';
 import { CALC_DEFAULTS } from '../data/machinesConfig';
 import { cumulativeCostAtHours } from '../lib/calculationEngine';
 import './CostChart.css';
@@ -58,7 +58,7 @@ function ChartTooltip({ active, payload, label, machinesByUid, winnerUid, hoursP
         return (
           <div key={p.dataKey} className={`cost-chart__tooltip-row${isWinner ? ' is-winner' : ''}`}>
             <img src={machine.logo} alt="SANY" className="cost-chart__tooltip-logo" />
-            <span className="cost-chart__tooltip-name">{modelOnly(machine.displayName)}</span>
+            <span className="cost-chart__tooltip-name">{variantName(machine)}</span>
             <span className="cost-chart__tooltip-value mono">{formatCurrency(p.value)}</span>
           </div>
         );
@@ -66,7 +66,7 @@ function ChartTooltip({ active, payload, label, machinesByUid, winnerUid, hoursP
       {differences.map(({ machine, gap }) => machine && (
         <div key={`diff-${machine.uid}`} className="cost-chart__tooltip-row cost-chart__tooltip-row--diff">
           <span className="cost-chart__tooltip-name">
-            Difference{differences.length > 1 ? ` vs ${modelOnly(machine.displayName)}` : ''}
+            Cost gap{differences.length > 1 ? ` vs ${variantName(machine)}` : ''}
           </span>
           <span className="cost-chart__tooltip-value mono">{formatCurrency(gap)}</span>
         </div>
@@ -90,7 +90,7 @@ export default function CostChart({ selection }) {
     .filter((c) => c.crossoverHours != null && c.crossoverHours > 0 && c.crossoverHours <= maxHours)
     .map((c) => ({
       uid: c.machine.uid,
-      name: c.machine.name,
+      name: variantName(c.machine),
       hours: c.crossoverHours,
       direction: c.crossoverDirection,
       y: cumulativeCostAtHours(hero.series, c.crossoverHours),
@@ -177,7 +177,7 @@ export default function CostChart({ selection }) {
                       ? `vs ${b.name} ${formatHoursCompact(b.hours)}`
                       : b.direction === 'loses'
                         ? `Cheaper until ${formatHoursCompact(b.hours)}`
-                        : `Savings start ${formatHoursCompact(b.hours)}`}
+                        : `Cheaper from ${formatHoursCompact(b.hours)}`}
                   </text>
                 );
               }}
@@ -218,7 +218,7 @@ export default function CostChart({ selection }) {
 
       {winnerUid && winnerCost != null && (
         <p className="cost-chart__winner">
-          Cheaper at {formatHours(hoverHours)}: <strong>{winnerMachine.displayName}</strong> ({formatCurrency(winnerCost)})
+          Cheaper at {formatHours(hoverHours)}: <strong>{variantName(winnerMachine)}</strong> ({formatCurrency(winnerCost)})
         </p>
       )}
 

@@ -15,11 +15,26 @@ import './PrintBrochure.css';
  * `selection` the screen uses. The page list is assembled first so "Page X of
  * Y" stays correct whichever pages render for the current selection.
  */
-export default function PrintBrochure({ selection, inputs, preview = false }) {
+export default function PrintBrochure({
+  selection,
+  inputs,
+  salesman,
+  copyKind = 'customer',
+  preview = false,
+}) {
   const specResults = selection.machines;
 
   const pages = [
-    (p) => <PrintCover key="cover" selection={selection} inputs={inputs} {...p} />,
+    (p) => (
+      <PrintCover
+        key="cover"
+        selection={selection}
+        inputs={inputs}
+        salesman={salesman}
+        copyKind={copyKind}
+        {...p}
+      />
+    ),
     (p) => <PrintInputsPage key="inputs" selection={selection} inputs={inputs} {...p} />,
     (p) => <PrintComparisonPage key="comparison" selection={selection} inputs={inputs} {...p} />,
     (p) => <PrintTimelinePage key="timeline" selection={selection} inputs={inputs} {...p} />,

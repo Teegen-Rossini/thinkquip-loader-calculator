@@ -33,7 +33,7 @@ export default function HeroStat({ selection, fleetSize, onUpdate }) {
       <div className="hero-stat">
         <div className="hero-stat__intro">
           <h3 className="hero-stat__title">
-            <MachineName machine={only.machine} /> — total cost
+            <MachineName machine={only.machine} /> — TCO
           </h3>
           <p className="hero-stat__lede">
             Total cost of ownership for {fleetLabel} — purchase price plus escalated running costs — measured at the
@@ -51,9 +51,9 @@ export default function HeroStat({ selection, fleetSize, onUpdate }) {
 
             <div className="hero-compare__stats">
               <div className="hero-compare__stat">
-                <span className="eyebrow">Total cost @ {windowLabel}</span>
+                <span className="eyebrow">TCO @ {windowLabel}</span>
                 <span className="hero-compare__value mono">{formatCurrency(only.tcoAtWindow)}</span>
-                <span className="hero-compare__sub">≈ {windowYears} at your operating hours</span>
+                <span className="hero-compare__sub">≈ {windowYears} at your hours</span>
               </div>
             </div>
 
@@ -112,9 +112,9 @@ export default function HeroStat({ selection, fleetSize, onUpdate }) {
           </div>
           <div className="hero-compare__stats">
             <div className="hero-compare__stat">
-              <span className="eyebrow">Total cost @ {windowLabel}</span>
+              <span className="eyebrow">TCO @ {windowLabel}</span>
               <span className="hero-compare__value mono">{formatCurrency(hero.tcoAtWindow)}</span>
-              <span className="hero-compare__sub">≈ {windowYears} at your operating hours</span>
+              <span className="hero-compare__sub">≈ {windowYears} at your hours</span>
             </div>
           </div>
           <p className="hero-compare__caption">
@@ -152,7 +152,7 @@ export default function HeroStat({ selection, fleetSize, onUpdate }) {
 
               <div className="hero-compare__stats">
                 <div className="hero-compare__stat">
-                  <span className="eyebrow">Costs more @ {windowLabel}</span>
+                  <span className="eyebrow">Cost gap @ {windowLabel}</span>
                   <span className="hero-compare__value hero-compare__value--save mono">
                     {c.gapAtWindow > 0 ? `+${formatCurrency(c.gapAtWindow)}` : '—'}
                   </span>

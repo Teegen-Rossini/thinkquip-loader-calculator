@@ -1,4 +1,4 @@
-import { CALC_DEFAULTS, ESCALATION, THINKQUIP_LOGO } from '../data/machinesConfig';
+import { CALC_DEFAULTS, ESCALATION, THINKQUIP_LOGO_TURQUOISE } from '../data/machinesConfig';
 import { cumulativeCostAtHours, savingsAtHours } from '../lib/calculationEngine';
 import { formatCurrency, formatHours, formatYearsFromHours, variantName } from '../lib/format';
 import { PrintPage, PageHeader, Band } from './PrintKit';
@@ -30,9 +30,9 @@ export default function PrintTimelinePage({ selection, inputs, pageNumber, pageC
 
   return (
     <PrintPage pageNumber={pageNumber} pageCount={pageCount}>
-      <PageHeader logo={THINKQUIP_LOGO} logoAlt="ThinkQuip" title="Cost Over Operating Hours" />
+      <PageHeader logo={THINKQUIP_LOGO_TURQUOISE} logoAlt="ThinkQuip" title="Cost Over Operating Hours" />
       <p className="print-intro">
-        Cumulative cost of ownership for {inputs.fleetSize} machine{inputs.fleetSize > 1 ? 's' : ''} — purchase price
+        Cumulative total cost of ownership (TCO) for {inputs.fleetSize} machine{inputs.fleetSize > 1 ? 's' : ''} — purchase price
         plus escalated energy and service — from day one to {formatHours(maxHours)}.
       </p>
 
@@ -53,13 +53,13 @@ export default function PrintTimelinePage({ selection, inputs, pageNumber, pageC
         <thead>
           <tr>
             <th>Operating hours</th>
-            <th>≈ Calendar year</th>
+            <th>≈ Years</th>
             {machines.map((m) => (
               <th key={m.machine.uid} className="num">
-                {m.machine.variant ? `${m.machine.name} (${m.machine.variant})` : m.machine.name} cumulative
+                {variantName(m.machine)} cumulative
               </th>
             ))}
-            {best && <th className="num">{variantName(heroMachine)} advantage</th>}
+            {best && <th className="num">{variantName(heroMachine)} saving</th>}
           </tr>
         </thead>
         <tbody>

@@ -34,7 +34,7 @@
             ]
           },
           "costs": {
-            "priceExVat": 3150000,
+            "priceExVat": 3450000,
             "//priceExVat": "Charger (320 kW) is included in the machine price — no separate charging-infrastructure cost.",
             "consumptionBreakpoints": [[50, 20], [65, 30], [85, 35], [100, 40]],
             "routineServicePerHour": 0,
@@ -65,7 +65,7 @@
             ]
           },
           "costs": {
-            "priceExVat": 1850000,
+            "priceExVat": 2000000,
             "consumptionBreakpoints": [[50, 10], [65, 12], [85, 14], [100, 16]],
             "routineServicePerHour": 29,
             "maintenancePerYearAt2000h": 74873,
@@ -96,7 +96,7 @@
             ]
           },
           "costs": {
-            "priceExVat": 2200000,
+            "priceExVat": 2350000,
             "consumptionBreakpoints": [[50, 10], [65, 12], [85, 14], [100, 16]],
             "routineServicePerHour": 29,
             "maintenancePerYearAt2000h": 74873,

@@ -20,9 +20,9 @@ import { formatCurrency, formatHours, variantName } from './format';
 // assistant answer "what is this page?" without retrieval.
 const PAGE_NOTES = {
   dashboard: 'the landing page, which introduces the tool and its five steps',
-  inputs: 'the "01 Inputs" page, where the customer\'s operating parameters are entered (machines to compare, daily hours, energy prices, fuel-theft control, fleet size)',
+  inputs: 'the "01 Inputs" page, where the customer\'s operating parameters are entered (machines to compare, machine prices — editable, defaulting to list price, with a discount-off-list summary when lowered — daily hours, energy prices, fuel-theft control, fleet size)',
   comparison: 'the "02 Comparison" page: the comparison-window slider (its two-colour bar shows which machine is cheaper over which hours), a card for the cheapest machine at the chosen window, gap cards for the other machines, and per-1,000 h running-cost tallies per machine',
-  chart: 'the "03 Cost Over Time" page: the cumulative cost-over-operating-hours chart (purchase price plus all running costs), with the crossover point marked where the total-cost lines cross',
+  chart: 'the "03 Cost Over Hours" page: the cumulative cost-over-operating-hours chart (purchase price plus all running costs), with the crossover point marked where the total-cost lines cross',
   details: 'the "04 Spec Sheet" page: the full specification and assumptions table for each selected machine',
   calculation: 'the "05 Calculations" page: every calculation shown transparently with the live numbers plugged in, each step explained in plain language',
 };

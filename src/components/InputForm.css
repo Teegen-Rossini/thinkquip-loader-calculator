@@ -61,6 +61,29 @@
   min-width: 0;
 }
 
+/* Machine Prices row: grid instead of flex so the three price fields wrap to
+   new rows when narrow, and machine names may break across lines — their
+   default nowrap model text otherwise overflows into the next column. */
+.field-row--prices {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 14px 16px;
+}
+
+.field-row--prices .field {
+  margin-bottom: 0;
+}
+
+.field-row--prices .field__label .machine-name {
+  flex-wrap: wrap;
+  row-gap: 2px;
+}
+
+.field-row--prices .field__label .machine-name__model {
+  white-space: normal;
+  line-height: 1.2;
+}
+
 .field__label {
   display: block;
   font-size: 13px;
@@ -90,6 +113,16 @@
   font-size: 12px;
   color: var(--estimate);
   margin-top: 4px;
+}
+
+/* Discount-off-list summary under a machine-price input — shown only when the
+   entered price is below the default list price. */
+.field__discount {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--tq-turquoise-dark);
+  margin-top: 4px;
+  line-height: 1.45;
 }
 
 .info-tip {
