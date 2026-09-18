@@ -8,9 +8,8 @@ SW956E electric wheel loader and the SANY SYL956H5 diesel wheel loader.
 
 - Address: 11 Voyager Street, Linbro Park, JHB (Johannesburg)
 - Website: www.thinkquip.co.za
-- Phone: +27 83 973 1378
-- Email: mathew@thinkquip.co.za
 
-For final pricing, quotes, finance options, delivery and machine availability,
-contact the ThinkQuip team directly — the calculator's figures are planning
-estimates that must be confirmed before purchase.
+The calculator is always used by a ThinkQuip salesperson sitting with the
+customer. For final pricing, quotes, finance options, delivery and machine
+availability, the customer should ask that salesperson — the calculator's
+figures are planning estimates that must be confirmed before purchase.

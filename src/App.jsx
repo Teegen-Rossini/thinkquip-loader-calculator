@@ -11,7 +11,7 @@ import {
 import { runSelection } from './lib/calculationEngine';
 import { buildPageContext } from './lib/chatPageContext';
 import { useAuth } from './lib/useAuth';
-import { saveSalesmanCopy } from './lib/saveSalesmanCopy';
+import { saveSalesmanCopy, saveCustomerCopy, isDesktop } from './lib/saveSalesmanCopy';
 import { printWithSuggestedName } from './lib/printDialog';
 import { suggestedFileName } from './lib/salesmanCopyPath';
 import LoginScreen, { AuthNotice, AuthLoading } from './components/LoginScreen';
@@ -205,11 +205,25 @@ function App() {
   // print dialog opens / the desktop bridge snapshots the DOM — without it the
   // state update would land after the PDF was already produced.
 
-  /** Customer take-home brochure: cover reads "CUSTOMER COPY". Print or save.
-   *  Never auto-files into the salesman folder. */
+  /** Customer take-home brochure: cover reads "CUSTOMER COPY". PRINT — the
+   *  system print dialog (a real printer, or the browser's "Save as PDF").
+   *  Never auto-files anywhere. */
   const handlePrintCustomerCopy = () => {
     flushSync(() => setCopyKind('customer'));
     printWithSuggestedName(suggestedFileName('customer', { inputs }));
+  };
+
+  /** Customer take-home brochure — SAVE (desktop only): renders the PDF and
+   *  opens a native Save As dialog so the salesman gets a file to email or
+   *  hand over. The browser has no such path; it only gets the print button. */
+  const handleSaveCustomerCopy = async () => {
+    if (saving) return;
+    flushSync(() => setCopyKind('customer'));
+    setSaving(true);
+    setSaveNotice(null);
+    const result = await saveCustomerCopy({ inputs });
+    if (result.message) setSaveNotice(result);
+    setSaving(false);
   };
 
   /** ThinkQuip's master record: cover reads "THINKQUIP COPY" (a fixed label,
@@ -312,8 +326,18 @@ function App() {
               >
                 {saving ? 'Saving…' : 'Save ThinkQuip Copy'}
               </button>
+              {isDesktop() && (
+                <button
+                  type="button"
+                  className="print-btn"
+                  onClick={handleSaveCustomerCopy}
+                  disabled={saving}
+                >
+                  {saving ? 'Saving…' : 'Save Customer Copy'}
+                </button>
+              )}
               <button type="button" className="print-btn" onClick={handlePrintCustomerCopy}>
-                Print / Save Customer Copy
+                {isDesktop() ? 'Print Customer Copy' : 'Print / Save Customer Copy'}
               </button>
               <button type="button" className="logout-btn" onClick={signOut}>
                 Log out
@@ -401,6 +425,7 @@ function App() {
             prevLabel="Spec Sheet"
             onPrev={() => setActiveTab('details')}
             onPrintCustomerCopy={handlePrintCustomerCopy}
+            onSaveCustomerCopy={isDesktop() ? handleSaveCustomerCopy : undefined}
             onSaveThinkquipCopy={handleSaveThinkquipCopy}
             saving={saving}
           />
@@ -424,7 +449,7 @@ function App() {
         </div>
       )}
 
-      <ChatWidget pageContext={buildPageContext({ activeTab, inputs, selection })} />
+      <ChatWidget pageContext={buildPageContext({ activeTab, inputs, selection, salesman })} />
 
       {!isDashboard && (
         <footer className="app-footer no-print">

@@ -5,8 +5,9 @@ import './PageNav.css';
  * Consistent per-page navigation footer. The previous button (if any) sits
  * bottom-left, the next / output buttons bottom-right. All buttons share one
  * size across every page. On the final page, pass the two copy handlers instead
- * of a next target to render the end-of-sequence output buttons: the customer
- * take-home brochure, and ThinkQuip's own filed record.
+ * of a next target to render the end-of-sequence output buttons: ThinkQuip's
+ * filed record, then the customer take-home brochure — saved as a file (desktop
+ * only, when onSaveCustomerCopy is given) and/or printed.
  */
 export default function PageNav({
   prevLabel,
@@ -14,6 +15,7 @@ export default function PageNav({
   nextLabel,
   onNext,
   onPrintCustomerCopy,
+  onSaveCustomerCopy,
   onSaveThinkquipCopy,
   saving = false,
 }) {
@@ -42,9 +44,19 @@ export default function PageNav({
             {saving ? 'Saving…' : 'Save ThinkQuip Copy'}
           </button>
         )}
+        {onSaveCustomerCopy && (
+          <button
+            type="button"
+            className="btn-nav btn-nav--print"
+            onClick={onSaveCustomerCopy}
+            disabled={saving}
+          >
+            {saving ? 'Saving…' : 'Save Customer Copy'}
+          </button>
+        )}
         {onPrintCustomerCopy && (
           <button type="button" className="btn-nav btn-nav--print" onClick={onPrintCustomerCopy}>
-            Print / Save Customer Copy
+            {onSaveCustomerCopy ? 'Print Customer Copy' : 'Print / Save Customer Copy'}
           </button>
         )}
       </div>

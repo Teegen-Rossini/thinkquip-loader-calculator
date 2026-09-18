@@ -24,7 +24,7 @@ const machinesData = JSON.parse(
 const OUT_DIR = './content/generated';
 
 const { CALC_DEFAULTS, ESCALATION, DEFAULT_PRICES, DIESEL_SERVICE, FUEL_THEFT_LEVELS,
-  OPERATION_BANDS, CONSUMPTION_BREAKPOINTS, COMPANY, PREPARED_BY } = config;
+  OPERATION_BANDS, CONSUMPTION_BREAKPOINTS, COMPANY } = config;
 
 // ---------------------------------------------------------------------------
 // Formatting
@@ -273,7 +273,7 @@ Inputs are saved in the browser (localStorage) and restored on the next visit.
 "Print / Save as PDF" produces a fixed A4 brochure containing exactly the machines selected on screen: a cover page (with Prepared For / Prepared By fields and the quote date), an Inputs & Assumptions page, a Machine Comparison page (figures at the on-screen comparison window), the Cost Over Operating Hours chart with a sampled-points table, and one full spec-sheet page per selected machine. Page numbers adjust to the selection.
 
 ## Who to contact
-${COMPANY.name}, ${COMPANY.address} — ${COMPANY.website}. Prepared-by contact on quotes: ${PREPARED_BY.name}, cell ${PREPARED_BY.cell}, email ${PREPARED_BY.email}.
+${COMPANY.name}, ${COMPANY.address} — ${COMPANY.website}. Quotes, finance and follow-up go through the ThinkQuip salesperson using the calculator with the customer (their name and contact details appear on the printed brochure's Prepared By block).
 
 ## Honest limitations
 - The default electricity and diesel prices are placeholders, not live feeds — the salesperson should enter the customer's actual rates.

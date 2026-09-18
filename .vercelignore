@@ -1,0 +1,10 @@
+# Vercel hosts the chat API (api/) and the login-gated web build (dist/).
+# Nothing else needs to be uploaded.
+src-tauri/
+content/
+docs/
+scripts/generate-knowledge.mjs
+*.png
+*.md
+!README.md
+ingest.mjs

@@ -151,3 +151,41 @@ export async function saveSalesmanCopy({ salesman, inputs }) {
     };
   }
 }
+
+/**
+ * Save the CUSTOMER Copy (the take-home brochure, cover reads "CUSTOMER COPY").
+ *
+ * Never auto-filed — the salesman chooses where it goes:
+ *   - DESKTOP: render the PDF silently, then open the native "Save As" dialog
+ *     with the suggested filename, so the salesman gets a real file to hand
+ *     over or email (printing to paper can be done from that PDF).
+ *   - BROWSER: the normal print / "Save as PDF" dialog with the suggested name.
+ *
+ * Returns { ok, mode: 'desktop' | 'cancelled' | 'browser', path?, message }.
+ */
+export async function saveCustomerCopy({ inputs }) {
+  const suggestedName = suggestedFileName('customer', { inputs });
+  const bridge = getDesktopBridge();
+
+  if (!bridge || typeof bridge.saveAs !== 'function') {
+    printWithSuggestedName(suggestedName);
+    return { ok: true, mode: 'browser', suggestedName, message: '' };
+  }
+
+  try {
+    const bytes = await bridge.renderPdf();
+    const savedTo = await bridge.saveAs(`${suggestedName}.pdf`, bytes);
+    if (savedTo) {
+      return { ok: true, mode: 'desktop', path: savedTo, message: `Customer Copy saved to ${savedTo}` };
+    }
+    return { ok: false, mode: 'cancelled', message: 'Save cancelled — the Customer Copy was not saved.' };
+  } catch {
+    // Render or write failure — never lose the PDF: fall back to the print dialog.
+    printWithSuggestedName(suggestedName);
+    return {
+      ok: false,
+      mode: 'browser',
+      message: "Couldn't save the Customer Copy directly. Opened the normal print / save dialog instead.",
+    };
+  }
+}

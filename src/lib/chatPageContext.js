@@ -108,13 +108,21 @@ function costTable(selection) {
  * The full snapshot. Returns a plain-text block describing the active page,
  * the live inputs, and the computed results the customer can see.
  */
-export function buildPageContext({ activeTab, inputs, selection }) {
+export function buildPageContext({ activeTab, inputs, selection, salesman }) {
   const H = annualHours(inputs);
   const band = operationBand(inputs.operationSlider);
   const theft = FUEL_THEFT_LEVELS.find((l) => l.id === inputs.fuelTheftLevel) ?? FUEL_THEFT_LEVELS[1];
   const lines = [];
 
   lines.push(`Page being viewed: ${PAGE_NOTES[activeTab] ?? activeTab}.`);
+  // The logged-in salesperson sitting with the customer — the assistant hands
+  // every quote / follow-up request to them by name, never to head office.
+  if (salesman?.name) {
+    const reach = [salesman.cell && `cell ${salesman.cell}`, salesman.email && `email ${salesman.email}`]
+      .filter(Boolean)
+      .join(', ');
+    lines.push(`Salesperson present: ${salesman.name}${reach ? ` (${reach})` : ''} — the ThinkQuip salesperson running this calculator with the customer.`);
+  }
   lines.push('');
   lines.push(
     'Live inputs: ' +

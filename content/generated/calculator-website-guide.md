@@ -28,7 +28,7 @@ Inputs are saved in the browser (localStorage) and restored on the next visit.
 "Print / Save as PDF" produces a fixed A4 brochure containing exactly the machines selected on screen: a cover page (with Prepared For / Prepared By fields and the quote date), an Inputs & Assumptions page, a Machine Comparison page (figures at the on-screen comparison window), the Cost Over Operating Hours chart with a sampled-points table, and one full spec-sheet page per selected machine. Page numbers adjust to the selection.
 
 ## Who to contact
-ThinkQuip, 11 Voyager Street, Linbro Park, JHB — www.thinkquip.co.za. Prepared-by contact on quotes: ThinkQuip, cell +27 83 973 1378, email mathew@thinkquip.co.za.
+ThinkQuip, 11 Voyager Street, Linbro Park, JHB — www.thinkquip.co.za. Quotes, finance and follow-up go through the ThinkQuip salesperson using the calculator with the customer (their name and contact details appear on the printed brochure's Prepared By block).
 
 ## Honest limitations
 - The default electricity and diesel prices are placeholders, not live feeds — the salesperson should enter the customer's actual rates.

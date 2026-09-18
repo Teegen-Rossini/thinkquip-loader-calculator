@@ -11,12 +11,15 @@
 .page-nav__slot {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 /* Keep the next / print button pinned bottom-right even when there is no
    previous button on the left. */
 .page-nav__slot--right {
   margin-left: auto;
+  justify-content: flex-end;
 }
 
 .btn-nav {
@@ -65,7 +68,8 @@
   background-color: var(--tq-turquoise-dark);
 }
 
-.btn-nav--thinkquip-copy:disabled {
+.btn-nav--thinkquip-copy:disabled,
+.btn-nav--print:disabled {
   opacity: 0.6;
   cursor: not-allowed;
   transform: none;
