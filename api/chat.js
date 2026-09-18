@@ -8,6 +8,7 @@
 // Netlify / Cloudflare equivalents are in the README.
 
 import { answerQuestion } from './_lib/rag.js';
+import { verifyUser, authConfigured } from './_lib/auth.js';
 
 // Only let your own site call this endpoint (set ALLOWED_ORIGINS in env)
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '')
@@ -22,9 +23,18 @@ export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', origin);
   }
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  // --- Auth: only logged-in salesmen may use the assistant (fail closed) ---
+  if (!authConfigured()) {
+    console.error('[chat] VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY not set — refusing all requests.');
+    return res.status(503).json({ error: 'Chat auth not configured.' });
+  }
+  if (!(await verifyUser(req.headers.authorization))) {
+    return res.status(401).json({ error: 'Sign in to use the assistant.' });
+  }
 
   try {
     const { message, history = [], pageContext = '' } = req.body || {};

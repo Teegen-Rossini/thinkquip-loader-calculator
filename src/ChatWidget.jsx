@@ -6,6 +6,7 @@ import './ChatWidget.css';
 import launcherKid from './thinkquip-assistant-launcher.png';
 import peekKid from './thinkquip-assistant-peek.png';
 import { THINKQUIP_LOGO_WHITE } from './data/machinesConfig';
+import { supabase } from './lib/supabase';
 
 /**
  * In the browser/dev this is the relative route (Vite middleware in dev, the
@@ -18,6 +19,15 @@ import { THINKQUIP_LOGO_WHITE } from './data/machinesConfig';
  * desktop binary.
  */
 const ENDPOINT = import.meta.env.VITE_CHAT_API_URL?.trim() || '/api/chat';
+
+/** The logged-in salesman's Supabase access token — the server refuses chat
+ *  requests without one, so the public endpoint can't be used anonymously. */
+async function authHeader() {
+  if (!supabase) return {};
+  const { data } = await supabase.auth.getSession();
+  const token = data?.session?.access_token;
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 
 // Conversation survives page reloads within the tab; a closed tab starts fresh
 // (sessionStorage, deliberately not localStorage — this runs on shared sales machines).
@@ -78,7 +88,7 @@ export default function ChatWidget({ pageContext }) {
     try {
       const res = await fetch(ENDPOINT, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await authHeader()) },
         body: JSON.stringify({
           message: text,
           // Only the recent turns — the server reads at most the last few, so
@@ -87,6 +97,7 @@ export default function ChatWidget({ pageContext }) {
           pageContext,
         }),
       });
+      if (res.status === 401) throw new Error('auth');
       if (!res.ok) throw new Error('server');
       const data = await res.json();
       setMessages((m) => [...m, { role: 'assistant', content: data.answer }]);
@@ -94,7 +105,9 @@ export default function ChatWidget({ pageContext }) {
       // Distinguish "the server answered with an error" (a hiccup answering —
       // retrying usually works) from "the request never got through" (network).
       const friendly =
-        err?.message === 'server'
+        err?.message === 'auth'
+          ? 'Your login session has expired — please log out and back in to keep using the assistant.'
+          : err?.message === 'server'
           ? 'Something went wrong answering that one — please try again. If it keeps happening, give ThinkQuip a shout directly.'
           : "I couldn't reach the server just now. Please check your connection and try again.";
       setMessages((m) => [...m, { role: 'assistant', content: friendly }]);

@@ -102,6 +102,14 @@ hosted serverless function. A packaged desktop app has no server, so
 building, or the chat will not work in the desktop app. Do **not** bundle the
 OpenAI/Pinecone keys into the desktop binary — they stay on the host.
 
+**The chat endpoint is login-gated.** `api/chat.js` is public on the internet,
+so it refuses any request without a valid Supabase access token
+(`api/_lib/auth.js` checks `Authorization: Bearer <jwt>` against
+`/auth/v1/user`; the widget attaches the current session's token). It fails
+closed: 503 if `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` are missing on
+the host, 401 for a missing/expired token. The `npm run dev` middleware in
+`vite.config.js` is deliberately unauthenticated (localhost only).
+
 ## Commands
 
 ```bash
