@@ -1,10 +1,11 @@
 # Vercel hosts the chat API (api/) and the login-gated web build (dist/).
-# Nothing else needs to be uploaded.
+# Only exclude what neither needs. Do NOT exclude *.png or scripts/ - the Vite
+# build imports the machine/logo images and prebuild runs scripts/validate-machines.js.
 src-tauri/
 content/
 docs/
 scripts/generate-knowledge.mjs
-*.png
+scripts/knowledge-loader-hooks.mjs
+ingest.mjs
 *.md
 !README.md
-ingest.mjs
